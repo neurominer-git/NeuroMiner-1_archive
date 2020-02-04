@@ -1,12 +1,12 @@
-function [act, analdim, p, GridAct, mapY, strout] = nk_PreprocessPrep( act, dat, analdim, GridAct, p, parentstr)
+function [act, analdim, p, GridAct, mapY, strout] = nk_PreprocessPrep( act, analdim, GridAct, p, parentstr)
 % =========================================================================
-% FORMAT function [mapY, strout, GridAct] = ...
-%                   nk_PreprocessPrep( dat, analdim, GridAct, p, parentstr)
+% FORMAT function [act, analdim, p, GridAct, mapY, strout] = ...
+%                   nk_PreprocessPrep( act, analdim, GridAct, p, parentstr)
 % =========================================================================
 % This function allows the interactive and batch use of the preprocessing
 % module of NM.
 % %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% (c) Nikolaos Koutsouleris 06/2017
+% (c) Nikolaos Koutsouleris 01/2020
 
 global PREPROC MODEFL CV DR SAV RAND USEPARAMEXIST FUSION TEMPL CALIB MULTI STACKING NM
 clc
@@ -24,11 +24,11 @@ yesnostr = {'yes','no'};
 
 % Select analysis to work on
 if isempty(analdim), analstr = 'none selected'; else analstr = ['Analysis ' num2str(analdim) ' selected']; end
-if numel(dat.analysis) > 1, 
+if numel(NM.analysis) > 1, 
     menustr = ['Select analysis to operate on [ ' analstr ' ]|']; menuact = 1;
 else
     analdim = 1; menuact = []; menustr = [];
-    analysis = dat.analysis{analdim}; nk_SetupGlobVars2(analysis.params, 'setup_main', 0); 
+    analysis = NM.analysis{analdim}; nk_SetupGlobVars2(analysis.params, 'setup_main', 0); 
     [operms,ofolds] = size(CV.TrainInd);
     if (~exist('GridAct','var') || isempty(GridAct)) || ~isequal(size(GridAct), [operms ofolds]), 
         GridAct = true(operms,ofolds);
@@ -64,10 +64,10 @@ if ~p.batchflag, act = nk_input(mestr, 0, 'mq', menustr, menuact); end
 switch act
     case 1
         showmodalvec=[]; tact = 1; tanaldim = analdim; brief=1;
-        while tact>0, [ tact, tanaldim,~, showmodalvec, brief ] = nk_SelectAnalysis(dat, 0, 'MAIN INTERFACE >> PREPROCESSING MODULE', tanaldim, [], 0, showmodalvec, brief); end;
+        while tact>0, [ tact, tanaldim,~, showmodalvec, brief ] = nk_SelectAnalysis(NM, 0, 'MAIN INTERFACE >> PREPROCESSING MODULE', tanaldim, [], 0, showmodalvec, brief); end;
         if ~isempty(tanaldim) 
             analdim = tanaldim;
-            analysis = dat.analysis{analdim}; nk_SetupGlobVars2(analysis.params, 'setup_main', 0); 
+            analysis = NM.analysis{analdim}; nk_SetupGlobVars2(analysis.params, 'setup_main', 0); 
             [operms,ofolds] = size(CV.TrainInd);
             if (~exist('GridAct','var') || isempty(GridAct)) || ~isequal(size(GridAct), [operms ofolds]), 
                 GridAct = false(operms,ofolds);
@@ -84,7 +84,7 @@ switch act
         [operms,ofolds] = size(CV.TrainInd);
         t_act = 1; while t_act > 0 && t_act < 10, [ t_act, GridAct ] = nk_CVGridSelector(operms, ofolds, GridAct, 0); end
     case {6,7}
-        analysis = dat.analysis{analdim};
+        analysis = NM.analysis{analdim};
         if isempty(SAV), nk_SetupGlobVars2(analysis.params, 'setup_main', 0); end
         NM.runtime.curanal = analdim;
         tdir = pwd; if isfield(analysis,'rootdir') && exist(analysis.rootdir,'dir'), tdir = analysis.rootdir; end
@@ -130,13 +130,13 @@ switch act
         %% Define program parameters
         if strcmp(MODEFL,'classification') && RAND.Decompose ~= 9, kbin = length(CV.class{1,1}); end
 
-        datid       = dat.id;
+        datid       = NM.id;
         switch act
             case 6
             for j = 1:nM
 
                 %% Get Training / CV data (Y) & Build modality suffix
-                inp = nk_SetFusionMode2(dat, analysis, F, nM, j);
+                inp = nk_SetFusionMode2(NM, analysis, F, nM, j);
 
                 %fprintf('\nWORKING ON MODALITY #%g', j);
                 if numel(inp.PREPROC)>1
@@ -166,6 +166,14 @@ switch act
                 if isfield(inp,'Yw'),  
                     fprintf('\nSmoothing weighting map')
                     inp.Yw = nk_PerfSpatFilt2( inp.Yw, PREPROC, inp.X ); 
+                else
+                    I = arrayfun( @(j) isfield(PREPROC.ACTPARAM{j},'RANK'), 1:numel( PREPROC.ACTPARAM ));
+                    if any(I), 
+                        if isfield(PREPROC.ACTPARAM{I}.RANK,'EXTERN')
+                            inp.Yw = PREPROC.ACTPARAM{I}.RANK.EXTERN;
+                            inp.Yw = nk_PerfSpatFilt2( inp.Yw, PREPROC, inp.X ); 
+                        end
+                    end
                 end
                 % Check whether calibration data is available 
                 if exist('C','var') && ~isempty(C) && isfield(PREPROC,'CALIB') && ~isempty(PREPROC.CALIB),
@@ -250,15 +258,15 @@ switch act
         case 7
             
             % LABEL SCALING (regression only)
-            %datid = dat.id;
+            %datid = NM.id;
             
             nk_SetupGlobVars2(analysis.params, 'setup_strat', 1); 
-            labels = nk_LabelTransform(PREPROC, MODEFL, dat.label);
+            labels = nk_LabelTransform(PREPROC, MODEFL, NM.label);
             %% Get Training / CV data (Y) & Build modality suffix
-            inp = nk_SetFusionMode2(dat, analysis, F, nM, 1);
+            inp = nk_SetFusionMode2(NM, analysis, F, nM, 1);
             inp.nM = nM;
             inp.multiflag = 0; if ~isempty(MULTI) && MULTI.flag, inp.multiflag = nk_input('Select models at multi-group optimum', 0,'yes|no',[1,0],1); end
-            if isfield(dat,'covars'); inp.covars = dat.covars; else inp.covars = []; end
+            if isfield(NM,'covars'); inp.covars = NM.covars; else inp.covars = []; end
             inp.covars_oocv = []; inp.ll=1;
             for ix=1:operms % Loop through CV2 perms
 
@@ -269,7 +277,7 @@ switch act
                         inp.f = ix; inp.d = jx; inp.nclass = kbin;
                         %% Construct output filename(s) and check for their existence
                         strout = nk_Preprocess_StrCfg(ix, jx);
-                        savnamY = [matname strout '_PreprocDataMeta_ID' dat.id];
+                        savnamY = [matname strout '_PreprocDataMeta_ID' NM.id];
                         savmatY  = fullfile(tdir,[savnamY '.mat']);
                         savnamP = [matname strout inp.varstr '_PreprocDataParamMeta_ID' datid];
                         savmatP = fullfile(tdir,[savnamP '.mat']);

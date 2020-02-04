@@ -35,44 +35,9 @@ global SVM %TEMPL
 
 if ~exist('procfl','var') || isempty(procfl), procfl = true; end
 if ~exist('Fadd','var') || isempty(Fadd), Fadd = true(size(F)); end
-mPA = []; PA = []; AnalP=[]; warning off
-% Check what type of kernel has been used
-switch SVM.prog
-    case {'LIBSVM','LIBLIN'}
-        switch SVM.kernel.kernstr
-            case{' -t 0',' -t 4',' -t 5','lin', 'linear', 'none'} 
-                %%%%%%%%%%%%% USE WEIGHTS OF MODEL %%%%%%%%%%%%
-                xV = nk_GetPrimalW(MD); % Get weight vector over feature space
-                if ~decompfl(1), 
-                    % Remove cases which are completely NaN
-                    [Yn, Ln] = nk_ManageNanCases(Y, L); 
-                    AnalP = compute_analytical_pvals(Ln,Yn,xV'); 
-                end
-            otherwise % non-linear
-                %%%%%%%%%% COMPUTE MIN. DIFF. VECTORS %%%%%%%%% 
-                xV = nk_VisSV(MD, Y, L);
-        end
-    case 'MEXELM'
-        xV = MD.outW;
-    case 'GLMFIT'
-        xV = MD.beta(2:end);
-    case 'matLRN'
-        % Check whether addBias == 1 and whether algo was kernalized
-        if isfield(MD,'addBias') && MD.addbias, xV = MD.w(2:end); else, xV = MD.w; end
-        if isfield(MD,'kernel') && MD.kernel, error('Unfortunately, the pre-image of the kernel weight vector cannot be computed with the current version NM.'); end
-    case 'GLMNET'
-        xV = MD.beta(:,end);
-    case 'RNDFOR'
-        xV = MD.importance;
-    case 'MikRVM'
-        % Use the Quality factor (=importance of feature for reducing the prediction error)
-        % in the RVM model as weight vector in the subsequent computations
-        xV = MD.D.Q_Factor';
-    case 'DECTRE'
-        xV = MD.predictorImportance;
-    otherwise
-        error(['Vizualisation for ' SVM.prog ' not supported yet. Please consult the NM Manual for more information']);
-end
+mPA = []; PA = []; warning off
+% Get weight vector;
+[xV, AnalP] = nk_GetAlgoWeightVec(SVM, Y, L, MD, decompfl, true);
 W       = zeros(size(F,1),1);
 W(F)    = xV;
 W(~Fadd)= 0;
@@ -173,6 +138,8 @@ for n=1:nM
                        redvec = nPX{a}.mpp.vec;
                     elseif isfield(nPX{a}.mpp,'factors')
                        redvec = nPX{a}.mpp.factors{1};
+                    elseif isfield(nPX{a}.mpp,'u')
+                       redvec = nPX{a}.mpp.u;
                     end
                     
                     if isfield(nPX{a},'ind0')
@@ -201,9 +168,10 @@ for n=1:nM
                                     nmW = mpp.vec * nmW;
                                     nmP = logical(mpp.vec * nmP);
                             end
-                        case 'NNMF'
+                        case {'NNMF','PLS'}
                              nmW = mpp.vec * nmW;
                              nmP = logical(mpp.vec * nmP);
+                             
                         otherwise
                              nmW = reconstruct_data(nmW, nPX{a}.mpp);
                              nmP = logical(reconstruct_data(nmP, nPX{a}.mpp));
@@ -248,8 +216,12 @@ for n=1:nM
         % Run univariate correlation analysis if no factorization method
         % had been applied to the data
         if ~decompfl(n)
-            tY = zeros(size(Y,1),numel(nmP)); 
-            tY(:,nmP) = Y(:,VI(Fu) == n); 
+            if nM > 1
+                tY = zeros(size(Y,1),numel(nmP)); 
+                tY(:,nmP) = Y(:,VI(Fu) == n); 
+            else
+                tY = Y;
+            end
             % Rows with Nans will be removed by nk_CorrMat
             nmR  =   nk_CorrMat(L, tY,'pearson'); 
             nmSR =   nk_CorrMat(L, tY,'spearman');
@@ -277,9 +249,18 @@ for n=1:nM
         else
             mW{n} = nmW;
             mP{n} = nmP;
-            mR{n} = nmR;
-            mSR{n} = nmSR; 
             if ~isempty(PA), mPA{n} = nmPA; end
+            if ~decompfl(n)
+                if isempty(mR{n})
+                    mR{n} = zeros(size(nmW,1),1);
+                    mSR{n} = zeros(size(nmW,1),1);
+                end
+                mR{n}(lFuVI) = nmR;
+                mSR{n}(lFuVI) = nmSR; 
+            else
+                mR{n} = nmR;
+                mSR{n} = nmSR; 
+            end
         end
     else
         % Concatenate weight vectors

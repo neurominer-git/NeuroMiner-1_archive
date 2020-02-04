@@ -99,7 +99,7 @@ switch NM.modeflag
                 mnusel = [ mnusel 9 ];
                 if ~isfield(SVM.ADASYN,'normalized'), SVM.ADASYN.normalized = false; end
                 if SVM.ADASYN.normalized, normstr = 'yes'; else, normstr = 'no'; end
-                mnuact = [ mnuact sprintf('Normalize data for kNN [ %s ]|',normstr) ];
+                mnuact = [ mnuact sprintf('Data is already normalized for kNN search [ %s ]|',normstr) ];
                 mnusel = [ mnusel 10 ];
             end
         end

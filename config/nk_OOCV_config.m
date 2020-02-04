@@ -1,9 +1,9 @@
 % =========================================================================
 % FORMAT param = nk_OOCV_config(param, res)
 % =========================================================================
-%
+% NeuroMiner menu configurator for the OOCV runtime parameters
 % %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% (c) Nikolaos Koutsouleris, 07 / 2011
+% (c) Nikolaos Koutsouleris, 10 / 2019
 
 function [param, act] = nk_OOCV_config(param)
 global NM
@@ -23,11 +23,9 @@ trainwithCV2Ts = 1;
 if ~isfield(NM.TrainParam,'OOCV')
     NM.TrainParam.OOCV.meanflag = meanflag;
     NM.TrainParam.OOCV.preproc = preproc;
-    %NM.TrainParam.OOCV.savemodels = savemodels;
     NM.TrainParam.OOCV.groupmode = groupmode;
     NM.TrainParam.OOCV.multiflag = multiflag;
     NM.TrainParam.OOCV.trainwithCV2Ts = trainwithCV2Ts;
-    %NM.TrainParam.OOCV.saveoocvdata = saveoocvdata;
 end
 o = nk_GetParamDescription2(NM,NM.TrainParam,'oocv');
 
@@ -39,15 +37,11 @@ if multiflag && ~strcmp(NM,'regression')
                      'Ensemble mode [ ' o.meanflagstr ' ]|' ...
                      'Group processing mode [ ' o.groupmodestr ' ]|' ...
                      'Model retraining mode [ ' o.trainwithCV2Tsstr ' ]'],1:4);
-                     %'Save retrained models [ ' o.savemodelstr ' ]' ...
-                     %'Save preprocessed independent test data [ ' o.saveoocvdatastr ' ]'],1:6);
 else
     act = nk_input('MAIN INTERFACE >> DEFINE PARAMETERS >> OOCV settings',0,'mq', ...
                     ['Preprocessing [ ' o.preprocstr ' ]|'  ...
                      'Ensemble mode [ ' o.meanflagstr ' ]|' ...
                      'Model retraining mode [ ' o.trainwithCV2Tsstr ' ]'],[1 2 4]);
-                     %'Save retrained models [ ' o.savemodelstr ' ]|' ...
-                     %'Save preprocessed independent test data [ ' o.saveoocvdatastr ' ]'],[1 2 4 5 6]);
 end
 
 switch act
@@ -77,13 +71,7 @@ switch act
         trainwithCV2Ts = nk_input('Model retraining mode', 0, 'm', ...
                                  ['As defined for CV training phase|' ...
                                   'Use all available CV data (CV1+CV2)'], ...
-                                  [1,2], trainwithCV2Ts);
-    
-%     case 5
-%         savemodels = nk_input('Save retrained models', 0, 'yes|no',[1,2], savemodels);
-%     case 6
-%         saveoocvdata = nk_input('Save retrained models', 0, 'yes|no',[1,2], saveoocvdata);
-  
+                                  [1,2], trainwithCV2Ts); 
 end
 
 param.OOCV.preproc = preproc;

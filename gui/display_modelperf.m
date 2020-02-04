@@ -106,6 +106,13 @@ else
     end
     
 end
+handles.currmeas = P;
+handles.currmeasdesc = pardesc;
+
+[handles, contfl] = display_SubParam(handles ,'display_modelperf');
+if ~contfl, 
+    return; 
+end
 
 Ps              = handles.MLparams.ParamCombs;
 Ps_desc         = handles.MLparams.ParamDesc;
@@ -127,6 +134,17 @@ if nPi > 1,
 else
     cpt = rgb('Lawngreen');
 end
+
+if lPi > 500
+    MrkSize = 2; LinSize = 0.1;
+elseif lPi > 250
+    MrkSize = 5; LinSize = 0.25;
+elseif lPi > 150
+    MrkSize = 7.5; LinSize = 0.5;
+else
+    MrkSize = 10; LinSize = 1;
+end
+   
 axes(handles.axes17); cla; hold on
 legend('hide')
 mlx = Inf; mux = 0;
@@ -156,11 +174,11 @@ switch meastype
         for i=1:nPi
             xi = (1:lPi)'; y2 = P(:,i);
             if exist('SEM','var') && ~isempty(SEM)
-                y1 = P(:,i)-SEM(:,i)/2; y3 = (P(:,i)+SEM(:,i)/2);  
+                y1 = P(:,i)-SEM(:,i)/2; y3 = (P(:,i)+SEM(:,i)/2);  y1(isnan(y1))=0; y3(isnan(y3))=0;
                 mlxi = min(y1); muxi = max(y3);
-                hi(i) = plotshaded(xi',[y1'; y2'; y3'], cpt(i,:)) ;
+                hi(i) = plotshaded(xi',[y1'; y2'; y3'], cpt(i,:), MrkSize, LinSize) ;
             else
-                hi(i) = plot(xi,y2,'ko-','MarkerFaceColor', cpt(i,:),'MarkerSize', 10, 'MarkerEdgeColor',rgb('Black'), 'LineWidth', 1.0);
+                hi(i) = plot(xi,y2,'ko-','MarkerFaceColor', cpt(i,:),'MarkerSize', MrkSize, 'MarkerEdgeColor', rgb('Black'), 'LineWidth', 1.0);
                 mlxi = nm_nanmin(y2); muxi = nm_nanmax(y2);
             end
             if mlxi < mlx, mlx = mlxi; end
@@ -169,7 +187,7 @@ switch meastype
         
         % Set GUI data
         pss = cell(1,numel(y));
-        ll=1;
+        ll = 1;
         for k=1:size(P,2)
             for i=1:size(P,1)
                 psj=sprintf(' %s: %1.3f', ylb, P(i,k));
@@ -182,20 +200,20 @@ switch meastype
                     if ~ischar(ijPs), ijPs = num2str(ijPs); end
                     psj = sprintf('%s\n%s: %s',psj, Ps_desc{h}{j}, ijPs);
                 end
-                psj = psj(2:end);
+                psj = sprintf('Parameter combination %g\n%s',ll, psj(2:end));
                 pss{ll} = sprintf('%s',psj);
                 ll=ll+1;
             end
         end
 
-        hText = uicontrol('Style','text','String', pss{1},'FontSize',11, 'Units','normalized', 'Parent', gcf,'Visible','off'); 
+        hText = uicontrol('Style','text', 'String', pss{1}, 'FontSize',11, 'Units','normalized', 'Parent',gcf, 'Visible','off'); 
         figdata.x = x;
         figdata.y = y;
         figdata.patterntext = repmat(pss', nPi,1);
         figdata.parentui    = handles.pnModelPerf;
-        figdata.hPanel      = uipanel('Units','norm', 'Position',hText.Extent-0.005, 'BorderType','etchedout', 'BackgroundColor', [.6 .7 .6], 'Visible','off');
+        figdata.hPanel      = uipanel('Units','norm', 'Position',hText.Extent+0.01, 'BorderType','etchedout', 'BackgroundColor', [.6 .7 .6], 'Visible','off');
         figdata.textHdl     = annotation(figdata.hPanel, 'textbox', 'String','', ...
-                                    'Interpreter','none', ... %'VerticalAlign', 'Top', ...
+                                    'Interpreter','none', ... 
                                     'Color', 'black', ...
                                     'BackgroundColor',[.6 .7 .6], ...
                                     'Position', [0 0 0.99 0.99], ...
@@ -221,8 +239,8 @@ switch meastype
             yi = P(:,i);
             [maxY, maxX] = max(yi);
             [minY, minX] = min(yi);
-            plot(maxX,maxY,'ro','MarkerSize',15, 'LineWidth', 3, 'Parent', handles.axes17)
-            plot(minX,minY,'bo','MarkerSize',15, 'LineWidth', 3, 'Parent', handles.axes17)
+            plot(maxX,maxY,'ro','MarkerSize',MrkSize+5, 'LineWidth', 3, 'Parent', handles.axes17)
+            plot(minX,minY,'bo','MarkerSize',MrkSize+5, 'LineWidth', 3, 'Parent', handles.axes17)
         end
         
 end
@@ -237,6 +255,7 @@ end
 if numel(unique(y)) > 1,
     ylim([mlx mux])
 end
+handles.axes17.XTickMode = 'auto'; handles.axes17.XTickLabelMode = 'auto';
 
 switch handles.NM.modeflag
     case 'classification'
@@ -270,6 +289,7 @@ switch meastype
         handles.axes37.Visible = 'on'; handles.axes37.YLabel.Visible = 'on'; handles.axes37.XLabel.Visible = 'on'; handles.axes37.Title.Visible = 'on'; 
         handles.cmdExportModelPerfC1.Visible='on'; handles.cmdExportModelPerfC2.Visible='on';
         % Print CV2 partition data
+        
         axes(handles.axes35); colormap(jet); hold on
         mux = max(ct.best_TS(:)); mlx = min(ct.best_TS(:));
         imagesc(ct.best_TR); 

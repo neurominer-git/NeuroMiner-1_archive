@@ -23,7 +23,7 @@ function Predict = nk_PredictData(F, W, TR, TRInd, dTRLabel, ...
                                         mTSInd, mTSLabel, ...
                                         MD, ngroups, detrend)
                                     
-global CV MULTI MODEFL VERBOSE RFE EVALFUNC RAND MULTILABEL
+global SVM CV MULTI MODEFL VERBOSE RFE EVALFUNC RAND MULTILABEL
 
 % Initialize Variables
 [iy,jy]     = size(TR);
@@ -52,6 +52,14 @@ if MULTI.flag,
     Predict.MultiCV1Predictions  = cell(iy,jy);
     Predict.MultiCV1Probabilities  = cell(iy,jy);
     Predict.MultiCV1Performance  = zeros(iy,jy); 
+end
+
+if strcmp(SVM.prog,'SEQOPT')
+    Predict.binCV1CasePropagations = cell(iy,jy,nclass);
+    Predict.binCV1PerformanceIncreases = cell(iy,jy,nclass);
+    Ydum = dTSLabel{1};
+else
+    Ydum = zeros(size(dTSLabel{1},1),1);
 end
 
 % Compute size of multi-group and binary arrays to avoid dynamic memory allocation
@@ -183,16 +191,19 @@ for k=1:iy % Loop through CV1 permutations
                 end
             end
             
-            Ydum = zeros(size(XTest,1),1);
-            
             if detrendfl
                [ tsT, tsD ] = nk_ApplyDetrend(XTest, Ydum, XTrain, Mkl, Fkl, detrend);
             else
-                [~, tsT, tsD] = nk_GetTestPerf(XTest, Ydum, Fkl, Mkl, XTrain, 1);
+                [~, tsT, tsD, Mkl] = nk_GetTestPerf(XTest, Ydum, Fkl, Mkl, XTrain, 1);
             end
                
             Predict.binCV1Predictions{k,l,curclass} = tsD;
-            
+            if strcmp(SVM.prog,'SEQOPT')
+                for u=1:size(tsD,2)
+                    Predict.binCV1CasePropagations{k,l,curclass} = [Predict.binCV1CasePropagations{k,l,curclass} Mkl{u}.Nremain_test];
+                    Predict.binCV1PerformanceIncreases{k,l,curclass} = [Predict.binCV1PerformanceIncreases{k,l,curclass}; Mkl{u}.SeqPerfGain_test];
+                end
+            end
             n_subj = size(tsD,1);
             
             % Weight decision values
@@ -256,7 +267,6 @@ for curclass = 1 : nclass
     end 
     dDTs = mDTs(dTSInd{curclass},indCurClass);
     dTTs = mTTs(dTSInd{curclass},indCurClass);
-%     if ScaleFlag, dDTs = nk_PerfScale2(dDTs,[],[],[],2); end
     perf = Predict.binCV1Performance(:,:,curclass);
     Predict.binCV1Performance_Mean(1,curclass) = nm_nanmean(perf(:));
     Predict.binCV1Performance_SD(1,curclass) = nm_nanstd(perf(:));
@@ -306,7 +316,6 @@ for curclass = 1 : nclass
             if sum(hrx==0) > 0 % Throw coin
                 hrx = nk_ThrowCoin(hrx);
             end  
-             
             Predict.binCV2Performance_Targets(curclass) = feval(EVALFUNC, dTSLabel{curclass}(:,MULTILABEL.curdim), hrx);
             Predict.binCV2Performance_DecValues(curclass) = feval(EVALFUNC, dTSLabel{curclass}(:,MULTILABEL.curdim), hdx);
             % TODO: Adapt the next coding statement to feval

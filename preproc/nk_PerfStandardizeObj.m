@@ -31,6 +31,7 @@ if iscell(Y) && exist('IN','var') && ~isempty(IN)
         sY{i} = PerfStandardizeObj(Y{i}, IN ); 
     end
 else
+    if ~exist('IN','var'), IN=[]; end
     % Define active indices depending on training or testing situation
     if isfield(IN,'trained') && IN.trained
        if isfield(IN,'sTsInd'), IN.sIND = IN.sTsInd; else IN.sIND =[]; end

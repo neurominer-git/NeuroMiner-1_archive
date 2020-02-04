@@ -1,4 +1,4 @@
-function STATS = quadetest(x, xnames, filename, varargin)
+function STATS = quadetest(x, xnames, ynames, filename, varargin)
 %QUADETEST: Quade test for non parametric two way ANalysis Of VAriance.
 %This function performs the Quade test to analyze unreplicated complete block
 %designs.
@@ -69,10 +69,17 @@ p = inputParser;
 addRequired(p, 'x',@(x) validateattributes(x,{'numeric'},{'2d','real','finite','nonnan','nonempty'}));
 addOptional(p, 'alpha',0.05, @(x) validateattributes(x,{'numeric'},{'scalar','real','finite','nonnan','>',0,'<',1}));
 addOptional(p, 'verbose', true, @(x) validateattributes(x,{'numeric'},{'binary'}));
+
 if ~exist('xnames','var') || isempty(xnames), 
-    xnames = cellstr([repmat('Model_',size(x,2),1) num2str((1:size(x,2))')])';
+    xnames = cellstr([repmat('Partition_',size(x,1),1) num2str((1:size(x,1))')])';
 else
     xnames = regexprep(xnames,'-','_');
+end
+
+if ~exist('ynames','var') || isempty(ynames), 
+    ynames = cellstr([repmat('Model_',size(x,2),1) num2str((1:size(x,2))')])';
+else
+    ynames = regexprep(ynames,'-','_');
 end
 parse(p,x,varargin{:});
 %assert(all(x(:,2) == fix(x(:,2))),'Warning: all elements of column 2 of input matrix must be whole numbers')
@@ -156,19 +163,37 @@ if nargout >0
         STATS.Crit_met_fdr = mc_fdr;
         STATS.Pval = pval;
         STATS.Pval_fdr = pval_fdr;
-        STATS.tbl_rankdiff_posthoc = array2table(Rdiff,'VariableNames',xnames', 'RowNames',xnames);
-        STATS.tbl_p_posthoc = array2table(pval,'VariableNames',xnames', 'RowNames',xnames);
-        STATS.tbl_p_fdr_posthoc = array2table(pval_fdr,'VariableNames',xnames', 'RowNames',xnames);
-        STATS.tbl_crit_posthoc = array2table(mc,'VariableNames',xnames, 'RowNames',xnames');
-        STATS.tbl_crit_fdr_posthoc = array2table(mc_fdr,'VariableNames',xnames', 'RowNames',xnames);
+        STATS.tbl_perf = array2table(x,'VariableNames',ynames', 'RowNames',xnames);
+        STATS.tbl_rankdiff_posthoc = array2table(Rdiff,'VariableNames',ynames', 'RowNames',ynames);
+        STATS.tbl_p_posthoc = array2table(pval,'VariableNames',ynames', 'RowNames',ynames);
+        STATS.tbl_p_fdr_posthoc = array2table(pval_fdr,'VariableNames',ynames', 'RowNames',ynames);
+        STATS.tbl_crit_posthoc = array2table(mc,'VariableNames',ynames, 'RowNames',ynames');
+        STATS.tbl_crit_fdr_posthoc = array2table(mc_fdr,'VariableNames',ynames', 'RowNames',ynames);
         if exist('filename','var') && ~isempty(filename)
-            writetable(STATS.tbl_blk,filename,'Sheet','blk');
-            writetable(STATS.tbl_quade,filename,'Sheet','Quade');
-            writetable(STATS.tbl_rankdiff_posthoc,filename,'Sheet','Rankdiff','WriteRowNames',true)
-            writetable(STATS.tbl_crit_posthoc,filename,'Sheet','Crit','WriteRowNames',true)
-            writetable(STATS.tbl_p_posthoc,filename,'Sheet','P_uncorr','WriteRowNames',true)
-            writetable(STATS.tbl_p_fdr_posthoc,filename,'Sheet','P_fdr','WriteRowNames',true)
-            %writetable(STATS.tbl_rankdiff_posthoc,filename,'Sheet','Rankdiff_Results','WriteRowNames',true)  
+            sh = { 'pp', 'blk', 'Quade', 'Rankdiff', 'Crit', 'P_uncorr','P_fdr' };
+            writetable(STATS.tbl_perf,filename,'Sheet',sh{1},'WriteRowNames',true);
+            writetable(STATS.tbl_blk,filename,'Sheet',sh{2});
+            writetable(STATS.tbl_quade,filename,'Sheet',sh{3});
+            writetable(STATS.tbl_rankdiff_posthoc,filename,'Sheet',sh{4},'WriteRowNames',true)
+            writetable(STATS.tbl_crit_posthoc,filename,'Sheet',sh{5},'WriteRowNames',true)
+            writetable(STATS.tbl_p_posthoc,filename,'Sheet',sh{6},'WriteRowNames',true)
+            writetable(STATS.tbl_p_fdr_posthoc,filename,'Sheet',sh{7},'WriteRowNames',true) 
+            if ispc
+                try
+                    objExcel = actxserver('Excel.Application');
+                    objExcel.Workbooks.Open(filename); 
+                    % MRZ: delte default sheets in freshly created .xls
+                    [~, sheets] = xlsfinfo(filename);
+                    sheetNames2remove = setdiff(sheets,sh); 
+                    for i = 1:numel(sheetNames2remove)
+                        objExcel.ActiveWorkbook.Worksheets.Item(sheetNames2remove{i}).Delete;
+                    end
+                    objExcel.ActiveWorkbook.Save
+                    objExcel.ActiveWorkbook.Close(filename);
+                    delete(objExcel);
+                catch
+                end         
+            end
         end
     end
 else

@@ -2,27 +2,35 @@ function r = rfe_algo_settings_multi(Y, mY, label, labelB, labelM, mYnew, labeln
 
 global RFE VERBOSE SVM TRAINFUNC
 
-for curclass = 1:numel(Y)
+r.nclass = numel(Y);
+r.ngroups = ngroups;
+r.FeatRandPerc = 0;
+r.FeatStepPerc = true;
+
+if isfield(RFE.Wrapper.GreedySearch,'PreSort') && RFE.Wrapper.GreedySearch.PreSort, r.PreSort= RFE.Wrapper.GreedySearch.PreSort; else r.PreSort = false; end
+
+for curclass = 1:r.nclass
     r.FullInd{curclass} = ( find(any(Y{curclass}) & std(Y{curclass})~=0 & sum(isfinite(Y{curclass}))~=0 ))' ;
     r.Y{curclass} = Y{curclass}(:,r.FullInd{curclass});
     r.mY{curclass} = mY{curclass}(:,r.FullInd{curclass});
     r.mYnew{curclass} = mYnew{curclass}(:,r.FullInd{curclass}); 
     r.kFea(curclass) = numel(r.FullInd{curclass});
+    r.BinaryLabel{curclass} = labelB{curclass}(labelB{curclass}~=0);
+    [~, r.FullModel{curclass}] = feval(TRAINFUNC, r.Y{curclass}, r.BinaryLabel{curclass}, 1, Ps{curclass});    
+    if r.PreSort
+        %r.BinaryDummy{curclass} = single(nk_MakeDummyVariables(r.BinaryLabel{curclass}));
+        [~, r.FullModel{curclass}] = feval(TRAINFUNC, r.Y{curclass}, r.BinaryLabel{curclass}, 1, Ps{curclass});    
+        r.W{curclass} = nk_GetAlgoWeightVec(SVM, r.Y{curclass}, r.BinaryLabel{curclass}, r.FullModel{curclass}, true, 0);
+        if isempty(r.W{curclass}), r.W{curclass} = nk_CorrMat(r.Y{curclass},r.BinaryLabel{curclass}); end
+        [~,r.PreOrder{curclass}] = sort(abs(r.W{curclass}),'ascend');
+    end   
 end
-r.ngroups = ngroups;
-r.FeatRandPerc = 0;
-r.FeatStepPerc = true;
 
 switch RFE.Wrapper.type
     case 1
         %% Feature Sorting Mode
         % if WeightSort==2 then the feature weight vector will be used for sorting
         % the features. This is only valid for linear models
-        if ~isfield(RFE.Wrapper.GreedySearch,'WeightSort') || isempty(RFE.Wrapper.GreedySearch.WeightSort)
-            r.WeightSort = 1; 
-        else
-            r.WeightSort = RFE.Wrapper.GreedySearch.WeightSort;
-        end
 
         %% Feature block size settings
         for curclass=1:numel(Y)
@@ -85,9 +93,11 @@ if ~exist('FullParam','var') || isempty(FullParam)
     ds = zeros(size(r.T{1},1),1);
     ts = zeros(size(r.T{1},1),1);
      for curclass=1:numel(Y)
-        [~, r.FullModel{curclass}] = feval(TRAINFUNC, r.Y{curclass}, label{curclass}, 1, Ps{curclass});    
-        [r.FullParam{curclass}, ds(:,curclass), ts(:,curclass) ]= nk_GetTestPerf(r.T{curclass}, r.L{curclass}, [], r.FullModel{curclass}, r.Y{curclass});
-        if VERBOSE, fprintf('\nFull model #%g:\t# Features: %g, %s = %g', ...
+         if isempty(r.FullModel{curclass})
+            [~, r.FullModel{curclass}] = feval(TRAINFUNC, r.Y{curclass}, label{curclass}, 1, Ps{curclass});    
+         end
+         [r.FullParam{curclass}, ds(:,curclass), ts(:,curclass) ]= nk_GetTestPerf(r.T{curclass}, r.L{curclass}, [], r.FullModel{curclass}, r.Y{curclass});
+         if VERBOSE, fprintf('\nFull model #%g:\t# Features: %g, %s = %g', ...
                             curclass, numel(r.FullInd{curclass}), ActStr, r.FullParam{curclass}), end
      end
      r.FullParamMulti = nk_MultiEnsPerf(ds, ts, r.Lm, 1:numel(Y), r.ngroups);
@@ -96,7 +106,6 @@ if ~exist('FullParam','var') || isempty(FullParam)
 else
     r.FullParam = FullParam;
     r.FullModel = [];
-    %r.FullParamMulti ????
 end
 
 if isfield(RFE.Wrapper.GreedySearch,'KneePointDetection') && RFE.Wrapper.GreedySearch.KneePointDetection == 1

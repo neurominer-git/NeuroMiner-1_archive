@@ -1,6 +1,6 @@
-function PP = nk_CheckFileExist(P)
+function [PP, fPP] = nk_CheckFileExist(P)
 
-PP=[];
+PP=[]; fPP=[];
 
 if iscell(P), P = char(P);end
 
@@ -11,6 +11,12 @@ for i=1:size(P,1)
             PP = iP;
         else
             PP = char(PP,iP);
+        end
+    else
+        if isempty(fPP)
+            fPP = iP;
+        else
+            fPP = char(fPP,iP);
         end
     end
     

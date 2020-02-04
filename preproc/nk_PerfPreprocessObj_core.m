@@ -8,7 +8,7 @@
 
 function [SrcParam, InputParam, TrParam] = nk_PerfPreprocessObj_core(SrcParam, InputParam, TrParam, act)
 
-global VERBOSE TEMPL
+global VERBOSE TEMPL SVM
 
 %% Prepare and check input params
 paramfl = false; tsfl = false; trfl = false; cfl = false;
@@ -40,49 +40,62 @@ if iscell(act), nact = length(act); else nact = 1; acti = act; end
 if iscell(TrParam), nTrParam = length(TrParam); else, nTrParam = 1; TrParami = []; end
 
 if nact ~= nTrParam && paramfl, if VERBOSE;fprintf('\nLength of action sequence has to match training parameters. Abort!!!'); end; return; end
-sumElapsed=0;
 
-if nact>1, fprintf('\nCV1 [%g, %g]: Start preprocessing sequence.', InputParam.CV1perm, InputParam.CV1fold); end
+if nact>1, fprintf('\t...Execute preprocessing sequence: '); end
+
+adasynfl = false; if isfield(SVM,'ADASYN') && SVM.ADASYN.flag == 1, adasynfl = true; end
 
 for i=1:nact
     
-    ActParam = struct('trfl', trfl, 'paramfl', paramfl, 'tsfl', tsfl, 'cfl', cfl, 'nTs', nTs', 'nC', nC,'i',i);
-        
+    ActParam = struct('trfl', trfl, 'paramfl', paramfl, 'tsfl', tsfl, 'cfl', cfl, 'nTs', nTs', 'nC', nC,'i',i, 'adasynfl', adasynfl);
+    tStart = tic; 
+    
     if iscell(act), acti = act{i}; end
     % Out-of-sample mode: get current training parameters
     if iscell(TrParam) && paramfl, TrParami = TrParam{i}; end
     
     tic; if VERBOSE;fprintf('\nStep #%g/%g:',i,nact); end
     funcstr = sprintf('act_%s', acti); 
+    
     % Check whether multiple shelfs of data are available
     if iscell(InputParam.Tr) 
-        nP = numel(InputParam.Tr);
+        
+        % Check for parameter range at current step
+        nP = numel(InputParam.Tr); O = []; nO = 1;
         if isfield(InputParam.P{i},'opt') && ~isempty(InputParam.P{i}.opt)
             O = InputParam.P{i}.opt;
             nO = size(InputParam.P{i}.opt,1);
-        else
-            O = [];
-            nO = 1;
         end
+        
+        % Combinations of shelves and current parameter range
         nComb = nP * nO; 
         Tr = cell(nComb,1); 
         if isfield(InputParam,'Yw'), Yw = cell(nComb,1); end
         if nTs>0, Ts = cell(nComb,nTs); end
         TrParamij = cell(nComb,1); ll = 1;
+        
         % Prepare Input parameter container for multi-parameter operations
         InputParamj.P               = InputParam.P;
         InputParamj.CV1perm         = InputParam.CV1perm;
         InputParamj.CV1fold         = InputParam.CV1fold;
         InputParamj.curclass        = InputParam.curclass;
         if nTs > 1, InputParamj.Ts  = cell(1,nTs);   end
+        
+        % Do we have to take Adasyn into account?
+        if adasynfl,
+            TrainLabelSyn = cell(nComb,1); 
+            CovarSyn = cell(nComb,1);
+        end
+        
         % Loop through parameter space
         for j=1:nP
             ActParam.j = j;
             % Get training and test data from current parameter shelf
-            if numel(InputParam.Tr) == 1
-               InputParamj.Tr = InputParam.Tr{1}; 
+            jj=1; if numel(InputParam.Tr) > 1; jj = j; end
+            if adasynfl && i == 1
+               InputParamj.Tr = [ InputParam.Tr{jj}; InputParam.TrSyn{jj} ]; 
             else
-               InputParamj.Tr = InputParam.Tr{j}; 
+               InputParamj.Tr = InputParam.Tr{jj}; 
             end
             if isfield(InputParam,'Yw'), 
                 try
@@ -115,7 +128,7 @@ for i=1:nact
             end
 
             % ... and now apply multiple parameters to shelf thus creating
-            % multi-shelf versions of the data
+            % multi-shelf versions of the data 
             for l = 1: nO
                 if ~isempty(O)
                     ActParam.opt = O(l,:);
@@ -124,13 +137,8 @@ for i=1:nact
                 end
                 if paramfl, llTrParam = TrParami{ll}; else, llTrParam = []; end
                 [ SrcParam, Out, TrParamij{ll}, ActParam ] = feval( funcstr, SrcParam, InputParamj, TrParam, llTrParam, ActParam );
-%                 if isfield(TrParamij{ll},'indNonRem')
-%                     ActParam.indNonRem{i,j,l} = TrParamij{ll}.indNonRem;
-%                 end
-%                 if ~isempty(O),
-%                     TrParamij{ll}.i_opt = O(l,:);
-%                 end
                 Tr{ll} = Out.Tr;
+                if adasynfl, TrainLabelSyn{ll} = SrcParam.TrainLabelSyn{ActParam.j}; CovarSyn{ll} = SrcParam.covarsSyn{ActParam.j}; end
                 if isfield(Out,'Yw'), Yw{ll} = Out.Yw; end
                 if nTs>1
                     for k = 1:nTs,
@@ -143,50 +151,80 @@ for i=1:nact
             end
         end
         InputParam.Tr = Tr; 
+        if adasynfl, SrcParam.TrainLabelSyn = TrainLabelSyn; SrcParam.covarsSyn = CovarSyn; end
         if isfield(InputParam,'Yw'), InputParam.Yw = Yw; end
         if nTs > 0; InputParam.Ts = Ts; end
         TrParami = TrParamij;
-        
+    
+    % DO WE HAVE A PARAMETER RANGE FOR CURRENT STEP?    
     elseif isfield(InputParam.P{i},'opt') && ~isempty(InputParam.P{i}.opt)
-        O = InputParam.P{i}.opt;
+        O = InputParam.P{i}.opt; % this is the parameter range to be processed
         nO = size(InputParam.P{i}.opt,1);
         Tr = cell(nO,1); 
+        % Is there are weighting vector?
         if isfield(InputParam,'Yw'), Yw = cell(nO,1); end
         if nTs > 0, Ts = cell(nO,nTs); end
         TrParamij = cell(nO,1); ll = 1;
+        %Do we have to use Adasyn ?
+        if adasynfl && i==1
+            % Concatenate original and synthetic training data
+            InputParam.Tr = [InputParam.Tr; InputParam.TrSyn];
+            % Prepare containers for synthetic label and covars expansion
+            TrainLabelSyn = cell(nO,1); 
+            CovarSyn = cell(nO,1);
+        end
+        % -----------------------------------------------------------------
+        % Now, loop through parameter range at given preprocessing step
         for l = 1: nO
-            ActParam.opt = O(l,:);
+            % PREPARE PARAMS
+            ActParam.opt = O(l,:); % Retrieve current processing params
+            % Is there any template parameter structure?
             if ~isempty(TEMPL), ActParam.Templ = TEMPL.Param{InputParam.curclass}{i}; end
+            % Are there any precomputed parameters?
             if paramfl, llTrParam = TrParami{ll}; else, llTrParam = []; end
+            % -----------------------------------------------------------------------------------------------------------------
+            % PROCESS: Pass everything to processing step (funcstr)
             [ SrcParam, Out, TrParamij{ll}, ActParam ] = feval( funcstr, SrcParam, InputParam, TrParam, llTrParam, ActParam );
-            TrParamij{ll}.i_opt = O(l,:);
-            Tr{ll} = Out.Tr;
+            % -----------------------------------------------------------------------------------------------------------------
+            % POST-PROCESS
+            TrParamij{ll}.i_opt = O(l,:); % Save in parameter shelf
+            Tr{ll} = Out.Tr; % Save in data shelf
+            % Take care of adasyn labels and covars expansion if needed.
+            if adasynfl, TrainLabelSyn{ll} = SrcParam.TrainLabelSyn{Actparam.j}; CovarSyn{ll} = SrcParam.covarsSyn{Actparam.j}; end
+            % Take care of weighting vector to be also stored in shelf
             if isfield(Out,'Yw'), Yw{ll} = Out.Yw; end
+            % Now transfer proper training, CV1 test and CV2 test data to
+            % data shelves
             if nTs>1
-                for k = 1:nTs
-                    Ts{ll,k} = Out.Ts{k};
-                end
+                for k = 1:nTs, Ts{ll,k} = Out.Ts{k}; end
             elseif nTs==1
                 Ts{ll} = Out.Ts;
             end
             ll=ll+1;
+            % -------------------------------------------------------------
         end
+        % Save processed training data shelves back in InputParam.Tr, which is now a cell array 
         InputParam.Tr = Tr; 
+        % Adasyn: Store expanded labels and covars back in SrcParam
+        if adasynfl, SrcParam.TrainLabelSyn = TrainLabelSyn; SrcParam.covarsSyn = CovarSyn; end
+        % Save CV1 and CV2 test data in shelves
         if isfield(InputParam,'Yw'), InputParam.Yw = Yw; end
         if nTs > 0; InputParam.Ts = Ts; end
-        TrParami = TrParamij;
+        TrParami = TrParamij; % Save processing parameters of curent parameters range loop
     else
+        if adasynfl && i==1
+            InputParam.Tr = [InputParam.Tr; InputParam.TrSyn];
+        end
         if ~isempty(TEMPL), ActParam.Templ = TEMPL.Param{InputParam.curclass}{i}; end
         [ SrcParam, InputParam, TrParami ] = feval( funcstr, SrcParam, InputParam, TrParam, TrParami, ActParam );
     end
     
-    tElapsed=toc; if VERBOSE, fprintf(' Done in %1.2fs.',tElapsed); end; sumElapsed = sumElapsed + tElapsed;
-    
     % No Out-of-sample mode => build up TrParam structure array
     if ~paramfl, TrParam{i} = TrParami; end; TrParami = []; 
     
+    if VERBOSE, fprintf('\tDone in %g seconds.', toc(tStart)); else, fprintf('.'); end
+    
 end
-if nact > 1, fprintf('\tCompleted in %1.2fs.',sumElapsed); end
 
 end
 
@@ -217,6 +255,9 @@ switch MODEFL
         L = SrcParam.MultiTrainLabel;
     case 'regression'
         L = SrcParam.TrainLabel;
+end
+if actparam.adasynfl
+    L = [L; SrcParam.TrainLabelSyn{actparam.j}];
 end
 [SrcParam.TrL_imputed, TrParami] = nk_PerfImputeLabelObj(L, InputParam.P{i}.LABELIMPUTE); 
 
@@ -261,6 +302,13 @@ if VERBOSE; fprintf('\tNormalizing to group mean(s) ...'); end
 if paramfl && tsfl && isfield(TrParami,'meanY') && isfield(InputParam.P{i},'TsInd')
     tsproc = true;
 elseif trfl, 
+    if actparam.adasynfl && isfield(InputParam.P{i},'TrInd') && ~isempty(InputParam.P{i}.TrInd)
+        if iscell(SrcParam.covarsSyn)
+            InputParam.P{i}.TrInd = [InputParam.P{i}.TrInd; SrcParam.covarsSyn{actparam.j}(:,InputParam.P{i}.IND)]; 
+        else
+            InputParam.P{i}.TrInd = [InputParam.P{i}.TrInd; SrcParam.covarsSyn(:,InputParam.P{i}.IND)]; 
+        end
+    end
     [InputParam.Tr, TrParami] = nk_PerfNormObj(InputParam.Tr, InputParam.P{i}); 
     if tsfl, tsproc = true; end 
 else
@@ -314,6 +362,13 @@ if VERBOSE; fprintf('\tCorrect groups for offsets from global mean(s) ...'); end
 if paramfl && tsfl && isfield(TrParami,'meanY') && isfield(TrParami,'meanG')
     tsproc = true;
 elseif trfl, 
+     if actparam.adasynfl && isfield(InputParam.P{i},'sTrInd') && ~isempty(InputParam.P{i}.sTrInd)
+        if iscell(SrcParam.covarsSyn)
+            InputParam.P{i}.sTrInd = [InputParam.P{i}.sTrInd; SrcParam.covarsSyn{actparam.j}(:,InputParam.P{i}.sIND)]; 
+        else
+            InputParam.P{i}.sTrInd = [InputParam.P{i}.sTrInd; SrcParam.covarsSyn(:,InputParam.P{i}.sIND)]; 
+        end
+     end
     [InputParam.Tr, TrParami] = nk_PerfRemMeanDiffObj(InputParam.Tr, InputParam.P{i}); 
     if tsfl, tsproc = true; end 
 else
@@ -392,7 +447,17 @@ if VERBOSE; fprintf('\tStandardizing data ...'); end
 if paramfl && tsfl && isfield(TrParami,'meanY') && isfield(TrParami,'stdY')
     tsproc = true;
 else
-    if trfl, [InputParam.Tr, TrParami] = nk_PerfStandardizeObj(InputParam.Tr, InputParam.P{i}); end
+    if trfl, 
+        % Check for ADASYN
+        if actparam.adasynfl && isfield(InputParam.P{i},'sTrInd') && ~isempty(InputParam.P{i}.sTrInd)
+            if iscell(SrcParam.covarsSyn)
+                InputParam.P{i}.sTrInd = [InputParam.P{i}.sTrInd; SrcParam.covarsSyn{actparam.j}(:,InputParam.P{i}.sIND)]; 
+            else
+                InputParam.P{i}.sTrInd = [InputParam.P{i}.sTrInd; SrcParam.covarsSyn(:,InputParam.P{i}.sIND)]; 
+            end
+        end
+        [InputParam.Tr, TrParami] = nk_PerfStandardizeObj(InputParam.Tr, InputParam.P{i});
+    end
     if tsfl, tsproc = true; end
 end
 if tsproc, InputParam.Ts = nk_PerfStandardizeObj(InputParam.Ts, TrParami); end
@@ -446,6 +511,17 @@ if paramfl && tsfl && isfield(InputParam.P{i},'DR') && ...
         isfield(TrParami,'mpp')
     tsproc = true;
 elseif trfl, 
+     if actparam.adasynfl 
+        if iscell(SrcParam.TrainLabelSyn)
+            try
+                InputParam.P{i}.DR.labels = [InputParam.P{i}.DR.labels; SrcParam.TrainLabelSyn{actparam.j}]; 
+            catch
+                fprintf('problem');
+            end
+        else
+            InputParam.P{i}.DR.labels = [InputParam.P{i}.DR.labels; SrcParam.TrainLabelSyn]; 
+        end
+     end
     [InputParam.Tr, TrParami] = nk_PerfRedObj(InputParam.Tr, InputParam.P{i}); 
     if tsfl,tsproc = true; end   
 end 
@@ -537,6 +613,13 @@ if paramfl && tsfl && isfield(TrParami,'beta')
     % Out-of-sample mode, used TsCovars and stored beta
     tsproc = true;
 elseif trfl, 
+    if actparam.adasynfl 
+        if iscell(SrcParam.covarsSyn)
+            IN.TrCovars = [ InputParam.P{i}.TrCovars; SrcParam.covarsSyn{actparam.j}(:, IN.COVAR)]; 
+        else
+            IN.TrCovars = [ InputParam.P{i}.sTrInd; SrcParam.covarsSyn(:, IN.COVAR) ]; 
+        end
+    end
     [InputParam.Tr, TrParami] = nk_PartialCorrelationsObj(InputParam.Tr, IN);
     if tsfl, tsproc = true; end
 else
@@ -592,6 +675,13 @@ if isfield(InputParam,'Yw') && strcmp(InputParam.P{i}.RANK.algostr,'extern')
 end
 
 if ~isfield(TrParami,'W') || isempty(TrParami.W)
+   if actparam.adasynfl 
+        if iscell(SrcParam.TrainLabelSyn)
+            InputParam.P{i}.RANK.curlabel = [InputParam.P{i}.RANK.curlabel; SrcParam.TrainLabelSyn{actparam.j}]; 
+        else
+            InputParam.P{i}.RANK.curlabel = [InputParam.P{i}.RANK.curlabel; SrcParam.TrainLabelSyn]; 
+        end
+    end
     if VERBOSE;fprintf('\tCompute Feature Weighting ...'); end
     TrParami = nk_PerfFeatRankObj(InputParam.Tr, InputParam.P{i}.RANK);
     actparam.RANK.W = TrParami.W;
@@ -706,5 +796,29 @@ elseif trfl,
 end
 
 if tsproc, InputParam.Ts = nk_PerfDevMapObj(InputParam.Ts, TrParami ); end
+
+end
+
+% =========================================================================
+function [InputParam, SrcParam] = perform_adasyn(InputParam, SrcParam)
+global SVM MODEFL
+
+if isfield(SVM,'ADASYN') && SVM.ADASYN.flag == 1
+    switch MODEFL
+    case 'classification'
+        TrL = SrcParam.oMultiTrainLabel;
+    case 'regression'
+        error('ADASYN works only for classification models');
+    end
+    if numel(unique(TrL))>2; error('ADASYN works currently only for binary classification'); end
+    TrL(TrL>1)=0;
+    try
+        [InputParam.Tr, SrcParam.MultiTrainLabel] = nk_PerfADASYN( InputParam.Tr, TrL, SVM.ADASYN);  
+    catch
+        fprintf('error')
+    end
+else
+    SrcParam.MultiTrainLabel = SrcParam.oMultiTrainLabel;
+end
 
 end

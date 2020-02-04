@@ -46,7 +46,7 @@ if isempty(IN),eIN=true; else eIN=false; end
 
 if eIN|| ~isfield(IN,'G') || isempty(IN.G), error('No covariates defined in parameter structure'), end
 
-if eIN || ((~isfield(IN,'nointercept') || isempty(IN.nointercept) || ~IN.nointercept ) &&  size(IN.G,2) == 1 )
+if eIN || (~isfield(IN,'nointercept') || isempty(IN.nointercept) || ~IN.nointercept ) 
      %Create intercept vecotr
     interceptflag = true;
     intercept = ones(size(IN.G,1),1);

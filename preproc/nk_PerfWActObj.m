@@ -46,6 +46,7 @@ if ~isfield(IN,'Thresh') || isempty(IN.Thresh)
 end
 
 if ~isempty(IN.Thresh),
+    % Hard feature selection
     if IN.W_ACT.clustflag == 1
         if isempty(IN.Mask)
             Wthresh = zeros(size(IN.W));

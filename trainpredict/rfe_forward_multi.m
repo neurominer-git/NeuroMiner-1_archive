@@ -29,8 +29,8 @@ function [optparam, optind, optfound, optmodel] = ...
 global VERBOSE TRAINFUNC 
 
 r = rfe_algo_settings_multi(Y, mY, label, labelB, labelM, Ynew, labelnew, labelnewM, Ps, FullFeat, FullParam, ngroups, ActStr);
-nclass=numel(Y);
-optfound = 0; optparam = r.optparam;
+nclass = numel(Y);
+optfound = 0; optparam = r.optparam; r.InitializeOrder = true;
 
 if VERBOSE
     fprintf('\n-----------------------------')
@@ -53,162 +53,119 @@ end
  %% Start Wrapper: FORWARD FEATURE SELECTION
 S = cell(1,nclass); Sind = cell(1,nclass); k = zeros(1,nclass); lstep = zeros(1,nclass);
 for curclass=1:nclass
-    Sind{curclass} = 1:r.kFea(curclass); k(curclass) = r.kFea(curclass); 
+    k(curclass) = r.kFea(curclass); 
+    if r.PreSort
+        Sind{curclass} = r.PreOrder{curclass}; 
+    else
+        Sind{curclass} = 1:r.kFea(curclass); 
+    end
     lstep(curclass) = 1; if r.lperc(curclass), lstep(curclass) = ceil((numel(Sind{curclass})/100)*r.lperc(curclass)); end
 end
 maxK = max(k); minK = min(r.MinNum); 
 Opt = struct('S',[],'Param',[],'ParamTs',[]);
-cnt=1; 
-switch r.WeightSort 
-    
-    case 1 %% Sorting is done according to CV1 test performance
-        
-        while maxK > minK
-            
-            maxNS = max(cellfun(@numel,Sind));
-            if ~maxNS, break; end
-            val = zeros(maxNS,1); 
-            
-            if VERBOSE, 
-                for curclass=1:nclass,fprintf('\n\tFeature pool size of model #%g: %4.0f out of %4.0f, block size: %4.0f feature(s) ', curclass, numel(S{curclass}), numel(Sind{curclass}), lstep(curclass)); end
-            end
-            tEnd = zeros(maxNS, nclass);
-            ds = zeros(size(r.T{1},1), nclass, maxNS );
-            ts = zeros(size(r.T{1},1),nclass, maxNS );
-            while maxNS > 0
-                
-                for curclass=1:nclass
-                    NSind = numel(Sind{curclass});
-                    if maxNS > NSind, 
-                        tEnd(maxNS, curclass) = Sind{curclass}(NSind); 
-                    else, 
-                        tEnd(maxNS, curclass) = Sind{curclass}(maxNS);
-                    end 
-                    kS = [S{curclass} tEnd(maxNS,curclass)]; 
-                    tY = r.Y{curclass}(:,kS); T = r.T{curclass}(:,kS);
-                    [~, model] = feval(TRAINFUNC, tY, label{curclass}, 1, Ps{curclass});
-                    [~, ts(:, curclass, maxNS), ds(:, curclass, maxNS)] = nk_GetTestPerf(T, r.L{curclass}, [], model, tY);
-                end
-                val(maxNS) = nk_MultiEnsPerf(ds(:,:, maxNS), ts(:,:,maxNS), r.Lm, 1:nclass, r.ngroups);
-                maxNS = maxNS - 1;
-            end
-            
-             % Sort features
-            if r.perm
-                [valperm, permind] = rfe_multi_perm_featcombs(ds, ts, r.Lm, nclass,r.nperms, r.ngroups);
-                [~, ind] = sort(valperm(:), r.optfunc);
-            else
-                [~, ind] = sort(val,r.optfunc);
-            end
-            ds = zeros(size(r.T{1},1),nclass);
-            ts = zeros(size(r.T{1},1),nclass);
-            krem = 1:min(lstep);rind = krem;
-            
-            for curclass=1:nclass
-                if r.perm
-                    IndAdd = tEnd(permind(curclass,ind(krem)),curclass)';
-                else
-                    IndAdd = tEnd(ind(krem),curclass)';
-                end
-                kS = [S{curclass} IndAdd];
-                tY = r.Y{curclass}(:,kS); T = r.T{curclass}(:,kS);
-                [~, model] = feval(TRAINFUNC, tY, label{curclass}, 1, Ps{curclass});
-                [~, ds(:,curclass), ts(:,curclass)] = nk_GetTestPerf(T, r.L{curclass}, [], model, tY); 
-            end
-            param = nk_MultiEnsPerf(ds, ts, r.Lm, 1:nclass, r.ngroups);      
-            
-            % Add feature to feature space only if current performance is better
-            % then previous space
-            % Finally trained model will have only a performance == optparam
-            % if the feature stepping is 1
-            if feval(r.evaldir, param, optparam) 
-                % If user activated random feature selection then we have
-                % to randomly choose x% of the features in the block
-                if r.FeatRandPerc
-                    rstep = ceil(min(lstep)/100)*r.FeatRandPerc;
-                    rind = randperm(min(lstep),rstep);
-                % ... otherwise select entire block
-                else
-                    rind = krem;
-                end
-                for curclass=1:nclass
-                    if r.perm
-                        IndAdd = tEnd(permind(curclass,ind(rind)),curclass)';
-                    else
-                        IndAdd = tEnd(ind(krem),curclass)';
-                    end
-                    S{curclass} = [S{curclass} IndAdd]; 
-                    Opt.S{curclass, cnt} = S{curclass};
-                end
-                optparam = param; optfound = 1; 
-                if VERBOSE, fprintf('=> NEW optimum: # Features: %4.0f ==> %s = %g', mean(cellfun(@numel,S)), ActStr, optparam); end
-                Opt.Param = [Opt.Param optparam];
-                %Opt.ParamTs = [Opt.ParamTs param_ts];
-                cnt=cnt+1;
-            end
-            
-            for curclass=1:nclass
-                if r.perm
-                   IndAdd = tEnd(permind(curclass,ind(rind)),curclass)';
-                else
-                   IndAdd = tEnd(ind(krem),curclass)';
-                end
-                remInd = ismember(Sind{curclass},IndAdd);
-                Sind{curclass}(remInd) = [];
-                % Recompute lstep according to current feature pool
-                if r.lperc(curclass), lstep(curclass) = ceil((numel(Sind{curclass})/100)*r.lperc(curclass)); end
-            end
-            maxK = maxK - numel(rind);
-            
-        end
-        
-    case 2
-        
-         W = abs(nk_GetPrimalW(r.FullModel));
-         W = W/(norm(W,2));
-         [~, ind] = sort(W,'descend');
-         
-         while k > r.MinNum
-             
-            if VERBOSE, fprintf('\n\tFeature pool size: %4.0f out of %4.0f, block size: %4.0f feature(s) ',numel(S), numel(Sind),lstep); end
-            
-            % Get lstep features 
-            krem = 1:lstep; kSind = Sind(ind(krem));
-             
-            % Extract lstep feature subspace
-            kS = [S kSind]; 
-            tY = r.Y(:,kS);  T = r.T(:,kS);
-             
-            % Train model with ks features
-            [~, model] = feval(TRAINFUNC, tY, label, 1, Ps);    
-            param = nk_GetTestPerf(T, r.L, [], model, tY);
-            
-            % Add feature to feature space only if current performance is better
-            % then previous space
-            if feval(r.evaldir, param, optparam) 
-                S = [S kSind]; optparam = param;
-                Opt.S{end+1} = S; Opt.Param = [Opt.Param optparam];
-                if VERBOSE, fprintf('=> NEW optimum: # Features: %4.0f ==> %s = %g', numel(S), ActStr, optparam); end
-            else
-                if VERBOSE, fprintf('(%s = %g)', ActStr, optparam); end
-            end
-            
-            % Remove selected features from feature pool
-            Sind(ind(krem)) = [];
-            
-            % Retrain model on remaining feature pool
-            [~, kmodel] = feval(TRAINFUNC, r.Y(:,Sind), label, 1, Ps);    
-            W = abs(nk_GetPrimalW(kmodel));
-            [~, ind] = sort(W,'descend');
-         
-            % Recompute lstep according to current feature pool
-            if r.lperc, lstep = ceil((numel(Sind)/100)*r.lperc); end
-            k = k - numel(krem);
-             
-         end
-        
-end
+cnt=1;     
 
+while maxK > minK
+
+    maxNS = max(cellfun(@numel,Sind));
+    if ~maxNS, break; end
+    val = zeros(maxNS,1); 
+
+    if VERBOSE, 
+        for curclass=1:nclass,fprintf('\n\tFeature pool size of model #%g: %4.0f out of %4.0f, block size: %4.0f feature(s) ', ...
+                curclass, numel(S{curclass}), numel(Sind{curclass}), lstep(curclass)); end
+    end
+    
+    tEnd = zeros(maxNS, nclass);
+    ds = zeros(size(r.T{1},1), nclass, maxNS );
+    ts = zeros(size(r.T{1},1),nclass, maxNS );
+    while maxNS > 0
+
+        for curclass=1:nclass
+            NSind = numel(Sind{curclass});
+            if maxNS > NSind, 
+                tEnd(maxNS, curclass) = Sind{curclass}(NSind); 
+            else, 
+                tEnd(maxNS, curclass) = Sind{curclass}(maxNS);
+            end 
+            kS = [S{curclass} tEnd(maxNS,curclass)]; 
+            tY = r.Y{curclass}(:,kS); T = r.T{curclass}(:,kS);
+            [~, model] = feval(TRAINFUNC, tY, label{curclass}, 1, Ps{curclass});
+            [~, ts(:, curclass, maxNS), ds(:, curclass, maxNS)] = nk_GetTestPerf(T, r.L{curclass}, [], model, tY);
+        end
+        val(maxNS) = nk_MultiEnsPerf(ds(:,:, maxNS), ts(:,:,maxNS), r.Lm, 1:nclass, r.ngroups);
+        maxNS = maxNS - 1;
+    end
+
+     % Sort features
+    if r.perm
+        [valperm, permind] = rfe_multi_perm_featcombs(ds, ts, r.Lm, nclass,r.nperms, r.ngroups);
+        [~, ind] = sort(valperm(:), r.optfunc);
+    else
+        [~, ind] = sort(val,r.optfunc);
+    end
+    ds = zeros(size(r.T{1},1),nclass);
+    ts = zeros(size(r.T{1},1),nclass);
+    krem = 1:min(lstep);rind = krem;
+
+    for curclass=1:nclass
+        if r.perm
+            IndAdd = tEnd(permind(curclass,ind(krem)),curclass)';
+        else
+            IndAdd = tEnd(ind(krem),curclass)';
+        end
+        kS = [S{curclass} IndAdd];
+        tY = r.Y{curclass}(:,kS); T = r.T{curclass}(:,kS);
+        [~, model] = feval(TRAINFUNC, tY, label{curclass}, 1, Ps{curclass});
+        [~, ds(:,curclass), ts(:,curclass)] = nk_GetTestPerf(T, r.L{curclass}, [], model, tY); 
+    end
+    param = nk_MultiEnsPerf(ds, ts, r.Lm, 1:nclass, r.ngroups);      
+
+    % Add feature to feature space only if current performance is better
+    % then previous space
+    % Finally trained model will have only a performance == optparam
+    % if the feature stepping is 1
+    if feval(r.evaldir, param, optparam) 
+        % If user activated random feature selection then we have
+        % to randomly choose x% of the features in the block
+        if r.FeatRandPerc
+            rstep = ceil(min(lstep)/100)*r.FeatRandPerc;
+            rind = randperm(min(lstep),rstep);
+        % ... otherwise select entire block
+        else
+            rind = krem;
+        end
+        for curclass=1:nclass
+            if r.perm
+                IndAdd = tEnd(permind(curclass,ind(rind)),curclass)';
+            else
+                IndAdd = tEnd(ind(krem),curclass)';
+            end
+            S{curclass} = [S{curclass} IndAdd]; 
+            Opt.S{curclass, cnt} = S{curclass};
+        end
+        optparam = param; optfound = 1; 
+        if VERBOSE, fprintf('=> NEW optimum: # Features: %4.0f ==> %s = %g', mean(cellfun(@numel,S)), ActStr, optparam); end
+        Opt.Param = [Opt.Param optparam];
+        %Opt.ParamTs = [Opt.ParamTs param_ts];
+        cnt=cnt+1;
+    end
+
+    for curclass=1:nclass
+        if r.perm
+           IndAdd = tEnd(permind(curclass,ind(rind)),curclass)';
+        else
+           IndAdd = tEnd(ind(krem),curclass)';
+        end
+        remInd = ismember(Sind{curclass},IndAdd);
+        Sind{curclass}(remInd) = [];
+        % Recompute lstep according to current feature pool
+        if r.lperc(curclass), lstep(curclass) = ceil((numel(Sind{curclass})/100)*r.lperc(curclass)); end
+    end
+    maxK = maxK - numel(rind);
+
+end
+        
 for curclass=1:nclass
     if r.KneePoint,
         kneepoint = knee_pt(Opt.Param,[],true);

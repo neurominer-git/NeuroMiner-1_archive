@@ -105,9 +105,6 @@ function [out_featuresSyn, out_labelsSyn] = ADASYN(in_features, in_labels, in_be
 %
 %-------------------------------------------------------------------------
 
-
-
-
 if nargin < 3 || isempty(in_beta)
     in_beta = 1;
 end

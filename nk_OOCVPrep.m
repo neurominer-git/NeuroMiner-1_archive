@@ -1,16 +1,16 @@
- function [ act, dat, inp ] = nk_OOCVPrep(act, dat, inp, parentstr)
+ function [ act, inp ] = nk_OOCVPrep(act, inp, parentstr)
 % =========================================================================
-% FORMAT analysis = nk_OOCVprep(dat, analdim, varind)
+% FORMAT [act, inp] = nk_OOCVprep(act, inp, parentstr)
 % =========================================================================
 % Runtime model of independent test data prediction
 %
 % %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% (c) Nikolaos Koutsouleris, last modified 07/2017
+% (c) Nikolaos Koutsouleris, last modified 01/2020
 
 global CV NM
 
 % Detect completed analyses
-complvec = []; for z=1:numel(dat.analysis), if dat.analysis{z}.status, complvec = [ complvec z ]; end; end
+complvec = []; for z=1:numel(NM.analysis), if NM.analysis{z}.status, complvec = [ complvec z ]; end; end
 
 % Initialize runtime parameters 
 if ~exist('inp','var') || isempty(inp)
@@ -31,9 +31,13 @@ DATASCRAM = false; if isfield(NM.defs,'data_scrambled') && ~isempty(NM.defs.data
     
 %% Configure menu
 % Select analysis
-if isfield(inp,'analind'), AnalSelStr = sprintf('Analysis %g', inp.analind); else, AnalSelStr = na_str;  end
+if numel(inp.analind)<2,
+    AnalSelStr = sprintf('Analysis %g', inp.analind);   
+else
+    AnalSelStr = sprintf('%g Analyses: %s',numel(inp.analind), strjoin(cellstr(num2str(inp.analind'))',', '));
+end
 AnalSelectStr = sprintf('Choose analysis to work on [ %s ]|', AnalSelStr);                                                  AnalSelectAct = 1;   
-analysis        = dat.analysis{inp.analind}; 
+analysis      = NM.analysis{inp.analind(1)}; 
 % Select independent test data container
 if isfield(inp,'oocvind'), OOCVSelStr = sprintf('New data #%g: %s', inp.oocvind, inp.OO.desc); else, OOCVSelStr = na_str; end
 OOCVSelectStr = sprintf('Choose independent data to work on [ %s ]|', OOCVSelStr);                                          OOCVSelectAct = 2;   
@@ -147,16 +151,16 @@ switch act
     % Select analysis
     case 1 
         showmodalvec = []; analind = inp.analind; 
-        if length(dat.analysis)>1, t_act = 1; brief = 1;
+        if length(NM.analysis)>1, t_act = 1; brief = 1;
             while t_act>0, 
-                [t_act, analind, ~, showmodalvec , brief] = nk_SelectAnalysis(dat, 0, navistr, analind, [], 1, showmodalvec, brief); 
+                [t_act, analind, ~, showmodalvec , brief] = nk_SelectAnalysis(NM, 0, navistr, analind, [], 1, showmodalvec, brief); 
             end; 
             if ~isempty(analind), inp.analind = complvec(analind) ; end
         end
-        inp.GridAct = dat.analysis{inp.analind}.GDdims{1}.GridAct;
+        inp.GridAct = NM.analysis{inp.analind(1)}.GDdims{1}.GridAct;
     % Select OOCV data
     case 2    
-        [ dat, OO, oocvind ] = nk_SelectOOCVdata(dat, 1, 0);  
+        [ NM, OO, oocvind ] = nk_SelectOOCVdata(NM, 1, 0);  
         if ~isempty(oocvind), inp.OO = OO; inp.oocvind = oocvind; end 
     case 3
          lfl = nk_input('Define run-time mode of independent test module',0,'mq',strjoin(LFL_opts, '|'),[1,2],inp.lfl);
@@ -167,8 +171,8 @@ switch act
             case 1
                 if inp.ovrwrt == 1, inp.ovrwrt = 2; elseif inp.ovrwrt  == 2, inp.ovrwrt = 1; end
             case 2
-                tdir = create_defpath(dat.analysis{inp.analind}, inp.oocvind);
-                inp.oocvmat = nk_GenDataMaster(dat.id, 'OOCVdatamat', CV, [], tdir);
+                tdir = create_defpath(NM.analysis{inp.analind}, inp.oocvind);
+                inp.oocvmat = nk_GenDataMaster(NM.id, 'OOCVdatamat', CV, [], tdir);
         end
     case 5
         [operms,ofolds] = size(CV.TrainInd);
@@ -178,17 +182,23 @@ switch act
     case 7
         if inp.loadparam == 1, inp.loadparam = 2; elseif inp.loadparam == 2,  inp.loadparam = 1; end
     case 8
-        tdir = create_defpath(dat.analysis{inp.analind}, inp.oocvind);
-        optpreprocmat = nk_GenDataMaster(dat.id, 'OptPreprocParam', CV, [], tdir);
+        tdir = create_defpath(NM.analysis{inp.analind}, inp.oocvind);
+        optpreprocmat = nk_GenDataMaster(NM.id, 'OptPreprocParam', CV, [], tdir);
         if ~isempty(optpreprocmat), inp.optpreprocmat = optpreprocmat; end
     case 9
-        tdir = create_defpath(dat.analysis{inp.analind}, inp.oocvind);
-        optmodelmat = nk_GenDataMaster(dat.id, 'OptModel', CV, [], tdir);
+        tdir = create_defpath(NM.analysis{inp.analind}, inp.oocvind);
+        optmodelmat = nk_GenDataMaster(NM.id, 'OptModel', CV, [], tdir);
         if ~isempty(optmodelmat), inp.optmodelmat = optmodelmat; end
     case {10,11}
-         NM.runtime.curanal = inp.analind;
          inp.oocvname = sprintf('OOCV_%g',inp.oocvind);
-         dat.analysis{inp.analind}.OOCV{inp.oocvind} = OOCVPrep(dat, inp, analysis);
+         nA = 1; if numel(inp.analind)>1, nA = numel(inp.analind); end
+         for i=1:nA
+            nk_SetupGlobVars2(NM.analysis{inp.analind(i)}.params, 'setup_main', 0); 
+            NM.runtime.curanal = inp.analind(i);
+            inp.analysis_id = NM.analysis{inp.analind(i)}.id;
+            NM.analysis{inp.analind(i)}.OOCV{inp.oocvind} = OOCVPrep(NM, inp, NM.analysis{inp.analind(i)});
+            nk_SetupGlobVars2(NM.analysis{inp.analind(i)}.params, 'clear', 0); 
+         end
     case 12
         if inp.saveCV1 == 1, inp.saveCV1 = 2; elseif inp.saveCV1 == 2,  inp.saveCV1 = 1; end
 end
@@ -301,7 +311,8 @@ for i = 1:inp1.nF
 						inp.multiflag = 1;
 						[ijOOCV.MultiResults, ijOOCV.FileNames, ijOOCV.RootPath] = nk_OOCV(inp);
 				end
-			else
+            else
+                inp.multiflag = 0;
 				[ijOOCV.RegrResults, ijOOCV.FileNames, ijOOCV.RootPath] = nk_OOCV(inp);
 			end
 			fprintf('\nSaving:\n%s',strOOCVfile);
@@ -334,4 +345,4 @@ for i = 1:inp1.nF
 end
 clear inp1 inp2
 OOCVres =  nk_OOCVMeta(OOCVres, inp);
-nk_SetupGlobVars2(analysis.params, 'clear');
+

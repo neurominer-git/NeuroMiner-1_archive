@@ -25,7 +25,8 @@ end
 
 % Do we print the results of independent data prediction?
 if handles.oocvview
-    typestr = sprintf('_A%g_OOCV-%g', handles.curranal, handles.OOCVinfo.Analyses{handles.curranal}.OOCVvec);
+    n=handles.oocvind;
+    typestr = sprintf('_A%g_OOCV-%g', handles.curranal, handles.OOCVinfo.Analyses{handles.curranal}.OOCVvec(n));
 else
     typestr = sprintf('_A%g_CV', handles.curranal);
 end
@@ -71,7 +72,7 @@ if strcmp(typ,'xls')
             'OS', sprintf('%s (%s)',handles.NM.analysis{handles.curranal}.meta.OS.name, handles.NM.analysis{handles.curranal}.meta.OS.arch); ...
             'NM version', handles.NM.analysis{handles.curranal}.meta.NM.ver};
     if handles.oocvview
-        n=handles.OOCVinfo.Analyses{handles.curranal}.num;
+        
         INFO = [INFO;   
             {'OOCV index', handles.oocvind; ...
             'OOCV creation date', handles.OOCVinfo.Analyses{handles.curranal}.date{n}; ...

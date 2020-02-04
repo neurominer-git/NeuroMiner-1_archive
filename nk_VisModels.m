@@ -19,9 +19,9 @@ switch inp.analmode
     case 1
         vismat  = inp.vismat;                       % Visualization datamat
 end
-saveparam       = inp.saveparam;
-saveCV1         = inp.saveCV1;
-loadparam       = inp.loadparam;
+saveparam       = inp.saveparam;                    % Save parameters to disk
+CV1op           = inp.CV1;                          % Operate preprocessing module at the CV1 level to save RAM
+loadparam       = inp.loadparam;                    % Use existing parameters loaded from disk
 strout          = inp.varstr;                       % Suffix for filename indicating modality assignment of file
 nclass          = inp.nclass;                       % Number of binary comparisons
 analysis        = inp.analysis;                     % GDanalysis structure to be used
@@ -105,7 +105,7 @@ for i = 1 : nM
         
         % Generate or load permutation matrix from file.
         cprintf('black*','\nPERMUTATION MODE ENABLED.')
-        if  pmode(i)==1
+        if pmode(i)
             permfile = fullfile(inp.rootdir,[SAV.matname '_VISpermmat_ID' id '.mat']);
             if ~exist(permfile,'file')
                 fprintf('\nCreating parent permutation matrix with %g perms', nperms(1))
@@ -137,7 +137,7 @@ end
 
 % Initialize CV2 data containers
 I = nk_VisXHelper('init', nM, nclass,  decompfl, permfl, ix, jx);
-if any(permfl), 
+if any(permfl)
     I.VCV2MPERM_S = cell(lx,nclass,nperms(1)); 
     I.VCV2MORIG_S = cell(lx,nclass); 
     if inp.multiflag
@@ -227,11 +227,11 @@ for f=1:ix % Loop through CV2 permutations
                 
                 inp.f = f; inp.d = d; inp.ll = ll;  
                 % Parameter flag structure for preprocessing
-                paramfl = struct('use_exist', loadparam, ...
-                                 'found', false, ... 
-                                 'write', true, ... % has to be set to true otherwise no params will be returned from the preproc module
-                                 'writeCV1', saveCV1, ...
-                                 'multiflag', multiflag);
+                paramfl = struct('use_exist',   loadparam, ...
+                                 'found',       false, ... 
+                                 'write',       true, ... % has to be set to true otherwise no params will be returned from the preproc module
+                                 'CV1op',       CV1op, ...
+                                 'multiflag',   multiflag);
                 
                 % Apply prerpocessing on the entire data and use these
                 % parameters to adjust for arbitrary PCA rotations through 
@@ -239,7 +239,11 @@ for f=1:ix % Loop through CV2 permutations
                 if exist('templateflag','var') && any(templateflag), paramfl.templateflag = true; end
                                
                 % Compute params
-                [ contfl, analysis, mapY, GD, ~, Param, paramfl ] = nk_ApplyTrainedPreproc2(analysis, inp, paramfl);
+                inp.loadGD = true;
+                if isfield(inp,'CV1') && inp.CV1 == 1, inp.smoothonly = true; end
+                [ inp, contfl, analysis, mapY, GD, MD, Param, paramfl ] = nk_ApplyTrainedPreproc3(analysis, inp, paramfl);
+                inp.loadGD = false;
+                
                 if contfl, continue; end
                     
                 % Prepare containers & initialize matrices for CV1-level
@@ -250,7 +254,11 @@ for f=1:ix % Loop through CV2 permutations
                 GDFEAT                         = GD.FEAT; 
                 GDVI                           = GD.VI; 
                 if inp.stacking
-                    mChnl = GD.nM_cnt;
+                    if strcmp(SVM.prog,'SEQOPT')
+                        mChnl = ones(1,numel(GD.nM_cnt));
+                    else
+                        mChnl = GD.nM_cnt;
+                    end
                 end
                 clear GD
                 
@@ -264,8 +272,9 @@ for f=1:ix % Loop through CV2 permutations
                 if ~fndMD, MD = cell(nclass,1); end
                 
                 % ---------------------------------------------------------
-                if ~VERBOSE,fprintf('\n\nComputing visualizations'), end
+                if ~VERBOSE,fprintf('\n\nComputing visualizations for CV2 [ %g, %g ] ',f,d), end
                 
+                %% Initialize containers for analysis
                 if permfl, 
                     I1.TS           = cell(nclass,1);
                     I1.DS           = cell(nclass,1);
@@ -281,11 +290,6 @@ for f=1:ix % Loop through CV2 permutations
                 
                 for h=1:nclass % Loop through binary comparisons
                     
-                    if nclass > 1, 
-                        fprintf('\n*** %s #%g ***',algostr, h);                            
-                    end
-                    
-                    TsInd = mapY.TsInd{h}; 
                     switch MODEFL
                         case 'classification'
                             TsInd2 = CV.TestInd{f,d}(CV.classnew{f,d}{h}.ind);
@@ -293,19 +297,15 @@ for f=1:ix % Loop through CV2 permutations
                         case 'regression'
                             TsInd2 = CV.TestInd{f,d};
                     end
-                    %% Step 1: Get optimal model parameters
+                    
+                     %% Step 1: Get optimal model parameters
                     % Retrieve optimal parameters from precomputed analysis structure
                     % Differentiate according to binary or multi-group mode
-                    [Ps, Pspos, nP, Pdesc] = nk_GetModelParams2(analysis, multiflag, ll, h);
-                    
-                    % Computation of feature selection probabilities works
-                    % only if features used for classification live in the
-                    % original feature space and not in decomposed spaces
-                    % (e.g. PCA, NMF-derived features)
+                    [~, Pspos, nP] = nk_GetModelParams2(analysis, multiflag, ll, h);
                     
                     % Allocate memory to store CV1 ensemble patterns
-                    il = 1; kil=1; ill = getModelNumDim(h,iy,jy,nP,Pspos,GDFEAT);
-                    fprintf('\nNeed to evaluate %g models in this CV2 partition', ill);
+                    ill = getModelNumDim(h,iy,jy,nP,Pspos,GDFEAT);
+                    fprintf('\nPredictor #%g: Need to evaluate %g models in this CV2 partition', h, ill);
                     
                     if permfl, 
                         I1.VCV1WPERM{h} = cell(ill,1); 
@@ -336,7 +336,7 @@ for f=1:ix % Loop through CV2 permutations
                         
                         % Prepare for permutation analysis
                         if permfl
-                            nTs                 = size(TsInd,1);
+                            nTs                 = size(TsInd2,1);
                             I1.TS{h}            = nan(nTs, ill);
                             I1.DS{h}            = nan(nTs, ill);
                             I1.DS_perm{h}       = nan(nTs, ill, nperms(1));
@@ -354,38 +354,66 @@ for f=1:ix % Loop through CV2 permutations
                         end
                     end
                     
-                    if ~fndMD , MD{h} = cell(nP,1); end
-                    
-                    for m = 1 : nP
-                        
-                        if nP>1, fprintf('\nExtracing model parameters at parameter node %g of %g', m, nP); end
-                        % Prepare learning params
-                        cPs = Ps(m,:); sPs = nk_PrepMLParams(Ps, Pdesc, m);
-                        
-                        % -----------------------------------------------------
-                        % Construct pattern for every base learnern in
-                        % current CV1 [k,l] partition:
-                        %% CV1 LOOP
-                        P_str = nk_DefineMLParamStr(cPs, analysis.Model.ParamDesc, h);
-                        
-                        if ~fndMD,MD{h}{m} = cell(iy,jy); end
-                        
-                        for k=1:iy % permutations
+                    % Initialize model container 
+                    if ~fndMD , MD{h} = cell(nP,1); for m = 1 : nP, MD{h}{m} = cell(iy,jy); end; end;
+                end
+                
+                il = ones(nclass,1); kil=ones(nclass,1);
+                
+                %% Perform analyses   
+                for k=1:iy % CV1 permutations
 
-                            for l=1:jy % folds
+                    for l=1:jy % CV1 folds
+                            
+                        if isfield(inp,'CV1') && inp.CV1 == 1
+                            inp.CV1p = [k,k]; inp.CV1f = [l,l];
+                            fprintf('\nPreprocessing data at selected parameter combination(s) ');
+                            [ ~, ~, analysis, mapY, ~, ~, Param, paramfl ] = nk_ApplyTrainedPreproc3(analysis, inp, paramfl);
+                        end
+                        
+                        for h=1:nclass % Loop through binary comparisons
+                    
+                            if nclass > 1, fprintf('\n');cprintf('blue*', '*** %s #%g *** ',algostr, h); end
+
+                            switch MODEFL
+                                case 'classification'
+                                    TsInd2 = CV.TestInd{f,d}(CV.classnew{f,d}{h}.ind);
+                                    if inp.multiflag, TsIndM = CV.TestInd{f,d}; end
+                                case 'regression'
+                                    TsInd2 = CV.TestInd{f,d};
+                            end
+                            
+                            TsInd = mapY.TsInd{h}; 
+                            
+                            %% Step 1: Get optimal model parameters
+                            % Retrieve optimal parameters from precomputed analysis structure
+                            % Differentiate according to binary or multi-group mode
+                            [Ps, Pspos, nP, Pdesc] = nk_GetModelParams2(analysis, multiflag, ll, h);
+                            
+                            for m = 1 : nP % parameter combinations
+
+                                if nP>1, fprintf('\n');cprintf(rgb('RoyalBlue'),'Extracing model parameters at parameter node #%g/%g ', m, nP); end
+                                % Prepare learning params
+                                cPs = Ps(m,:); sPs = nk_PrepMLParams(Ps, Pdesc, m);
+
+                                % -----------------------------------------------------
+                                % Construct pattern for every base learnern in
+                                % current CV1 [k,l] partition:
+                                %% CV1 LOOP
+                                P_str = nk_DefineMLParamStr(cPs, analysis.Model.ParamDesc, h);
                                 
                                 Fkl = GDFEAT{Pspos(m)}{k,l,h}; 
-                                    
+                                 
                                 % Determine number of features in mask and
                                 % convert feature mask to logical index
                                 ul=size(Fkl,2);
                                 if ~islogical(Fkl),F = Fkl ~= 0; else F = Fkl; end
 
                                 if VERBOSE
-                                    fprintf('\n');cprintf('*black',['Constructing predictive pattern(s) in CV2 [%2g ,%2g], ' ...
-                                    'CV1 [%2g ,%2g]: %g model(s), %s ML params [ %s ]. '], f, d, k, l, ul, algostr, P_str); 
+                                    fprintf('\n');cprintf('*black',['Constructing predictive pattern(s) in CV2 [ %2g ,%2g ], ' ...
+                                    'CV1 [ %2g ,%2g, Predictor #%g/%g ]: %g model(s), %s ML params [ %s ]. '], f, d, k, l, h, nclass, ul, algostr, P_str); 
                                 else
-                                    fprintf('\n');cprintf('*black','CV2 [%2g, %2g ], CV1 [ %2g, %2g ]: %g model(s) ',f, d, k, l, ul) ;
+                                    fprintf('\n');cprintf('*black','Visualizing: CV2 [ %2g, %2g ], CV1 [ %2g, %2g, P: #%g/%g ]: %g model(s) ',f, d, k, l, h, nclass, ul) ;
                                 end
 
                                 CVInd   = mapY.CVInd{k,l}{h};
@@ -455,7 +483,7 @@ for f=1:ix % Loop through CV2 permutations
                                     if size(pTrInd,2)>1,pTrInd=pTrInd'; end
                                     if size(pCVInd,2)>1,pCVInd=pCVInd'; end
                                     if FullPartFlag, pTrInd = [pTrInd; pCVInd];end
-                                    if pmode(1)==1, indperm = indpermA(pTrInd,:); end
+                                    if pmode(1), indperm = indpermA(pTrInd,:); end
                                     if inp.multiflag ==1,
                                         modelTsm = modelTs;
                                         modelTsmL = inp.labels(TsIndM);
@@ -489,7 +517,11 @@ for f=1:ix % Loop through CV2 permutations
                                     end
                                     
                                     % Model computation
-                                    if ~fndMD, [~, MD{h}{m}{k,l}{u}] = nk_GetParam2(Ymodel, modelTrL, sPs, 1); end
+                                    if isfield(mapY,'VI')
+                                        if ~fndMD, [~, MD{h}{m}{k,l}{u}] = nk_GetParam2(Ymodel, modelTrL, sPs, 1, mapY.VI{k,l}{hix}{u}); end
+                                    else
+                                        if ~fndMD, [~, MD{h}{m}{k,l}{u}] = nk_GetParam2(Ymodel, modelTrL, sPs, 1); end
+                                    end
                                     
                                     if inp.stacking
                                         vec_mj = [];
@@ -507,9 +539,9 @@ for f=1:ix % Loop through CV2 permutations
                                         % needed and compute further variables
                                         % needed for perm-based stats
                                         if inp.multiflag
-                                            [~, I1.mTS{h}(:,il), I1.mDS{h}(:,il)] = nk_GetTestPerf(modelTsm, modelTsmL, Find, MD{h}{m}{k,l}{u}, modelTr); 
+                                            [~, I1.mTS{h}(:,il(h)), I1.mDS{h}(:,il(h))] = nk_GetTestPerf(modelTsm, modelTsmL, Find, MD{h}{m}{k,l}{u}, modelTr); 
                                         end
-                                        [perf_orig, I1.TS{h}(:,il), I1.DS{h}(:,il)] = nk_GetTestPerf(modelTs, modelTsL, Find, MD{h}{m}{k,l}{u}, modelTr); 
+                                        [perf_orig, I1.TS{h}(:,il(h)), I1.DS{h}(:,il(h))] = nk_GetTestPerf(modelTs, modelTsL, Find, MD{h}{m}{k,l}{u}, modelTr); 
                                         fprintf(' %1.2f',perf_orig)
                                         % if sigfl = true
                                         % Determine significant components
@@ -517,56 +549,68 @@ for f=1:ix % Loop through CV2 permutations
                                         if sigfl
                                             fprintf(' | Significant pattern components (%g perms):\t',nperms(1));
                                             % Original weight vector
-                                            [~,~,~,~, Vx] = nk_VisXWeight2(inp, MD{h}{m}{k,l}{u}, Ymodel, modelTrL, varind, ParamX, Find, Vind, decompfl, false);
+                                            [~,~,~,~,Vx] = nk_VisXWeight2(inp, MD{h}{m}{k,l}{u}, Ymodel, modelTrL, varind, ParamX, Find, Vind, decompfl, false);
+                                            ipVx = Vx >= 0; inVx = Vx < 0;
                                             Vx_perm = zeros( size(Vx,1), nperms(1) );
                                             MD_perm = cell(nperms(1),1);
                                             for perms = 1:nperms(1)
                                                 fprintf('+');
                                                 % Train permuted model
                                                 [L_perm, Ymodel_perm]       = nk_VisXPermY(Ymodel, inp.labels, pTrInd, pmode(1), indperm, indpermfeat, perms);
-                                                [~, MD_perm{perms}]         = nk_GetParam2(Ymodel_perm, L_perm, sPs, 1);
+                                                if isfield(mapY,'VI')
+                                                    [~, MD_perm{perms}]     = nk_GetParam2(Ymodel_perm, L_perm, sPs, 1, mapY.VI{k,l}{hix}{u});
+                                                else
+                                                    [~, MD_perm{perms}]     = nk_GetParam2(Ymodel_perm, L_perm, sPs, 1);
+                                                end
                                                 % Compute permuted weight vector in feature space
                                                 [~,~,~,~,Vx_perm(:, perms)] = nk_VisXWeight2(inp, MD_perm{perms}, Ymodel_perm, L_perm, varind, ParamX, Find, Vind, decompfl, false);
                                             end
                                             % Determine significance by comparing observed weight vector
                                             % against null distribution of permuted models' weight vectors
-                                            %(abs(w/(norm(w,2))
-                                            I1.VCV1WPERM{il,h} = (sum(bsxfun(@ge,abs(Vx_perm),abs(Vx)),2)/nperms(1))/ul;
+                                            VxV = zeros(size(Vx));
+                                            VxV(ipVx) = (sum(bsxfun(@ge,Vx_perm(ipVx,:),Vx(ipVx)),2)/nperms(1))/ul;
+                                            VxV(inVx) = (sum(bsxfun(@le,Vx_perm(inVx,:),Vx(inVx)),2)/nperms(1))/ul;
+                                            I1.VCV1WPERM{il(h),h} = VxV; 
+                                            clear VxV
                                             if sigflFDR
-                                                Fadd   = fdr_bh(I1.VCV1WPERM{il,h},0.5,'dep');
+                                                Fadd   = fdr_bh(I1.VCV1WPERM{il(h),h},0.5,'dep');
                                                 FDRstr = '(FDR) ';
                                             else
-                                                Fadd   = (I1.VCV1WPERM{il,h} <= 0.5);
+                                                Fadd   = (I1.VCV1WPERM{il(h),h} <= 0.5);
                                                 FDRstr = '(uncorr) ';
                                             end
                                             if ~sum(Fadd)
-                                                [minP, Fadd] = min(I1.VCV1WPERM{il,h});
-                                                fprintf('\tNo component significant at alpha %s = 0.5 => relaxing to max P = %g\n\t\t\t\t\t\t\t\t\t\t',FDRstr, minP );
+                                                [minP, Fadd] = min(I1.VCV1WPERM{il(h),h});
+                                                fprintf('\tNo component significant at alpha %s = 0.5 => relaxing to max P = %g\n\t\t\t\t\t\t\t\t',FDRstr, minP );
                                             else
-                                                fprintf('\t%g / %g components significant at alpha %s = 0.5\n\t\t\t\t\t\t\t\t\t\t',sum(Fadd), numel(Fadd),FDRstr);
+                                                fprintf('\t%g / %g components significant at alpha %s = 0.5\n\t\t\t\t\t\t\t\t',sum(Fadd), numel(Fadd),FDRstr);
                                             end
                                         else
                                             Fadd = true(size(F,1),1);
                                         end
                                         
-                                        fprintf(' | Permuting:\t');
                                         % Compute original weight map in input space
                                         [Tx, Psel, Rx, SRx, ~, PAx ] = nk_VisXWeight2(inp, MD{h}{m}{k,l}{u}, Ymodel, modelTrL, varind, ParamX, Find, Vind, decompfl, [], Fadd);
+                                        fprintf(' | Permuting:\t');
                                         Tx_perm = cell(1,nM); Px_perm = zeros(1,nperms(1));
                                         for n=1:nM, Tx_perm{n} = zeros(size(Tx{n},1),nperms(n)); end
                                         for perms = 1:nperms(1)
                                             if ~sigfl, 
                                                 % Train permuted model
                                                 [ L_perm, Ymodel_perm ] = nk_VisXPermY(Ymodel, inp.labels, pTrInd, pmode(1), indperm, indpermfeat, perms);
-                                                [~, MDs] = nk_GetParam2(Ymodel_perm, L_perm, sPs, 1);
+                                                  if isfield(mapY,'VI')
+                                                      [~, MDs] = nk_GetParam2(Ymodel_perm, L_perm, sPs, 1, mapY.VI{k,l}{hix}{u} );
+                                                  else
+                                                      [~, MDs] = nk_GetParam2(Ymodel_perm, L_perm, sPs, 1 );
+                                                  end
                                             else
                                                 % Retrieve trained permuted model
                                                 MDs = MD_perm{perms};
                                             end
                                             % Compute permuted model test performance
-                                            [perf_perm, I1.TS_perm{h}(:,il,perms), I1.DS_perm{h}(:,il,perms)] = nk_GetTestPerf(modelTs, modelTsL, Find, MDs, modelTr);
+                                            [perf_perm, I1.TS_perm{h}(:,il(h),perms), I1.DS_perm{h}(:,il(h),perms)] = nk_GetTestPerf(modelTs, modelTsL, Find, MDs, modelTr);
                                             if inp.multiflag
-                                                [~, I1.mTS_perm{h}(:,il,perms), I1.mDS_perm{h}(:,il,perms)] = nk_GetTestPerf(modelTsm, modelTsmL, Find, MDs, modelTr); 
+                                                [~, I1.mTS_perm{h}(:,il(h),perms), I1.mDS_perm{h}(:,il(h),perms)] = nk_GetTestPerf(modelTsm, modelTsmL, Find, MDs, modelTr); 
                                             end
                                             % Compare against original model performance
                                             if feval(compfun, perf_perm, perf_orig),
@@ -579,9 +623,10 @@ for f=1:ix % Loop through CV2 permutations
                                         end
                                         
                                         % Model significance
-                                        I1.VCV1MPERM{h}(il) = (sum(Px_perm) / nperms(1));
+                                        I1.VCV1MPERM{h}(il(h)) = (sum(Px_perm) / nperms(1));
                                         
-                                        fprintf('\t');cprintf('*black', ' P=%1.3f ', I1.VCV1MPERM{h}(il));
+                                        % Print significance to screen
+                                        cprintf('black*', ' P=%1.3f ', I1.VCV1MPERM{h}(il(h)));
                                         
                                         % Loop through modalities
                                         for n=1:nM
@@ -590,30 +635,42 @@ for f=1:ix % Loop through CV2 permutations
                                             Fpind = any(Tx_perm{n},2)'; 
                                             
                                             % Now compute the P value vector:
-                                            Pvals = sum(bsxfun(@ge,abs(Tx_perm{n}(Fpind,:)),abs(Tx{n}(Fpind))),2)/nperms(1);
+                                            TxV = zeros(size(Tx{n}));
+                                            ipTx = Tx{n} >= 0; inTx = Tx{n} < 0;
+                                            TxV(ipTx) = sum(bsxfun(@ge,Tx_perm{n}(ipTx,:),Tx{n}(ipTx)),2)/nperms(1);
+                                            TxV(inTx) = sum(bsxfun(@le,Tx_perm{n}(inTx,:),Tx{n}(inTx)),2)/nperms(1);
+                                            %Pvals = sum(bsxfun(@ge,abs(Tx_perm{n}(Fpind,:)),abs(Tx{n}(Fpind))),2)/nperms(1);
+                                            Pvals = TxV(Fpind);
                                             
                                             % ... and the Z score vector:
-                                            Zvals = bsxfun(@rdivide, Tx{n}(Fpind) - nanmean(Tx_perm{n}(Fpind,2)), nanstd(Tx_perm{n}(Fpind,:),[],2));
+                                            %Zvals = bsxfun(@rdivide, Tx{n}(Fpind) - nanmean(Tx_perm{n}(Fpind,2)), nanstd(Tx_perm{n}(Fpind,:),[],2));
+                                            Zvals = bsxfun(@rdivide, Tx{n} - nanmean(Tx_perm{n},2), nanstd(Tx_perm{n},[],2));
+                                            Zvals = Zvals(Fpind);
                                             
+                                            % with stacking there is a
+                                            % different way to compute
+                                            % significance, as we have to
+                                            % find to which child predictor a
+                                            % feature belongs.
                                             if inp.stacking
                                                 for mj = 1:inp.nD
                                                     mjPvals = mean(Pvals(vec_mj(Fpind) == mj));
                                                     mjC = mean(Zvals(vec_mj(Fpind) == mj));
-                                                    I1.VCV1PERM{h,n}(mj,il) = mjPvals;
-                                                    [~,~,~,I1.VCV1PERM_FDR{h,n}(mj, il)] = fdr_bh(mjPvals,0.05,'pdep');
-                                                    I1.VCV1ZSCORE{h,n}(mj,il) = mjC;
+                                                    I1.VCV1PERM{h,n}(mj,il(h)) = mjPvals;
+                                                    [~,~,~,I1.VCV1PERM_FDR{h,n}(mj, il(h))] = fdr_bh(mjPvals,0.05,'pdep');
+                                                    I1.VCV1ZSCORE{h,n}(mj,il(h)) = mjC;
                                                 end
                                             else
                                                 [ ~, ~, ~, badcoords ] = getD(FUSION.flag, inp, n); badcoords = ~badcoords;
-                                                I1.VCV1PERM{h,n}(badcoords & Fpind,il) = Pvals;
-                                                [~,~,~,I1.VCV1PERM_FDR{h,n}(badcoords & Fpind, il)] = fdr_bh(Pvals,0.05,'pdep'); 
-                                                I1.VCV1ZSCORE{h,n}(badcoords & Fpind,il) = Zvals;
+                                                I1.VCV1PERM{h,n}(badcoords & Fpind,il(h)) = Pvals;
+                                                [~,~,~,I1.VCV1PERM_FDR{h,n}(badcoords & Fpind, il(h))] = fdr_bh(Pvals,0.05,'pdep'); 
+                                                I1.VCV1ZSCORE{h,n}(badcoords & Fpind,il(h)) = Zvals;
                                             end
                                             % and show how many uncorrected P
                                             % values are below alpha=0.05
-                                            sigcomp = sum(I1.VCV1PERM{h,n}(:,il)<=0.05);
-                                            sigmin  = min(I1.VCV1PERM{h,n}(:,il));
-                                            FDRsigmin = min(I1.VCV1PERM_FDR{h,n}(:,il));
+                                            sigcomp = sum(I1.VCV1PERM{h,n}(:,il(h))<=0.05);
+                                            sigmin  = min(I1.VCV1PERM{h,n}(:,il(h)));
+                                            FDRsigmin = min(I1.VCV1PERM_FDR{h,n}(:,il(h)));
                                             fprintf('; Modality #%g: [ %g features <= 0.05, min P value (uncorr, FDR) = %1.6f, %1.6f ] ', n, sigcomp, sigmin, FDRsigmin);
                                         end
                                     end
@@ -626,14 +683,14 @@ for f=1:ix % Loop through CV2 permutations
                                         if inp.stacking
                                             for mj = 1:inp.nD
                                                 Imj = vec_mj == mj & Fpind;
-                                                I1.VCV1{h,n}(mj,il) = mean(Tx{n}(Imj));
+                                                I1.VCV1{h,n}(mj,il(h)) = mean(Tx{n}(Imj));
                                                 if ~decompfl(n) && u==1,  
-                                                    I1.VCV1PEARSON{h, n}(mj,kil) = nanmean(Rx{n}(Imj));
-                                                    I1.VCV1SPEARMAN{h, n}(mj,kil) = nanmean(SRx{n}(Imj));
-                                                    I1.VCV1PEARSON_UNCORR_PVAL{h, n}(mj,kil) = nanmean(nk_PTfromR(Rx{n}(Imj), size(Ymodel,1), 2));
-                                                    I1.VCV1SPEARMAN_UNCORR_PVAL{h, n}(mj,kil) = nanmean(nk_PTfromR(SRx{n}(Imj), size(Ymodel,1), 2));
+                                                    I1.VCV1PEARSON{h, n}(mj,kil(h)) = nanmean(Rx{n}(Imj));
+                                                    I1.VCV1SPEARMAN{h, n}(mj,kil(h)) = nanmean(SRx{n}(Imj));
+                                                    I1.VCV1PEARSON_UNCORR_PVAL{h, n}(mj,kil(h)) = nanmean(nk_PTfromR(Rx{n}(Imj), size(Ymodel,1), 2));
+                                                    I1.VCV1SPEARMAN_UNCORR_PVAL{h, n}(mj,kil(h)) = nanmean(nk_PTfromR(SRx{n}(Imj), size(Ymodel,1), 2));
                                                     if linsvmfl
-                                                        I1.VCV1PVAL_ANALYTICAL{h, n}(mj,kil) = nanmean(PAx{n}(Imj));
+                                                        I1.VCV1PVAL_ANALYTICAL{h, n}(mj,kil(h)) = nanmean(PAx{n}(Imj));
                                                     end
                                                 end
                                             end
@@ -649,51 +706,58 @@ for f=1:ix % Loop through CV2 permutations
 
                                             % Store results in CV1 container variables                                    
                                             % I1.numCV1parts(h, n) = I1.numCV1parts(h, n) + 1;
-                                            I1.VCV1{h,n}(badcoords,il) = Tx{n};
+                                            I1.VCV1{h,n}(badcoords,il(h)) = Tx{n};
 
                                             if ~decompfl(n) 
                                                 if u==1,  
                                                     %% Compute univariate correlation coefficient for each feature
-                                                    I1.VCV1PEARSON{h, n}(badcoords,kil) = Rx{n};
-                                                    I1.VCV1SPEARMAN{h, n}(badcoords,kil) = SRx{n};
-                                                    I1.VCV1PEARSON_UNCORR_PVAL{h, n}(badcoords,kil) = nk_PTfromR(Rx{n}, size(Ymodel,1), 2);
-                                                    I1.VCV1SPEARMAN_UNCORR_PVAL{h, n}(badcoords,kil) = nk_PTfromR(SRx{n}, size(Ymodel,1), 2);
-                                                    [~,~,~,I1.VCV1PEARSON_FDR_PVAL{h, n}(badcoords,kil)] = fdr_bh(I1.VCV1PEARSON_UNCORR_PVAL{h, n}(badcoords,kil), 0.05, 'pdep');
-                                                    [~,~,~,I1.VCV1SPEARMAN_FDR_PVAL{h, n}(badcoords,kil)] = fdr_bh(I1.VCV1SPEARMAN_UNCORR_PVAL{h, n}(badcoords,kil), 0.05, 'pdep');
+                                                    I1.VCV1PEARSON{h, n}(badcoords,kil(h)) = Rx{n};
+                                                    I1.VCV1SPEARMAN{h, n}(badcoords,kil(h)) = SRx{n};
+                                                    I1.VCV1PEARSON_UNCORR_PVAL{h, n}(badcoords,kil(h)) = nk_PTfromR(Rx{n}, size(Ymodel,1), 2);
+                                                    I1.VCV1SPEARMAN_UNCORR_PVAL{h, n}(badcoords,kil(h)) = nk_PTfromR(SRx{n}, size(Ymodel,1), 2);
+                                                    [~,~,~,I1.VCV1PEARSON_FDR_PVAL{h, n}(badcoords,kil(h))] = fdr_bh(I1.VCV1PEARSON_UNCORR_PVAL{h, n}(badcoords,kil(h)), 0.05, 'pdep');
+                                                    [~,~,~,I1.VCV1SPEARMAN_FDR_PVAL{h, n}(badcoords,kil(h))] = fdr_bh(I1.VCV1SPEARMAN_UNCORR_PVAL{h, n}(badcoords,kil(h)), 0.05, 'pdep');
                                                 end
                                                 %% Comnpute feature selection probabilities %%
                                                 if isempty(I1.PCV1SUM{h, n}), I1.PCV1SUM{h, n} = zeros(size(badcoords,2),1); end
                                                 I1.PCV1SUM{h, n}(badcoords) = I1.PCV1SUM{h, n}(badcoords) + Psel{n}; 
                                                 if linsvmfl
-                                                     I1.VCV1PVAL_ANALYTICAL{h, n}(badcoords,kil) = PAx{n};
-                                                     [~,~,~,I1.VCV1PVAL_ANALYTICAL_FDR{h, n}(badcoords,kil)] = fdr_bh(PAx{n},0.05,'pdep');
+                                                     I1.VCV1PVAL_ANALYTICAL{h, n}(badcoords,kil(h)) = PAx{n};
+                                                     try
+                                                        [~,~,~,I1.VCV1PVAL_ANALYTICAL_FDR{h, n}(badcoords,kil(h))] = fdr_bh(PAx{n},0.05,'pdep');
+                                                     catch
+                                                         fprintf('\n')
+                                                     end
                                                 end
                                             end
                                        end
                                     end
-                                    il=il+1;
+                                    il(h)=il(h)+1;
                                 end
-                                kil=kil+1;
+                                kil(h)=kil(h)+1;
                                 clear Tx Vx Tx_perm Vx_perm tSRx tRx Rx SRx MD_perm
                                 %fprintf(' Done.')
                             end
                         end  
                     end
                     if any(permfl)
-                        % Compute CV2-level model significance
-                        I1.VCV1MORIG_EVALFUNC_CV2{h} = feval(EVALFUNC, modelTsL, nm_nanmedian(I1.DS{h},2)); 
-                        I1.VCV1MPERM_CV2{h} = zeros(nperms(1),1); 
-                        I1.VCV1MPERM_EVALFUNC_CV2{h} = zeros(nperms(1),1);
-                        for perms = 1:nperms(1)
-                            I1.VCV1MPERM_EVALFUNC_CV2{h}(perms) = feval(EVALFUNC, modelTsL, nm_nanmedian(I1.DS_perm{h}(:,:,perms),2)); 
-                            I1.VCV1MPERM_CV2{h}(perms)          = feval(compfun, I1.VCV1MPERM_EVALFUNC_CV2{h}(perms), I1.VCV1MORIG_EVALFUNC_CV2{h} );
+                        for h=1:nclass
+                            % Compute CV2-level model significance
+                            modelTsL = mapY.TsL{h};
+                            I1.VCV1MORIG_EVALFUNC_CV2{h} = feval(EVALFUNC, modelTsL, nm_nanmedian(I1.DS{h},2)); 
+                            I1.VCV1MPERM_CV2{h} = zeros(nperms(1),1); 
+                            I1.VCV1MPERM_EVALFUNC_CV2{h} = zeros(nperms(1),1);
+                            for perms = 1:nperms(1)
+                                I1.VCV1MPERM_EVALFUNC_CV2{h}(perms) = feval(EVALFUNC, modelTsL, nm_nanmedian(I1.DS_perm{h}(:,:,perms),2)); 
+                                I1.VCV1MPERM_CV2{h}(perms)          = feval(compfun, I1.VCV1MPERM_EVALFUNC_CV2{h}(perms), I1.VCV1MORIG_EVALFUNC_CV2{h} );
+                            end
                         end
                     end
                     clear Tx tmp V Ymodel modelTr modelTrL F Fkl dum 
                 end
                 I = nk_VisXHelper('accum', nM, nclass, decompfl, permfl, ix, jx, I, inp, ll, nperms(1), I1);  
-                fprintf('\nSaving %s', oVISpath); save(oVISpath,'I1','sPs','operm','ofold');
-                if saveparam, fprintf('\nSaving %s', OptModelPath); save(OptModelPath, 'MD', 'ofold','operm'); end
+                fprintf('\nSaving %s', oVISpath); save(oVISpath,'I1','sPs','operm','ofold', '-v7.3');
+                if saveparam, fprintf('\nSaving %s', OptModelPath); save(OptModelPath, 'MD', 'ofold','operm', '-v7.3'); end
                 if isfield(I1,'PCV1SUM'), PCV1SUMflag=true; else PCV1SUMflag = false; end
                 clear Param MD
                 
@@ -775,6 +839,7 @@ for f=1:ix % Loop through CV2 permutations
                 if isfield(I1,'mDS'), fprintf('\nNot computing CV2 multi-class model significance'); end
             end
         end
+        if isfield(inp,'issmoothed'), inp.issmoothed = false; end
         ll=ll+1; clear GDFEAT
         clear I1
     end
@@ -812,20 +877,19 @@ if ~batchflag
                 case 'regression'
                     labelh = inp.labels;
             end
-            indempt     = cellfun(@isempty,I.VCV2MORIG_S);
-            Porig       = cellfun(@nm_nanmedian,I.VCV2MORIG_S(~indempt(:,h),h)); 
-            Lorig       = labelh(~indempt(:,h));
-            indnonnan   = ~isnan(Porig); 
+            indempt     = ~(cellfun(@isempty,I.VCV2MORIG_S) | isnan(cellfun(@sum,I.VCV2MORIG_S)));
+            Porig       = cellfun(@nm_nanmedian,I.VCV2MORIG_S(indempt(:,h),h)); 
+            Lorig       = labelh(indempt(:,h));
             if inp.targscale, IN.revertflag = true; IN.minY = inp.minLbCV; IN.maxY = inp.maxLbCV; Porig = nk_PerfScaleObj(Porig, IN); end
             % Observed hold out performance
-            I.VCV2MORIG_EVALFUNC_GLOBAL(h) = feval(EVALFUNC, Lorig(indnonnan), Porig(indnonnan));
+            I.VCV2MORIG_EVALFUNC_GLOBAL(h) = feval(EVALFUNC, Lorig, Porig);
             fprintf('\nTesting observed %s model performance [ model #%g: %s = %1.2f ] in the hold-out data against %g permutations\n', ...
                                         MODEFL, h, EVALFUNC,  I.VCV2MORIG_EVALFUNC_GLOBAL(h), nperms(1));
             for perms = 1 : nperms(1)
-                Pperm                                = cellfun(@nm_nanmedian, I.VCV2MPERM_S(~indempt(:,h),h,perms));
+                Pperm                                = cellfun(@nm_nanmedian, I.VCV2MPERM_S(indempt(:,h),h,perms));
                 if inp.targscale, Pperm              = nk_PerfScaleObj(Pperm, IN); end
                 % Permuted hold-out performances
-                I.VCV2MPERM_EVALFUNC_GLOBAL(h,perms) = feval(EVALFUNC, labelh(indnonnan), Pperm(indnonnan)); 
+                I.VCV2MPERM_EVALFUNC_GLOBAL(h,perms) = feval(EVALFUNC, Lorig, Pperm); 
                 crt                                  = feval(compfun, I.VCV2MPERM_EVALFUNC_GLOBAL(h,perms), I.VCV2MORIG_EVALFUNC_GLOBAL(h));
                 if ~crt, fprintf('*'); else, fprintf('.'); end
                 % Store boolean measuring whether permuted hold-out
@@ -962,6 +1026,9 @@ if ~batchflag
             % Compute CV-ratio 
             I.VCV2rat{h,n} = I.VCV2{h,n} ./ I.VCV2SE{h,n};
             
+            % Compute Sign-based consistency, Z scores and P values
+            [I.VCV2signconst_p{h,n}, I.VCV2signconst_pfdr{h,n}, I.VCV2signconst_z{h,n}, I.VCV2signconst{h,n}] = nk_SignBasedConsistencySignificance(I.VCV2VCV1{h,n});  
+            
              % Compute GrandMean metrics
             I.VCV2rat_CV1{h,n}  = I.VCV2MEAN_CV1{h,n}./I.VCV2SE_CV1{h,n};
             I.VCV2MEANthreshSE_CV1{h,n} = zeros(size(I.VCV2MEAN_CV1{h,n}),'single');
@@ -979,147 +1046,141 @@ if ~batchflag
         
         % Now we have to differentiate between imaging and non-imaging
         % analyses. In the former case we write out data to the disk
-        
-        switch datatype
-            % SPM-based NIFTI write-out
-            case 1
-                currdir = pwd;
-                cd(inp.rootdir);
-                for h=1:nclass % Loop through binary classifiedars (predictors)
-                    % Generate filenames & save data
-                    imgname = SAV.matname; 
-                    suff = ['_NumPred-' num2str(I.VCV2NMODEL(h))];
-                    varsuff = sprintf('_var%g',inp.tF(n));
-                    switch MODEFL
-                        case 'regression'
-                                basename ='PredictVol';
-                                suff = [multlabelstr suff varsuff '_ID' id];
-                        case 'classification'
-                                basename = 'DiscrimVol';
-                                suff = [multlabelstr '_cl' num2str(h) suff varsuff '_ID' id];
-                    end
+        if datatype ==1 || datatype==2
+            
+            currdir = pwd;
+            cd(inp.rootdir);
 
-                    % Save mean image
-                    volnam = [basename '_Mean_' imgname suff ];
-                    nk_WriteVol(I.VCV2{h,n},volnam,2, brainmaski,[], labeli, labelopi);
+            for h=1:nclass % Loop through binary classifiedars (predictors)
+                % _______________________________________________________________________________
+                % Generate filenames & save data:
+                imgname = SAV.matname; 
+                suff = ['_NumPred-' num2str(I.VCV2NMODEL(h))];
+                varsuff = sprintf('_var%g',inp.tF(n));
+                switch MODEFL
+                    case 'regression'
+                            basename ='PredictVol';
+                            suff = [multlabelstr suff varsuff '_ID' id];
+                    case 'classification'
+                            basename = 'DiscrimVol';
+                            suff = [multlabelstr '_cl' num2str(h) suff varsuff '_ID' id];
+                end
+                % _______________________________________________________________________________
+                % Base images:
+                vols = [I.VCV2{h,n} ...                 %  mean image
+                        I.VCV2rat{h,n} ...              %  CV ratio image
+                        I.VCV2SE{h,n} ...               %  standard error image
+                        I.VCV2MEAN_CV1{h,n} ...         %  grand mean image (CV1 level)
+                        I.VCV2SE_CV1{h,n} ...           %  grand mean standard error image (CV1 level)
+                        I.VCV2MEANthreshSE_CV1{h,n} ... %  grand mean thresholded by (mean > standard error) image (CV1 level)
+                        I.VCV2rat_CV1{h,n} ...          %  grand mean CV ratio image 
+                        I.VCV2PROB{h,n} ...             %  grand mean CV ratio image 
+                        I.VCV2signconst{h,n} ...        %  sign-based consistency image
+                        I.VCV2signconst_z{h,n} ...      %  sign-based consistency Z score image
+                        I.VCV2signconst_p{h,n} ...      %  sign-based consistency P value (uncorrected) image
+                        I.VCV2signconst_pfdr{h,n} ...   %  sign-based consistency P value (FDR-corr) image
+                        ];
+                volnam = [        basename '_Mean_' imgname suff ];
+                volnam = char(volnam, [basename '_CVratio_' imgname suff ]);
+                volnam = char(volnam, [basename '_SE_' imgname suff] );
+                volnam = char(volnam, [basename '_Mean-GrM_' imgname suff ]); 
+                volnam = char(volnam, [basename '_SE-GrM_' imgname suff ]);
+                volnam = char(volnam, [basename '_Mean-gr-SE-GrM_' imgname suff ]);
+                volnam = char(volnam, [basename '_CVratio-GrM_' imgname suff ]);
+                volnam = char(volnam, [basename '_Prob95CI-GrM_' imgname suff ]);
+                volnam = char(volnam, [basename '_SignBased_' imgname suff ]);
+                volnam = char(volnam, [basename '_SignBased_Z_' imgname suff ]);
+                volnam = char(volnam, [basename '_SignBased_p_uncorr_' imgname suff ]);
+                volnam = char(volnam, [basename '_SignBased_p_FDR_' imgname suff ]);
+                % _______________________________________________________________________________
+                % Univariate stats images:
+                % Grand mean Spearman image 
+                if exist('I.VCV2SPEARMAN','var') && ~isempty(I.VCV2SPEARMAN{h,n})
+                    vols = [ vols I.VCV2SPEARMAN{h,n}];  
+                    volnam = char(volnam, [basename '_Spearman-GrM_' imgname suff ]);
+                end
+                % Grand mean Spearman image 
+                if exist('I.VCV2PEARSON','var') && ~isempty(I.VCV2PEARSON{h,n})
+                    vols = [ vols I.VCV2PEARSON{h,n}];
+                    volnam = char(volnam, [basename '_Pearson-GrM_' imgname suff ]);
+                end
+                % _______________________________________________________________________________
+                % Permutation-based stats images
+                if permfl 
+                    vols = [vols I.VCV2ZSCORE{h,n} ...      % Save permutation-based Zscore image 
+                                 I.VCV2PERM{h,n} ...         % Save permutation-based probability image(uncorrected)
+                                 I.VCV2PERM_FDR_PVAL{h,n} ]; % Save permutation-based probability image (FDR-corrected)
+                    volnam = char(volnam, [basename '_PermZ_' imgname suff ]);
+                    volnam = char(volnam, [basename '_PermProb_' imgname suff ]);
+                    volnam = char(volnam, [basename '_PermProbFDR_' imgname suff ]);
+                end
+                % _______________________________________________________________________________
+                % Grand mean images:
+                if isfield(nVIS,'mean')
 
-                    % Save CV ratio image
-                    volnam = [basename '_CVratio_' imgname suff ];
-                    nk_WriteVol(I.VCV2rat{h,n},volnam,2, brainmaski,[], labeli, labelopi);
+                    mI.GCV2_t = nk_Threshold(mI.GCV2, inp.VIS{n}.mean); % Save grand mean image
+                    sdI.GCV2_t = nk_Threshold(sdI.GCV2, inp.VIS{n}.se); % Save grand STD image
+                    ind = ( mI.GCV2_t ~= 0 & sdI.GCV2_t > 0 );
+                    normI.GCV2 = zeros(size(zI.GCV2)); 
+                    normI.GCV2(ind) = zI.GCV2(ind);                     % Save grand Z score image
+                    indCV2MEANgrCV2SE = abs(I.GCV2SUMh) > repmat(seI.GCV2,1,ol);
+                    GrandProb95CI = sum(indCV2MEANgrCV2SE,2)./ol;       % Save grand probability image
+                    vols = [vols mI.GCV2_t sdI.GCV2_t normI.GCV2 GrandProb95CI(:) ];    
+                    volnam = char(volnam, [basename '_GrandMean_thresh_' imgname suff ]);
+                    volnam = char(volnam, [basename '_GrandSTD_thresh_' imgname suff ]);
+                    volnam = char(volnam, [basename '_GrandZ_thresh_' imgname suff ]);
+                    volnam = char(volnam, [basename '_GrandProb95CI_' imgname suff ]);
+                end
+
+                clear mI.GCV2_t sdI.GCV2_t ind normI.GCV2 zI.GCV2 indCV2MEANgrCV2SE GrandProb95CI
+                % _______________________________________________________________________________
+                % Thresholded images:
+                if isfield(nVIS,'thresh') && ~isempty(nVIS.thresh) && nVIS.thresh
+
+                    I.VCV2_t    = nk_Threshold(I.VCV2{h,n}, inp.VIS{n}.mean);
+                    I.VCV2SE_t  = nk_Threshold(I.VCV2SE{h,n}, inp.VIS{n}.se);
+                    ind         = ( I.VCV2_t ~= 0 & I.VCV2SE_t > 0 );
+                    I.VCV2rat_t = zeros(size(I.VCV2_t));
+                    I.VCV2rat_t(ind) = I.VCV2_t(ind) ./ I.VCV2SE_t(ind);
+
+                    vols = [vols I.VCV2_t I.VCV2rat_t I.VCV2SE_t ];
+
+                    % Save thresholded mean image
+                    threshstr = num2str(inp.VIS{n}.mean.val);
+                    threshstr = regexprep(threshstr,' ','-');
+                    volnam = char(volnam, [basename '_Mean_thresh-' threshstr '_' imgname suff ]);
+
+                    % Save thresholded CV ratio image
+                    volnam = char(volnam, [basename '_CVratio_thresh_' imgname suff ]);
 
                     % Save standard error image
-                    volnam = [basename '_SE_' imgname suff ];
-                    nk_WriteVol(I.VCV2SE{h,n},volnam,2, brainmaski,[], labeli, labelopi);
+                    threshstr = num2str(inp.VIS{n}.se.val);
+                    threshstr = regexprep(threshstr,' ','-');
+                    volnam = char(volnam, [basename '_SE_thresh-' threshstr '_' imgname suff ]);
 
-                    % Save grand mean image (CV1 level)
-                    volnam = [basename '_Mean-GrM_' imgname suff ];
-                    nk_WriteVol(I.VCV2MEAN_CV1{h,n},volnam,2, brainmaski,[], labeli, labelopi);
-
-                    % Save grand mean standard error image (CV1 level)
-                    volnam = [basename '_SE-GrM_' imgname suff ];
-                    nk_WriteVol(I.VCV2SE_CV1{h,n},volnam,2, brainmaski,[], labeli, labelopi);
-
-                    % Save grand mean thresholded by (mean > standard error) image (CV1 level)
-                    volnam = [basename '_Mean-gr-SE-GrM_' imgname suff ];
-                    nk_WriteVol(I.VCV2MEANthreshSE_CV1{h,n},volnam,2, brainmaski,[], labeli, labelopi);
-
-                    % Save grand mean CV ratio image 
-                    volnam = [basename '_CVratio-GrM_' imgname suff ];
-                    nk_WriteVol(I.VCV2rat_CV1{h,n},volnam,2, brainmaski,[], labeli, labelopi);                   
-
-                    % Save grand mean CV ratio image 
-                    volnam = [basename '_Prob95CI-GrM_' imgname suff ];
-                    nk_WriteVol(I.VCV2PROB{h,n},volnam,2, brainmaski,[], labeli, labelopi);  
-                    
-                    % Save grand mean Spearman image 
-                    if exist('I.VCV2SPEARMAN','var')
-                        volnam = [basename '_Spearman-GrM_' imgname suff ];
-                        if ~isempty(I.VCV2SPEARMAN{h,n}), nk_WriteVol(I.VCV2SPEARMAN{h,n},volnam,2, brainmaski, [], labeli, labelopi);  end
-                    end
-                    % Save grand mean Spearman image 
-                    if exist('I.VCV2PEARSON','var')
-                        volnam = [basename '_Pearson-GrM_' imgname suff ];
-                        if ~isempty(I.VCV2PEARSON{h,n}), nk_WriteVol(I.VCV2PEARSON{h,n},volnam,2, brainmaski,[], labeli, labelopi);  end
-                    end
-                    
-                    if permfl 
-                        
-                        % Save permutation-based probability image
-                        volnam = [basename '_PermProb_' imgname suff ];
-                        nk_WriteVol(-log10(I.VCV2PERM{h,n}),volnam,2, brainmaski,[], labeli, labelopi);
-                        volnam = [basename '_PermProbFDR_' imgname suff ];
-                        nk_WriteVol(I.VCV2PERM_FDR_PVAL{h,n} ,volnam,2, brainmaski,[], labeli, labelopi);
-                        
-                        % Save permutation-based Zscore image 
-                        volnam = [basename '_PermZ_' imgname suff ];
-                        % Save permutation-based probability image
-                        nk_WriteVol(I.VCV2ZSCORE{h,n},volnam,2, brainmaski,[], labeli, labelopi);
-                    end
-
-                    % Save grand mean image
-                    if isfield(nVIS,'mean')
-                        volnam = [basename '_GrandMean_thresh_' imgname suff ];
-                        mI.GCV2_t = nk_Threshold(mI.GCV2, inp.VIS{n}.mean);
-                        nk_WriteVol(mI.GCV2_t(:),volnam,2, brainmaski,[], labeli, labelopi);
-
-                        % Save grand STD image
-                        volnam = [basename '_GrandSTD_thresh_' imgname suff ];
-                        sdI.GCV2_t = nk_Threshold(sdI.GCV2, inp.VIS{n}.se);
-                        nk_WriteVol(sdI.GCV2_t(:),volnam,2, brainmaski,[], labeli, labelopi);
-
-                        % Save grand Z score image
-                        volnam = [basename '_GrandZ_thresh_' imgname suff ];
-                        ind = ( mI.GCV2_t ~= 0 & sdI.GCV2_t > 0 );
-                        normI.GCV2 = zeros(size(zI.GCV2));
-                        normI.GCV2(ind) = zI.GCV2(ind);
-                        nk_WriteVol(normI.GCV2(:),volnam,2, brainmaski,[], labeli, labelopi);
-
-                        % Save grand probability image
-                        indCV2MEANgrCV2SE = abs(I.GCV2SUMh) > repmat(seI.GCV2,1,ol);
-                        GrandProb95CI = sum(indCV2MEANgrCV2SE,2)./ol;
-                        volnam = [basename '_GrandProb95CI_' imgname suff ];
-                        nk_WriteVol(GrandProb95CI(:),volnam,2, brainmaski,[], labeli, labelopi);
-                    end
-
-                    clear mI.GCV2_t sdI.GCV2_t ind normI.GCV2 zI.GCV2 indCV2MEANgrCV2SE GrandProb95CI
-
-                    if isfield(nVIS,'thresh') && ~isempty(nVIS.thresh) && nVIS.thresh
-
-                        I.VCV2_t = nk_Threshold(I.VCV2{h,n}, inp.VIS{n}.mean);
-                        I.VCV2SE_t = nk_Threshold(I.VCV2SE{h,n}, inp.VIS{n}.se);
-                        ind = ( I.VCV2_t ~= 0 & I.VCV2SE_t > 0 );
-
-                        I.VCV2rat_t = zeros(size(I.VCV2_t));
-                        I.VCV2rat_t(ind) = I.VCV2_t(ind) ./ I.VCV2SE_t(ind);
-
-                        % Save thresholded mean image
-                        threshstr = num2str(inp.VIS{n}.mean.val);
-                        threshstr = regexprep(threshstr,' ','-');
-                        volnam = [basename '_Mean_thresh-' threshstr '_' imgname suff ];
-                        nk_WriteVol(I.VCV2_t,volnam,2, brainmaski,[], labeli, labelopi);
-
-                        % Save thresholded CV ratio image
-                        volnam = [basename '_CVratio_thresh_' imgname suff ];
-                        nk_WriteVol(I.VCV2rat_t,volnam,2, brainmaski,[], labeli, labelopi);
-
-                        % Save standard error image
-                        threshstr = num2str(inp.VIS{n}.se.val);
-                        threshstr = regexprep(threshstr,' ','-');
-                        volnam = [basename '_SE_thresh-' threshstr '_' imgname suff ];
-                        nk_WriteVol(I.VCV2SE_t,volnam,2, brainmaski,[], labeli, labelopi);
-                    end 
+                end 
+                % _______________________________________________________________________________
+                % Write-out:
+                switch datatype
+                    case 1 % SPM-based NIFTI write-out
+                        nk_WriteVol(vols ,volnam, 2, brainmaski,[], labeli, labelopi);
+                    case 2
+                        s = MRIread(brainmaski);
+                        for yy=1:size(vols,2)
+                            %MRIwrite
+                        end
                 end
-                cd(currdir);
-            case 2 %Freesurfer write-out
-        end 
+            end
+            cd(currdir); 
+        end
         
-         %% Build output structure
+        %% Build output structure
         visdata{n}.params.dimvecx      = [1 D];
         visdata{n}.params.varind       = inp.tF(n);
         visdata{n}.params.visflag      = datatype;
         visdata{n}.params.brainmask    = brainmaski;
         visdata{n}.params.badcoords    = badcoordsi;
-        visdata{n}.params.I.numCV2part   = ll-1;
+        visdata{n}.params.I.numCV2part = ll-1;
         visdata{n}.params.NumPred      = I.VCV2NMODEL(h);
         
         if ~isempty(featnames) && ~isempty(featnames{n});
@@ -1137,6 +1198,11 @@ if ~batchflag
         visdata{n}.SE_CV2              = I.VCV2SE_CV1(:,n);
         visdata{n}.CVRatio_CV2         = I.VCV2rat_CV1(:,n);
         visdata{n}.Prob_CV2            = I.VCV2PROB(:,n);
+        visdata{n}.SignBased_CV2       = I.VCV2signconst{:,n};
+        visdata{n}.SignBased_CV2_p_uncorr = I.VCV2signconst_p(:,n);
+        visdata{n}.SignBased_CV2_p_fdr = I.VCV2signconst_pfdr(:,n);
+        visdata{n}.SignBased_CV2_z     = I.VCV2signconst_z(:,n);
+        
         if ~decompfl(n)
             visdata{n}.Pearson_CV2              = I.VCV2PEARSON(:,n);
             visdata{n}.Spearman_CV2             = I.VCV2SPEARMAN(:,n);

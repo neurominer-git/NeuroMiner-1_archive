@@ -24,6 +24,11 @@ if exist('X','var') && ~isempty(X)
         IN.TrCovars = X;
         [Ecorr, IN] = nk_PartialCorrelationsObj(E, IN);
         beta = IN.beta;
+    else
+        IN.TrCovars = X;
+        IN.TsCovars = X;
+        IN.beta = beta;
+        Ecorr = nk_PartialCorrelationsObj(E, IN);
     end
     
 else

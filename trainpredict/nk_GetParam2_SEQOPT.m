@@ -2,18 +2,18 @@
 % FORMAT function [param, model] = nk_GetParam_SEQOPT(Y, label, ModelOnly, 
 %                                                                 ...cmdstr)
 % =========================================================================
-% Train LIBSVM models and evaluate their performance using Y & label, 
-% SlackParam, KernParam
+% Train sequential optimization models and evaluate their performance using 
+% Y & label, ModelOnly, cmdstr
 % if ModelOnly = 1, return only model
 % %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% (c) Nikolaos Koutsouleris, 10/2018
+% (c) Nikolaos Koutsouleris, 01/2020
 
-function [param, model] = nk_GetParam2_SEQOPT(Y, label, ModelOnly, PQ)
+function [param, model] = nk_GetParam2_SEQOPT(Y, label, FeatGroups, ModelOnly, PQ)
 
 global EVALFUNC MODEFL SVM
 
 param =[];
-model = nk_OptPredSeq(Y, label, [], SVM.SEQOPT.C(PQ.val(1),:), PQ.val(2), [PQ.val(3) PQ.val(4)], EVALFUNC);
+model = nk_OptPredSeq(Y, label, FeatGroups, [], SVM.SEQOPT.C(PQ.val(1),:), PQ.val(2), [PQ.val(3) PQ.val(4)], EVALFUNC);
 
 if ~ModelOnly
     param.dec_values = model.optD;

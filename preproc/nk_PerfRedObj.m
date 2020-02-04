@@ -87,8 +87,10 @@ if eIN || ~isfield(IN,'mpp') || isempty(IN.mpp)
             else
                 L=IN.DR.labels;
             end
-            [pY,~,~,IN] = nk_PLS(Y,L,IN);
-
+            if isfield(IN.DR.PLS,'algostr'), IN.algostr = IN.DR.PLS.algostr; end
+            [pY,pX,~,IN] = nk_PLS(Y,L,IN);
+            %pY=[pY pX];
+            
         case 'ProbPCA'
             iter = nk_ReturnParam([IN.DR.RedMode '-Iter'],Params_desc, opt);
             [pY,IN.mpp] = compute_mapping(Y,IN.DR.RedMode,IN.DR.dims,iter,IN.DR.Modus);

@@ -114,7 +114,11 @@ if isfield(I,'Y')
         if ~isfield(D,'n_subjects_all') || ~isfinite(D.n_subjects_all), D.n_subjects_all = I.n_subjects_all; end
         if ~isfield(D,'label'), 
             if isfield(I,'label')
-                D.label = I.label(selCases); 
+                if numel(I.label)==numel(selCases)
+                   D.label = I.label(selCases); 
+                else
+                   D.label = I.label;
+                end
             else
                 D.label = I.L;
             end

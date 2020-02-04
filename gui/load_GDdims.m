@@ -22,6 +22,9 @@ end
 
 if isfield(handles,'SubIndex'), I = handles.SubIndex; else, I = true(size(handles.NM.label,1),1); end
 
+handles.ModelParams                         = GDdims.Model.ParamCombs;
+handles.ModelParamsDesc                     = GDdims.Model.ParamDesc;
+
 % Check type of analysis
 if isfield(GDdims,'BinClass') || isfield(GDdims,'MultiClass') 
     
@@ -139,12 +142,12 @@ if isfield(GDdims,'BinClass') || isfield(GDdims,'MultiClass')
         handles.MultiClass                          = GDdims.(fld);
         indn                                        = ~isnan(GDdims.(fld).multi_probabilitiesCV2(:,1,handles.curlabel)) & I;
         [~, handles.MultiClass.sortind]             = sort(Label(:,handles.curlabel),'ascend');
-        indn                                        = indn(handles.MultiClass.sortind);
+        indn                                        = handles.MultiClass.sortind(indn(handles.MultiClass.sortind));
         handles.MultiClass.cases                    = handles.subjects(indn);
-        handles.MultiClass.labels                   = Label(handles.MultiClass.sortind(indn), handles.curlabel);    
-        handles.MultiClass.probabilities            = GDdims.(fld).multi_probabilitiesCV2(handles.MultiClass.sortind(indn),: , handles.curlabel);
-        handles.MultiClass.onevsall_labels          = zeros(numel(handles.subjects(indn)),handles.ngroups);
-        handles.MultiClass.onevsall_scores          = zeros(numel(handles.subjects(indn)),handles.ngroups);
+        handles.MultiClass.labels                   = Label(indn, handles.curlabel);    
+        handles.MultiClass.probabilities            = GDdims.(fld).multi_probabilitiesCV2(indn , :, handles.curlabel);
+        handles.MultiClass.onevsall_labels          = zeros(numel(indn),handles.ngroups);
+        handles.MultiClass.onevsall_scores          = zeros(numel(indn),handles.ngroups);
         for j = 1:handles.ngroups
             ind = true(1,handles.ngroups); ind(j) = false;
             probrest = nanmean(handles.MultiClass.probabilities(:,ind),2);
@@ -160,11 +163,11 @@ if isfield(GDdims,'BinClass') || isfield(GDdims,'MultiClass')
                 handles.MultiClass.class{j}.AUC] = ...
                             perfcurve2(handles.MultiClass.onevsall_labels(:,j), handles.MultiClass.onevsall_scores(:,j), 1);
         end
-        handles.MultiClass.errors                   = handles.MultiClass.errors(handles.MultiClass.sortind(indn));
-        handles.MultiClass.multi_predictionsCV2     = GDdims.(fld).multi_predictionsCV2(handles.MultiClass.sortind(indn), handles.curlabel);
-        handles.MultiClass.std_multi_predictionsCV2 = GDdims.(fld).multi_predictionsCV2_std(handles.MultiClass.sortind(indn), handles.curlabel);
-        handles.MultiClass.CI1_multi_predictionsCV2 = GDdims.(fld).multi_predictionsCV2_ci1(handles.MultiClass.sortind(indn), handles.curlabel);
-        handles.MultiClass.CI2_multi_predictionsCV2 = GDdims.(fld).multi_predictionsCV2_ci2(handles.MultiClass.sortind(indn), handles.curlabel);
+        handles.MultiClass.errors                   = handles.MultiClass.errors(indn);
+        handles.MultiClass.multi_predictionsCV2     = GDdims.(fld).multi_predictionsCV2(indn, handles.curlabel);
+        handles.MultiClass.std_multi_predictionsCV2 = GDdims.(fld).multi_predictionsCV2_std(indn, handles.curlabel);
+        handles.MultiClass.CI1_multi_predictionsCV2 = GDdims.(fld).multi_predictionsCV2_ci1(indn, handles.curlabel);
+        handles.MultiClass.CI2_multi_predictionsCV2 = GDdims.(fld).multi_predictionsCV2_ci2(indn, handles.curlabel);
          switch handles.METAstr
             case 'none'
                 handles.MultiClass.best_TR                  = GDdims.multi_bestTR;
@@ -177,7 +180,7 @@ if isfield(GDdims,'BinClass') || isfield(GDdims,'MultiClass')
          end
         Compl                                       = zeros(size(handles.BinClass{1}.best_Complexity));
         for curclass = 1:numel(handles.BinClass)
-            Compl   = Compl + handles.BinClass{curclass}.best_Complexity;
+            Compl = Compl + handles.BinClass{curclass}.best_Complexity;
         end
         Compl = Compl./numel(handles.BinClass);
         handles.MultiClass.best_Complexity          = Compl;

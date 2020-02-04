@@ -24,12 +24,15 @@ end
 
 [handles, visdata] = switch_analysis(handles);
 
+handles.lbStartup.String = 'Customize menus ...';
 set_panel_visibility(handles,'on')
 set_visibility(handles)
 load_selYAxis(handles)
 load_popupmenu1(handles)
 load_selCVoocv(handles)
 load_selModelMeasures(handles)
+load_selSubParams(handles)
+
 if ~isempty(visdata), 
     load_selModality(handles); 
     load_selPager(handles); 
@@ -38,6 +41,6 @@ else
 end
 if isfield(handles,'MultiClass'), load_selOneVsAll_Info(handles); end
 handles = display_main(handles);
-handles.pnStartup.Visible='off';
+
 
 

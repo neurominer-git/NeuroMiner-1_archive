@@ -18,6 +18,6 @@ Ax = [Ax(~idx) Ux(~idx)];
 o(1).LineStyle=':'; o(2).LineWidth=2.5;
 aref = polyarea(o(1).XData,o(1).YData);
 a2 = polyarea(o(2).XData,o(2).YData);
-ca.Title.String=sprintf('[ Area: %1.3f (%1.1f%% REF) ]',a2, a2*100/aref);
+ca.Title.String=sprintf('[ RAR: %1.3f (%1.1f%% REF) ]',aref/a2, a2*100/aref);
 ca.Title.Position = [0 1.26];
 ca.Title.Visible='on';

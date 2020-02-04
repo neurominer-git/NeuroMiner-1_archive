@@ -1,4 +1,4 @@
-function [ contfl, analysis, mapY, GD, MD, Param, P, mapYocv ] = nk_ApplyTrainedPreproc2(analysis, inp, paramfl)
+function [ inp, contfl, analysis, mapY, GD, MD, Param, P, mapYocv ] = nk_ApplyTrainedPreproc2(analysis, inp, paramfl)
 % =========================================================================
 % [ contfl, analysis, mapY, GD, MD, Param, P, mapYocv ] = ...
 %                           nk_ApplyTrainedPreproc2(analysis, inp, paramfl)
@@ -54,70 +54,95 @@ else
     if VERBOSE, fprintf('\nComputing pre-processing parameters for CV2 [%g,%g].\n', inp.f, inp.d); end
 end
 
+smoothonly = false; if isfield(inp,'smoothonly') && inp.smoothonly, smoothonly = true; end
 % Loop through modalities ( if needed )
-for n=1:nM
+
+if smoothonly
     
-    if nM>1
-        Y = inp.X(n).Y; 
-        if isfield(inp.X(n),'Yocv') && ~isempty(inp.X(n).Yocv), Yocv = inp.X(n).Yocv; end
-        PREPROC = inp.PREPROC{n};
-    else
-        Y = inp.X.Y; 
-        if isfield(inp.X(n),'Yocv') && ~isempty(inp.X(n).Yocv), Yocv = inp.X.Yocv; end 
-        PREPROC = inp.PREPROC; 
-    end
-    
-    if ~isempty(OOCV) && OOCV.preproc
-       fprintf('\n'); cprintf('*red','Removing offsets between training and independent test data');
-       mY = mean(Y);
-       mYocv = mean(Yocv);
-       diffmeans = mYocv - mY;
-       inp.Yocv = bsxfun(@minus,Yocv,diffmeans);             
+    inp = nk_PerfInitSpatial(analysis, inp, paramfl);
+
+else
+    issmoothed = false; if isfield(inp,'issmoothed') && inp.issmoothed, issmoothed = true; end
+
+    for n=1:nM
+
+        if nM>1
+            if issmoothed
+                Y = inp.X{n}.sY;
+                if isfield(inp.X(n),'sYocv') && ~isempty(inp.X(n).sYocv), Yocv = inp.X(n).sYocv; end
+            else
+                Y = inp.X(n).Y; 
+                if isfield(inp.X(n),'Yocv') && ~isempty(inp.X(n).Yocv), Yocv = inp.X(n).Yocv; end
+            end
+            PREPROC = inp.PREPROC{n};
+        else
+            if issmoothed
+                Y = inp.X.sY;
+                if isfield(inp.X(n),'sYocv') && ~isempty(inp.X(n).sYocv), Yocv = inp.X.sYocv; end 
+            else
+                Y = inp.X.Y; 
+                if isfield(inp.X(n),'Yocv') && ~isempty(inp.X(n).Yocv), Yocv = inp.X.Yocv; end 
+            end
+            PREPROC = inp.PREPROC; 
+        end
+        
+        if ~isempty(OOCV) && OOCV.preproc 
+           fprintf('\n'); cprintf('*red','Removing offsets between training and independent test data');
+           mY = mean(Y);
+           mYocv = mean(Yocv);
+           diffmeans = mYocv - mY;
+           inp.Yocv = bsxfun(@minus,Yocv,diffmeans);             
+        end
+
+        if iscell(paramfl)
+            tparamfl = paramfl{n};
+        else
+            tparamfl = paramfl;
+        end
+
+        tparamfl.PV = inp.X(n);
+        if VERBOSE, fprintf('\nGenerate pre-processing parameter array for CV2 partition [%g,%g].\n',inp.f,inp.d); end
+        tparamfl = nk_PrepPreprocParams(PREPROC, tparamfl, analysis, n, inp.ll, inp.curlabel);
+
+        % Param is a structure that contains all relevant info to generate the features 
+        % needed by the optimized classifier / predictor system
+        if tparamfl.found, 
+            tparamfl.Param = Param{n};
+        elseif isfield(tparamfl,'Param')
+            tparamfl = rmfield(tparamfl,'Param');
+        end
+
+        if inp.stacking
+            [mapY{n}, Param{n}, P{n}, mapYocv{n}] = nk_PerfPreprocessMeta(inp, inp.label, tparamfl);
+        else
+            [mapY{n}, Param{n}, P{n}, mapYocv{n}] = nk_PerfPreprocess(Y, inp, inp.label, tparamfl, Yocv);
+        end
+
     end
         
-    paramfl.PV = inp.X(n);
-    
-    if VERBOSE, fprintf('\nGenerate pre-processing parameter array for CV2 partition [%g,%g].\n',inp.f,inp.d); end
-    paramfl = nk_PrepPreprocParams(PREPROC, paramfl, analysis, n, inp.ll, inp.curlabel);
-    
-    % Param is a structure that contains all relevant info to generate the features 
-    % needed by the optimized classifier / predictor system
-    if paramfl.found, 
-        paramfl.Param = Param{n};
-    elseif isfield(paramfl,'Param')
-        paramfl = rmfield(paramfl,'Param');
+    % Save parameters to disk
+    if isfield(inp,'saveparam') && inp.saveparam
+        operm = inp.f; ofold = inp.d; 
+        OptPreprocParamFilename = nk_GenerateNMFilePath( inp.rootdir, ...
+                                                                SAV.matname, ...
+                                                                'OptPreprocParam', ...
+                                                                [], ...
+                                                                inp.varstr, ...
+                                                                inp.id, ...
+                                                                operm, ...
+                                                                ofold);
+        fprintf('\nSaving %s to disk...', OptPreprocParamFilename)
+        save(OptPreprocParamFilename,'Param','ofold','operm', '-v7.3');     
     end
 
-    if inp.stacking
-        [mapY{n}, Param{n}, P{n}, mapYocv{n}] = nk_PerfPreprocessMeta(inp, inp.label, paramfl);
+    % Transfer mapped data to appropriate container
+    if nM > 1
+       mapY = nk_mapY2Struct(mapY, false);
+       if (iscell(mapYocv) && ~sum(cellfun(@isempty,mapYocv))) || ( ~iscell(mapYocv) && ~isempty(mapYocv)), 
+           mapYocv = nk_mapY2Struct(mapYocv, false); 
+       end
     else
-        [mapY{n}, Param{n}, P{n}, mapYocv{n}] = nk_PerfPreprocess(Y, inp, inp.label, paramfl, Yocv);
+        mapY = mapY{n};
+        if ~isempty(mapYocv), mapYocv = mapYocv{n}; end
     end
-    
-end
-
-% Save parameters to disk
-if isfield(inp,'saveparam') && inp.saveparam
-    operm = inp.f; ofold = inp.d; 
-    OptPreprocParamFilename = nk_GenerateNMFilePath( inp.procdir, ...
-                                                            SAV.matname, ...
-                                                            'OptPreprocParam', ...
-                                                            [], ...
-                                                            inp.varstr, ...
-                                                            inp.id, ...
-                                                            operm, ...
-                                                            ofold);
-    fprintf('\nSaving %s to disk...', OptPreprocParamFilename)
-    save(OptPreprocParamFilename,'Param','ofold','operm', '-v7.3');     
-end
-
-% Transfer mapped data to appropriate container
-if nM > 1
-   mapY = nk_mapY2Struct(mapY, false);
-   if (iscell(mapYocv) && ~sum(cellfun(@isempty,mapYocv))) || ( ~iscell(mapYocv) && ~isempty(mapYocv)), 
-       mapYocv = nk_mapY2Struct(mapYocv, false); 
-   end
-else
-    mapY = mapY{n};
-    if ~isempty(mapYocv), mapYocv = mapYocv{n}; end
 end

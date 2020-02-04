@@ -1,4 +1,4 @@
-function [C, T, P, Pfdr] = nk_CorrMat(Y,G,type)
+function [C, N, T, P, Pfdr ] = nk_CorrMat(Y,G,type)
 
 [m1,n1] = size(Y);
 [m2,n2] = size(G);
@@ -19,33 +19,38 @@ switch typ
 end
 % Remove rows with Nan [if you don't want this, you may consider imputing
 % data before running this script]
-iYnan = sum(isnan(Y),2)==0; iGnan = sum(isnan(G),2)==0;
-iNan = iYnan & iGnan;
-Y = Y(iNan,:); G = G(iNan,:);
 
-C = zeros(n2,n1); T = zeros(n2,n1); P = zeros(n2,n1);
+C = zeros(n2,n1); T = zeros(n2,n1); P = zeros(n2,n1); N = P;
+
 for i=1:n2
     for j=1:n1
+        
+        tY = Y(:,j);
+        tG = G(:,i);
+        
+        ix = ~isnan(tY) & ~isnan(tG);
+        tY = tY(ix); tG = tG(ix);
+        N(i,j) = sum(ix);
+        
         switch typ
             case 'pearson'
-                c = corrcoef(Y(:,j),G(:,i));
+                c = corrcoef(tY,tG);
                 C(i,j) = c(1,2);
                 if nargout > 1
                     [T(i,j), P(i,j)] = pvalPearson('b',C(i,j),m1);
-                   
                 end                
             case 'pearson_fast'
-                C(i,j) = fastcorr(Y(:,j),G(:,i));
+                C(i,j) = fastcorr(tY,tG);
                 if nargout > 1, [T(i,j), P(i,j)] = pvalPearson('b',C(i,j),m1); end
             case 'spearman'
-                C(i,j) = corr(Y(:,j),G(:,i),'type',typ);
+                C(i,j) = corr(tY,tG,'type',typ);
             case 'spearman_fast'
-                C(i,j) = spear(Y(:,j),G(:,i));
+                C(i,j) = spear(tY,tG);
         end   
     end
 end
 
-if nargout == 4
+if nargout == 5
      [~,~,~, Pfdr] = fdr_bh(P,0.05);
 end
 

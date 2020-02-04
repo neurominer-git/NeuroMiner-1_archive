@@ -2,7 +2,11 @@ function [R, optmodel] = nk_MLOptimizer_WrapperMulti(Y, mY, L, bL, MultiL, mYnew
 
 global RFE SVM
 
-if nargin < 12, SubFeat = true(1,size(Y,2)); end
+if nargin < 12, 
+    for curclass=1:numel(Y)
+        SubFeat{curclass} = true(1,size(Y{curclass},2));
+    end
+end
 ActStr = {'Tr', 'CV', 'TrCV'};
 
 % Remove cases which are completely NaN
@@ -28,27 +32,22 @@ end
 switch RFE.Wrapper.type
     %% GREEDY FORWARD/BACKWARD FEATURE SEARCH
     case 1 
-        switch RFE.Wrapper.GreedySearch.Direction
-            case 1
-                % Forward selection using argmax => CV1 => test data performance as criterion 
-                rfefun = 'rfe_forward_multi';                
-            %%% BACKWARD ELIMINATION %%%
-            case 2 % Backward elimination using argmax => CV1 => test &train data performance as criterion 
-                rfefun = 'rfe_backward_multi';
-        end
-        [optparam, optind, optfound, optmodel] = feval(rfefun, Y, mY, L, bL, MultiL, mYnew, Lnew, MultiLnew, Ps, SubFeat, FullParam, ngroups, ActStr{RFE.Wrapper.datamode});
+        funs = { @rfe_forward_multi,  @rfe_backward_multi };
+        [optparam, optind, optfound, optmodel] = funs{RFE.Wrapper.GreedySearch.Direction}(Y, mY, L, bL, MultiL, mYnew, Lnew, MultiLnew, Ps, SubFeat, FullParam, ngroups, ActStr{RFE.Wrapper.datamode});
     
-    %%% SIMULATED ANNEALING %%%
+    %% SIMULATED ANNEALING
+    % [ this does not work in multi-class mode yet ]
     case 2
-        [optparam, optind, optfound, optmodel] = ...
-            nk_SimAnneal(Y, label, Ynew, labelnew, Ps, SubFeat, FullParam, ActStr{RFE.Wrapper.datamode});
+        [optparam, optind, optfound, optmodel] = nk_SimAnneal(Y, label, Ynew, labelnew, Ps, SubFeat, FullParam, ActStr{RFE.Wrapper.datamode});
 end
 % Transfer params to output structure
 R.found                   = optfound;
 R.FeatureIndex            = optind;
-if nargin == 8,
-    R.SubFeatIndex        = false(size(SubFeat));
-    R.SubFeatIndex(optind)= SubFeat(optind); 
+if nargin == 12
+    for curclass=1:nclass
+        R.SubFeatIndex{curclass}                   = false(size(SubFeat{curclass}));
+        R.SubFeatIndex{curclass}(optind{curclass}) = SubFeat(optind{curclass}); 
+    end
 end
 R.OptimParam              = optparam;
 

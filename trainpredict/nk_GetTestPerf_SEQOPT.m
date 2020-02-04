@@ -1,16 +1,15 @@
 % =========================================================================
-% FORMAT function [param, model] = nk_GetParam_SEQOPT(Y, label, ModelOnly, 
-%                                                                 ...cmdstr)
+% FORMAT function [rs, ds, model] = nk_GetTestPerf_SEQOPT(Y, label, model)
 % =========================================================================
 % test sequence predictor model in new data 
 % %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% (c) Nikolaos Koutsouleris, 10/2018
+% (c) Nikolaos Koutsouleris, 12/2019
 
-function [rs, ds] = nk_GetTestPerf_SEQOPT(~, tXtest, Ytest, model, ~, ~)
+function [rs, ds, model] = nk_GetTestPerf_SEQOPT(Y, L, model)
 
 global MODEFL
 
-[~, ds ] = nk_OptPredSeq(tXtest, Ytest, model);
+[ model, ds ] = nk_OptPredSeq(Y, L, [], model);
 
 switch MODEFL
     case 'classification'

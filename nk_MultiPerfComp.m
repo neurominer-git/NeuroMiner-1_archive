@@ -22,7 +22,7 @@ if iscell(multi_pred)
             pred(i) = NaN; stdpred(i) = NaN; ci1(i) = NaN; ci2(i) = NaN; errs(i) = NaN;
         else
             % Maximum probability decides about multi-class membership
-            [maximum,pred(i)] = max(multi_prob(i,:),[],'includenan');
+            [maximum,pred(i)] = max(multi_prob(i,:),[],'includenan'); 
             if isnan(maximum), pred(i)=NaN; continue; end
             % Is this useful: ?
             stdpred(i) = std(multi_pred{i});
@@ -32,7 +32,7 @@ if iscell(multi_pred)
     end
 else
     %numpred = size(multi_pred,2);
-    [maximum, pred] = max(multi_prob,[],2,'includenan');
+    [maximum,pred] = max(multi_prob,[],2,'includenan'); 
     inan = isnan(maximum);
     pred(inan)=NaN;
     stdpred = std(multi_pred,[],2);

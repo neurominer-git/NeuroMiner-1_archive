@@ -1,6 +1,6 @@
 function T = printvis_ranked_cross_binary(analysis, fld, reorder, features, nfeat, act)
-% T = printvis_ranked_cross_binary(analysis, fld, features, nfeat)
-% =========================================================================
+% T = printvis_ranked_cross_binary(analysis, fld, reorder, features, nfeat, act)
+% ==============================================================================
 % The algorithm computes the mean of fld across available binary
 % classifiers, ranks amd prints ranked features according to mean(fld).
 %

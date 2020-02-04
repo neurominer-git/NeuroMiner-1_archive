@@ -201,6 +201,11 @@ for i=1:inparams.nclass
             inparams.Params_desc{i}{3} = '%L-Population';
             inparams.Params{i}{4} = GRD.LimsUparams;
             inparams.Params_desc{i}{4} = '%U-Population';
+        case 'IMRELF'
+            inparams.Params{i}{1} = GRD.Cparams;
+            inparams.Params_desc{i}{1} = 'Lambda';
+            inparams.Params{i}{2} = GRD.Gparams;
+            inparams.Params_desc{i}{2} = 'Sigma';
     end
 
     % Define number of ML algo parameter to be optimized in

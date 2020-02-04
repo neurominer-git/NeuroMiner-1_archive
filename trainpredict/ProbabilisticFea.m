@@ -53,15 +53,15 @@ end
 
 if isfield(EnsStrat,'PruneFlag')
     switch EnsStrat.PruneFlag
-        case 0
-            % Here we take over only the selected features into a single
-            % mask for all CV1 training partitions
-             AgreeFeat = tF;
         case 1
             % Here we prune unselected features for each individual feature
             % mask
             AgreeFeat = logical(F);
             AgreeFeat(bsxfun(@ne,AgreeFeat, tF)) = false;
+        case 2
+            % Here we take over only the selected features into a single
+            % mask for all CV1 training partitions
+             AgreeFeat = tF;
     end
 else
     AgreeFeat = tF; 

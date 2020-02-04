@@ -8,8 +8,9 @@
 
 function param = SCC(expected, predicted)
 if isempty(expected), param = []; return; end
+I = ~isnan(predicted);
 %param = (1 - ( sum( (expected-predicted).^2 ) / sum( (expected-mean(expected)).^2 ) )) * 100;
-param = CC(expected,predicted); param = param ^ 2 *100;
-if isnan(param), param=0; end;
+param = CC(expected(I),predicted(I)); param = param ^ 2 *100;
+if isnan(param), error('Prediction algorithm returned non-finite performance measure'); end
 
 end

@@ -11,7 +11,7 @@ if IMPUTE.flag
             X_tr = X(indf,:); L_tr = L(indf,i); X_ts = X(~indf,:); L_ts = zeros(sum(~indf),1);
             [~, model] = nk_GetParam2( X_tr, L_tr, Params, 1); 
             L(~indf,i)= feval(PREDICTFUNC, X_tr, X_ts, L_ts, model);
-        else
+        elseif ~strcmp(IMPUTE.method,'none')
             % Do NN-based label propagation
             L(:,i) = nk_PerfImputeLabelObj(L(:,i), IMPUTE); 
         end

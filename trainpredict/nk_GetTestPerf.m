@@ -1,4 +1,4 @@
-function [ts, rs, ds] = nk_GetTestPerf(Xtest, Ytest, Features, Model, X, nonevalflag)
+function [ts, rs, ds, Model] = nk_GetTestPerf(Xtest, Ytest, Features, Model, X, nonevalflag)
 % =====================================================================================
 % function [ts, rs, ds] = nk_GetTestPerf(Xtest, Ytest, Features, Model, X, nonevalflag)
 % =====================================================================================
@@ -23,7 +23,7 @@ function [ts, rs, ds] = nk_GetTestPerf(Xtest, Ytest, Features, Model, X, noneval
 %                   in regression:      rs = ds;
 % ds :          Prediction scores
 % =====================================================================================
-% (c) Nikolaos Koutsouleris, 02/2017
+% (c) Nikolaos Koutsouleris, 12/2019
 
 global PREDICTFUNC EVALFUNC SVM MODEFL
 
@@ -61,16 +61,19 @@ for k=1:s % Loop through all feature subspaces
     
     % Check test matrix for NaN observations and remove them
     %[ktXtest, kYtest, rownan] = nk_RemNanSamples(tXtest, Ytest);
-    
-    [ rs(:,k), ds(:,k) ] = feval(PREDICTFUNC, X, tXtest, Ytest, md, Features, k);
-    
+    if ~strcmp(SVM.prog,'SEQOPT')
+        [ rs(:,k), ds(:,k) ] = feval(PREDICTFUNC, X, tXtest, Ytest, md, Features, k);
+    else
+        [ rs(:,k), ds(:,k), md ] = feval(PREDICTFUNC, tXtest, Ytest, md);
+        if iscell(Model), Model{k} = md; else, Model = md; end
+    end
     % Adjust probabilities if probabilistic output has been geenerated by
     % PREDICTFUNC
     if SVM.RVMflag && ~strcmp(MODEFL,'regression') , ds(:,k) = nk_CalibrateProbabilities(ds(:,k)); end
     
     % Return performance measure as defined by EVALFUNC
     if ~nonevalflag, ts(k) = feval(EVALFUNC, Ytest, ds); end
-   
+
 end
 
 % Check and add-back Nan cases

@@ -180,7 +180,10 @@ if ~defaultsfl
                 case 2
                     DR.PLS.behav_mat = nk_input('Provide a side label matrix for covariance matrix computation',0,'e',[],[size(NM.label,1) Inf]);
             end
-            
+%             DR.PLS.algostr = char(nk_input('Choose PLS method',0,'m','PLS|Sparse PLS',{'pls','spls'}));
+%             switch DR.PLS.algostr
+%                 case 
+%             
         case 'NNMF'
             
             PX = nk_AddParam([], [], [], PX,'reset');

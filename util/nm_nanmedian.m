@@ -1,4 +1,4 @@
-function y = nm_nanmedian(x,dim)
+function y = nm_nanmedian(x,dim, protect)
 % FORMAT: Y = NANMEDIAN(X,DIM)
 % 
 %    Median ignoring NaNs
@@ -27,6 +27,8 @@ if isempty(x)
 	y = [];
 	return
 end
+
+if exist('protect','var') && ~isempty(protect), protectflag = protect; else protectflag = false; end
 
 if nargin < 2
 	dim = min(find(size(x)~=1));
@@ -68,8 +70,10 @@ for i = 1:length(s)
 end
 
 % Protect against a column of NaNs
-i = find(y==0);
-y(i) = i + nan;
+if protectflag
+    i = find(y==0);
+    y(i) = i + nan;
+end
 
 % permute and reshape back
 siz(dim) = 1;

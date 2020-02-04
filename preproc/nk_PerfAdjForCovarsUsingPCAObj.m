@@ -1,4 +1,4 @@
-function [sY, IN] = nk_PerfAdjForCovarsUsingPCAObj(Y, IN, S)
+function [sY, IN, dT] = nk_PerfAdjForCovarsUsingPCAObj(Y, IN, S)
 % =========================================================================
 % function [adjT, IN] = nk_AdjForCovarsUsingPCAObj(T, IN)
 % =========================================================================
@@ -35,13 +35,13 @@ if iscell(Y) && exist('IN','var') && ~isempty(IN)
     sY = cell(1,numel(Y)); 
     for i=1:numel(Y), [sY{i}, IN] = PerfAdjForCovarsUsingPCAObj(Y{i}, IN, S); end
 else
-    [ sY, IN ] = PerfAdjForCovarsUsingPCAObj( Y, IN, S );
+    [ sY, IN, dT ] = PerfAdjForCovarsUsingPCAObj( Y, IN, S );
 end
 
 end
 
 % =========================================================================
-function [adjT, IN] = PerfAdjForCovarsUsingPCAObj(T, IN, S)
+function [adjT, IN, dT] = PerfAdjForCovarsUsingPCAObj(T, IN, S)
 global VERBOSE
 
 % Check existence of paramater structure

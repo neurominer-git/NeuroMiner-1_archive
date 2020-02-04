@@ -62,9 +62,10 @@ if isfield(CURACT,'SPATIAL') && CURACT.SPATIAL.cubetype>1
             else
                 ttY                      = tY;
             end
+            indnan                       = any(isnan(ttY),2);
             tY                           = nk_SpatFilt(ttY, S);
             clear ttY
-            for zv = 1:nP, fY{zv, zu} = tY{zv}; end
+            for zv = 1:nP, tY{zv}(indnan,:) = nan; fY{zv, zu} = tY{zv}; end
             if tmpflg, DeleteTempVol(Vm,tmpflg); end 
         end
     end

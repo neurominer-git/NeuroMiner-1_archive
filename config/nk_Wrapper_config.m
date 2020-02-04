@@ -72,8 +72,9 @@ if ~isempty(act) || ~defaultsfl
     switch act
         
         case 1
-            Wrapper.flag = ~Wrapper.flag;     
-            
+            Wrapper.flag = ~Wrapper.flag;    
+            if ~Wrapper.flag && Wrapper.optflag == 1, Wrapper.optflag = 2; end
+ 
         case 2
             if isfield(param,'Filter') && isfield(param.Filter,'SubSpaceFlag')
                 Wrapper.SubSpaceFlag = param.Filter.SubSpaceFlag;

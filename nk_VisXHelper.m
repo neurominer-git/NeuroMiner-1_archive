@@ -26,6 +26,7 @@ switch act
                 I2.VCV2PVAL_ANALYTICAL_FDR = cell(nclass,nM);
             end
         end
+        I2.VCV2VCV1         = cell(nclass,nM);                  % Container for concatenation of CV1 feature spaces' 
         I2.VCV2SUM          = cell(nclass,nM);                  % Container for feature spaces' sum values of CV-generated feature weights
         I2.VCV2SQ           = cell(nclass,nM);                  % Container for feature spaces' sqrt values of CV-generated feature weights
         I2.GCV2SUM          = cell(nclass,nM);
@@ -130,6 +131,7 @@ switch act
                     I2.VCV2MEAN{h, n}           = I1.VCV1MEAN{h,n};
                     I2.VCV2STD{h, n}            = I1.VCV1STD{h,n};
                     I2.VCV2SEL{h, n}            = I1.VCV1SEL{h, n};
+                    I2.VCV2VCV1{h,n}            = I1.VCV1{h,n};
                 else
                     I2.GCV2SUM{h, n}(:,ll)      = I1.VCV1SUM{h, n} ./  I1.VCV1SEL{h,n};  
                     I2.VCV2PROB{h, n}           = [I2.VCV2PROB{h, n}   indMEANgrSE ];
@@ -139,6 +141,7 @@ switch act
                     I2.VCV2MEAN{h, n}           = [I2.VCV2MEAN{h, n}   I1.VCV1MEAN{h, n}];
                     I2.VCV2STD{h, n}            = [I2.VCV2STD{h, n}    I1.VCV1STD{h, n}];
                     I2.VCV2SEL{h, n}            = I2.VCV2SEL{h, n}     + I1.VCV1SEL{h, n};
+                    I2.VCV2VCV1{h,n}            = [I2.VCV2VCV1{h,n}    I1.VCV1{h,n}];
                 end 
             end
             I2.VCV2NMODEL(h) = I2.VCV2NMODEL(h) + I1.VCV1NMODEL(h);

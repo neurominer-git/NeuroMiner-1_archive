@@ -38,6 +38,7 @@ if isfield(TemplParam,'ACTPARAM')
             case 'normalize'
                 
                 if ~isempty(SrcParam.covars)
+                    InputParam.P{ac}.IND = TemplParam.ACTPARAM{ac}.IND;
                     InputParam.P{ac}.TsInd = [];
                     if VERBOSE, 
                         fprintf('\n* PER-GROUP NORMALIZATION AND ZERO-VARIANCE REMOVAL ACROSS GROUPS')
@@ -60,6 +61,7 @@ if isfield(TemplParam,'ACTPARAM')
             case 'correctnuis'
                 
                 if ~isempty(SrcParam.covars)
+                    InputParam.P{ac}.COVAR = TemplParam.ACTPARAM{ac}.COVAR;
                     if VERBOSE, 
                         fprintf('\n* UNIVARIATE PARTIAL CORRELATION FOR COVARIATE EFFECTS')
                         fprintf('\n\t- Nuisance covariate: %s', NM.covnames{TemplParam.ACTPARAM{ac}.COVAR})
@@ -114,7 +116,7 @@ if isfield(TemplParam,'ACTPARAM')
             case 'remmeandiff'
                 
                 if isfield(NM,'covars') && ~isempty(NM.covars)
-                    InputParam.P{ac}.sIND = []; InputParam.P{ac}.dIND = [];
+                    InputParam.P{ac}.sIND = TemplParam.ACTPARAM{ac}.sIND; InputParam.P{ac}.dIND = TemplParam.ACTPARAM{ac}.dIND;
                     if VERBOSE,
                         fprintf('\n* OFFSET CORRECTION')
                         fprintf('\n\t - Compute group mean offset of : %s', NM.covnames{TemplParam.ACTPARAM{ac}.sIND})
@@ -159,9 +161,10 @@ if isfield(TemplParam,'ACTPARAM')
                     
                 end
                 
-            case 'standardize'
+            case 'standardize' 
                 
                 % **************** STANDARDIZATION ***************
+               
                 if VERBOSE, fprintf('\n* Z-NORMALIZATION'); end
                 if isfield(TemplParam.ACTPARAM{ac},'PX') && ~isempty(TemplParam.ACTPARAM{ac}.PX.opt)
                     InputParam.P{ac}.opt = TemplParam.ACTPARAM{ac}.PX.opt;
@@ -170,6 +173,7 @@ if isfield(TemplParam,'ACTPARAM')
                     InputParam.P{ac}.method = TemplParam.ACTPARAM{ac}.METHOD;
                 end
                 if isfield(TemplParam.ACTPARAM{ac},'sIND') && ~isempty(TemplParam.ACTPARAM{ac}.sIND)
+                    InputParam.P{ac}.sIND = TemplParam.ACTPARAM{ac}.sIND ;
                     if isfield(TemplParam.ACTPARAM{ac},'CALIBUSE') && TemplParam.ACTPARAM{ac}.CALIBUSE
                         InputParam.P{ac}.CALIBUSE      = true;
                     else
@@ -189,8 +193,10 @@ if isfield(TemplParam,'ACTPARAM')
                 else
                     InputParam.P{ac}.sTrInd = [];
                 end
+                
                 %InputParam.P{ac}.dTsInd = cell(4,1);
                 if isfield(TemplParam.ACTPARAM{ac},'dIND') && ~isempty(TemplParam.ACTPARAM{ac}.dIND)  
+                    InputParam.P{ac}.dIND = TemplParam.ACTPARAM{ac}.dIND ;
                     if isfield(SrcParam,'TrX'),         
                         InputParam.P{ac}.dTrInd    = SrcParam.covars( SrcParam.TrX, TemplParam.ACTPARAM{ac}.dIND );
                         if ~isempty(SrcParam.iTrX), InputParam.P{ac}.dTrInd(SrcParam.iTrX,:)=[]; end
@@ -253,7 +259,7 @@ if isfield(TemplParam,'ACTPARAM')
                             if TemplParam.BINMOD
                                 InputParam.P{ac}.DR.labels = SrcParam.BinaryTrainLabel;
                             else
-                                InputParam.P{ac}.DR.labels = SrcParam.MultiTrainLabel;
+                                InputParam.P{ac}.DR.labels = SrcParam.oMultiTrainLabel;
                             end
                         case 'regression'
                             InputParam.P{ac}.DR.labels = SrcParam.TrainLabel;

@@ -18,6 +18,7 @@ D           = sqrt(sum(SD.*SD+mean_w.*mean_w));
 mean_normw  = mean_w/D;
 SD_normw    = SD/D;
 normw_star  = w_star./norm(w_star);
+SD_normw(SD_normw==0)=realmin;
 p_map       = 2 * normcdf( -abs( normw_star - mean_normw), zeros( size( w_star ) ), SD_normw);
 
 

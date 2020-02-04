@@ -73,7 +73,7 @@ switch meas{measind}
         end
         y(~isfinite(y))=0;
         vals = y + (sign(y) .* e);
-        miny = min(vals);  maxy = max(vals);
+        miny = nanmin(vals);  maxy = nanmax(vals);
         if sortfl,
             [~, ind] = sort(abs(y),'descend');
             y = y(ind); y = y(featind);
@@ -83,6 +83,7 @@ switch meas{measind}
             y = y(featind);
             se = e(featind);
         end 
+        
         switch v.params.visflag
             case {0, 3, 4, 5, 'matrix'}
                 set(handles.pn3DView,'Visible','off'); set(handles.axes33,'Visible','on');
@@ -104,27 +105,31 @@ switch meas{measind}
         
     otherwise
         switch meas{measind}
+            
             case 'CV-ratio of feature weights [Overall Mean]'
                 if iscell(v.CVRatio)
                     y = v.CVRatio{curclass}; 
                 else
                     y = v.CVRatio; 
                 end
-                miny = min(y); maxy = max(y);
+                miny = nanmin(y); maxy = nanmax(y);
+                
             case 'CV-ratio of feature weights [Grand Mean]'
                 if iscell(v.CVRatio_CV2)
                     y = v.CVRatio_CV2{curclass};  
                 else
                     y = v.CVRatio_CV2;
                 end
-                miny = min(y); maxy = max(y);
+                miny = nanmin(y); maxy = nanmax(y);
+                
             case 'Feature selection probability [Overall Mean]'
                 if iscell(v.FeatProb)
                     y = v.FeatProb{1}(:,curclass);  
                 else
                     y = v.FeatProb;
                 end
-                miny = 0; maxy = max(y);
+                miny = 0; maxy = nanmax(y);
+                
             case 'Probability of feature reliability (95%-CI) [Grand Mean]'
                 if iscell(v.Prob_CV2)
                     y = v.Prob_CV2{curclass};  
@@ -132,20 +137,54 @@ switch meas{measind}
                     y = v.Prob_CV2;
                 end
                 miny = -1; maxy = 1;
+                
+            case 'Sign-based consistency'
+                if iscell(v.SignBased_CV2)
+                    y = v.SignBased_CV2{curclass};
+                else
+                    y = v.SignBased_CV2;
+                end
+                miny = 0; maxy = 1;
+                
+            case 'Sign-based consistency (Z score)'
+                if iscell(v.SignBased_CV2_z)
+                    y = v.SignBased_CV2_z{curclass};
+                else
+                    y = v.SignBased_CV2_z;
+                end
+                miny = nanmin(y(:)); maxy = nanmax(y(:));
+                
+            case 'Sign-based consistency -log10(P value)'
+                if iscell(v.SignBased_CV2_p_uncorr)
+                    y = v.SignBased_CV2_p_uncorr{curclass};
+                else
+                    y = v.SignBased_CV2_p_uncorr;
+                end 
+                miny = 0; maxy = nanmax(y(:));
+                
+            case 'Sign-based consistency -log10(P value, FDR)'
+                if iscell(v.SignBased_CV2_p_fdr)
+                    y = v.SignBased_CV2_p_fdr{curclass};
+                else
+                    y = v.SignBased_CV2_p_fdr;
+                end
+                miny = 0; maxy = nanmax(y(:));
+                
             case 'Spearman correlation [Grand Mean]'
                 if iscell(v.Spearman_CV2)
                     y = v.Spearman_CV2{curclass};
                 else
                     y = v.Spearman_CV2;
                 end
-                miny = min(y(:)); maxy = max(y(:));
+                miny = nanmin(y(:)); maxy = nanmax(y(:));
             case 'Pearson correlation [Grand Mean]'
                 if iscell(v.Pearson_CV2)
                     y = v.Pearson_CV2{curclass};  
                 else
                     y = v.Pearson_CV2;
                 end
-                miny = min(y(:)); maxy = max(y(:));
+                miny = nanmin(y(:)); maxy = nanmax(y(:));
+                
             case 'Spearman correlation -log10(P value) [Grand Mean]'
                 if iscell(v.Spearman_CV2_p_uncorr)
                     y = v.Spearman_CV2_p_uncorr{curclass}; 
@@ -158,7 +197,8 @@ switch meas{measind}
                         se = sqrt(v.Spearman_CV2_p_uncorr_STD);
                     end
                 end
-                miny = 0; maxy = max(y(:));
+                miny = 0; maxy = nanmax(y(:));
+                
             case 'Pearson correlation -log10(P value) [Grand Mean]'
                 if iscell(v.Pearson_CV2_p_uncorr)
                     y = v.Pearson_CV2_p_uncorr{curclass};  
@@ -171,42 +211,48 @@ switch meas{measind}
                         se = sqrt(v.Pearson_CV2_p_uncorr_STD);
                     end
                 end
-                miny = 0; maxy = max(y(:));
+                miny = 0; maxy = nanmax(y(:));
+                
             case 'Spearman correlation -log10(P value, FDR) [Grand Mean]'
                 if iscell(v.Spearman_CV2_p_fdr)
                     y = v.Spearman_CV2_p_fdr{curclass}; 
                 else
                     y = v.Spearman_CV2_p_fdr;
                 end
-                miny = 0; maxy = max(y(:));
+                miny = 0; maxy = nanmax(y(:));
+                
             case 'Pearson correlation -log10(P value, FDR) [Grand Mean]'
                 if iscell(v.Pearson_CV2_p_fdr)
                     y = v.Pearson_CV2_p_fdr{curclass};  
                 else
                     y = v.Pearson_CV2_p_fdr;
                 end
-                miny = 0; maxy = max(y(:));
+                miny = 0; maxy = nanmax(y(:));
+                
             case 'Permutation-based Z Score [Grand Mean]'
                 if iscell(v.PermZ_CV2)
                     y = v.PermZ_CV2{curclass};  
                 else
                     y = v.PermZ_CV2;
                 end
-                miny = min(y(:)); maxy = max(y(:));
+                miny = nanmin(y(:)); maxy = nanmax(y(:));
+                
             case 'Permutation-based -log10(P value) [Grand Mean]'
                 if iscell(v.PermProb_CV2)
                     y = v.PermProb_CV2{curclass};  
                 else
                     y = v.PermProb_CV2;
                 end
-                miny = 0; maxy = max(y(:));
+                miny = 0; maxy = nanmax(y(:));
+                
             case 'Permutation-based -log10(P value, FDR) [Grand Mean]'
                 if iscell(v.PermProb_CV2_FDR)
                     y = v.PermProb_CV2_FDR{curclass};  
                 else
                     y = v.PermProb_CV2_FDR;
                 end
-                miny = 0; maxy = max(y(:));
+                miny = 0; maxy = nanmax(y(:));
+                
             case 'Model P value histogram'
                 y = v.PermModel_Crit_Global(curclass,:); 
                 vp = v.ObsModel_Eval_Global(curclass);
@@ -247,11 +293,15 @@ switch meas{measind}
                     if exist('se','var')
                         h = herrorbar(y, x , se, se,'ko');
                         set(h,'MarkerSize',0.001);
-                        ylimoff = max(se);
+                        ylimoff = nanmax(se);
                     else 
                         ylimoff = 0;
                     end
-                    ylim(handles.axes33,[0 max(y)+ylimoff]);
+                    if y <= 0
+                        ylim(handles.axes33,[nanmin(y)+ylimoff 0]);
+                    else
+                        ylim(handles.axes33,[0 nanmax(y)+ylimoff]);
+                    end
                 case 1
                     st.fig = handles.pn3DView; 
                     st.NMaxes = [ handles.axes26 handles.axes27 handles.axes28];
@@ -269,7 +319,7 @@ switch meas{measind}
         else
              set(handles.pn3DView,'Visible','off'); set(handles.axes33,'Visible','on');
              ah=histogram(handles.axes33,y,'Normalization','probability','BinWidth',2.5,'EdgeColor','none','FaceColor',rgb('CornflowerBlue')); 
-             maxah= max(ah.Values); ylim([0 maxah]); 
+             maxah= nanmax(ah.Values); ylim([0 maxah]); 
              handles.axes33.YTick = 0:maxah/10:maxah;
              yticklabels(handles.axes33,'auto')
              [xl,xlb]=nk_GetScaleYAxisLabel(handles.NM.analysis{handles.curranal}.params.TrainParam.SVM);

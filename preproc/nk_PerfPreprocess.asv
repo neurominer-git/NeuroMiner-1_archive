@@ -22,7 +22,7 @@ function [tY, Pnt, paramfl, tYocv] = nk_PerfPreprocess(Y, inp, labels, paramfl, 
 % %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % (c) Nikolaos Koutsouleris, 03/2017
 
-global PREPROC MODEFL MULTI CV RAND VERBOSE TEMPL SAV
+global PREPROC MODEFL MULTI CV RAND VERBOSE TEMPL SVM
 
 % Initialize runtime variables
 i       = inp.f; % Curration permutation
@@ -124,9 +124,18 @@ else
     paramfl.Param = [];
 end
 
-for k=1:iy % Inner permutation loop
+% train parameters eventually only for a subset of partitions
+if isfield(inp,'CV1p')
+    sta_iy = inp.CV1p(1); stp_iy = inp.CV1p(2);
+    sta_jy = inp.CV1f(1); stp_jy = inp.CV1f(2);
+else
+    sta_iy = 1; stp_iy = iy;
+    sta_jy = 1; stp_jy = jy;
+end
 
-    for l=1:jy % Inner CV fold loop
+for k=sta_iy:stp_iy % Inner permutation loop
+
+    for l=sta_jy:stp_jy % Inner CV fold loop
         
         for u=1:ukbin % Binary comparison loop depending on PREPROC.BINMOD & FBINMOD
             
@@ -143,10 +152,12 @@ for k=1:iy % Inner permutation loop
                 usY = sY{u}; 
                 if ~isempty(Yocv), usYocv = sYocv{u}; end
                 if ~isempty(Cocv), usCocv = sCocv{u}; end
+                if isfield(inp,'Yw'), InputParam.Yw = inp.Yw{u}; end
             else
                 usY = sY;
                 if ~isempty(Yocv), usYocv = sYocv; end
                 if ~isempty(Cocv), usCocv = sCocv; end
+                if isfield(inp,'Yw'), InputParam.Yw = inp.Yw; end
             end
             paramfl.P{u} = nk_ReturnParamChain(PREPROC, 1); 
             
@@ -183,7 +194,7 @@ for k=1:iy % Inner permutation loop
                     
                     if pu == 1
                         % Remove cases which are completely NaN
-                        [vTr{pu},~, SrcParam.iTrX] = nk_ManageNanCases(vTr{pu});
+                        [vTr{pu}, ~, SrcParam.iTrX] = nk_ManageNanCases(vTr{pu}, TrL);
                         [vTs{pu,1}, TrL, SrcParam.iTr] = nk_ManageNanCases(vTs{pu,1}, TrL);
                         [vTs{pu,2}, CVL, SrcParam.iCV] = nk_ManageNanCases(vTs{pu,2}, CVL);
                     else
@@ -198,7 +209,7 @@ for k=1:iy % Inner permutation loop
                 vTr = usY(TrX,:); vTs{1} = usY(TrI,:); vTs{2} = usY(CVI,:); vTs{3} = usY(TsI{u},:);
                 
                 % Remove cases which are completely NaN
-                [vTr,~,SrcParam.iTrX] = nk_ManageNanCases(vTr, TrL);
+                [vTr, ~,SrcParam.iTrX] = nk_ManageNanCases(vTr, TrL);
                 [vTs{1}, TrL, SrcParam.iTr] = nk_ManageNanCases(vTs{1}, TrL);
                 [vTs{2}, CVL, SrcParam.iCV] = nk_ManageNanCases(vTs{2}, CVL);
                 [vTs{3}, ~, SrcParam.iTs] = nk_ManageNanCases(vTs{3});
@@ -208,14 +219,7 @@ for k=1:iy % Inner permutation loop
                 % Calibration data
                 if ~isempty(Cocv), InputParam.C = usCocv; end
             end
-            if isfield(inp,'Yw'), 
-                if iscell(inp.Yw),
-                    InputParam.Yw = inp.Yw{u}; 
-                else
-                    InputParam.Yw = inp.Yw; 
-                end
-            end 
-                
+            
             InputParam.Tr = vTr; InputParam.Ts = vTs;
 
             if VERBOSE; fprintf('\n-----------------------------------------------------------------------------------'); 
@@ -283,7 +287,7 @@ for k=1:iy % Inner permutation loop
             tsd = InputParam.Ts(:,3);
             if ~isempty(Yocv), ocv = InputParam.Ts(:,4); end
             if  any(cellfun(@isempty,trd)) ||  any(cellfun(@isempty,cvd)) ||  any(cellfun(@isempty,tsd)),
-                error('Empty training/test/validation data matrices return by preprocessing pipeline. Check your settings')
+                error('Empty training/test/validation data matrices returned by preprocessing pipeline. Check your settings')
             end
             
             % Check whether we have imputed labels
@@ -294,7 +298,7 @@ for k=1:iy % Inner permutation loop
                 TrL(~isnan(tTrL)) = tTrL(~isnan(tTrL));
             else
                 % Overwrite labels adjusted to NaN cases
-                TrL = labels(TrI,:); CVL = labels(CVI,:);
+                TrL = labels(TrI(~SrcParam.iTr),:); CVL = labels(CVI(~SrcParam.iCV),:);
             end
             
             clear InputParam
@@ -302,13 +306,13 @@ for k=1:iy % Inner permutation loop
 
                 case 0 % Multi-group mode both in FBINMOD and PREPROC.BINMOD
                     if ukbin > 1
-                        tY.Tr{k,l}{u} = nk_ManageNanCases(trd, [], SrcParam.iTr);
-                        tY.CV{k,l}{u} = nk_ManageNanCases(cvd, [], SrcParam.iCV);
+                        [tY.Tr{k,l}{u},TrL] = nk_ManageNanCases(trd, TrL, SrcParam.iTr);
+                        [tY.CV{k,l}{u},CVL] = nk_ManageNanCases(cvd, CVL, SrcParam.iCV);
                         tY.Ts{k,l}{u} = nk_ManageNanCases(tsd, [], SrcParam.iTs);
                         if ~isempty(Yocv), tYocv.Ts{k,l}{u} = ocv; end
                     else
-                        tY.Tr{k,l} = nk_ManageNanCases(trd, [], SrcParam.iTr);
-                        tY.CV{k,l} = nk_ManageNanCases(cvd, [], SrcParam.iCV);
+                        [tY.Tr{k,l},TrL] = nk_ManageNanCases(trd, TrL, SrcParam.iTr);
+                        [tY.CV{k,l},CVL] = nk_ManageNanCases(cvd, CVL, SrcParam.iCV);
                         tY.Ts{k,l} = nk_ManageNanCases(tsd, [], SrcParam.iTs);
                         if ~isempty(Yocv), tYocv.Ts{k,l} = ocv; end
                     end
@@ -340,8 +344,8 @@ for k=1:iy % Inner permutation loop
                 case 1   
 
                     % Write data to CV1 partition
-                    tY.Tr{k,l}{u} = nk_ManageNanCases(trd, [], SrcParam.iTr); 
-                    tY.CV{k,l}{u} = nk_ManageNanCases(cvd, [], SrcParam.iCV); 
+                    [tY.Tr{k,l}{u},TrL] = nk_ManageNanCases(trd, TrL, SrcParam.iTr); 
+                    [tY.CV{k,l}{u},CVL] = nk_ManageNanCases(cvd, CVL, SrcParam.iCV); 
                     tY.Ts{k,l}{u} = nk_ManageNanCases(tsd, [], SrcParam.iTs);
                     if ~isempty(Yocv), tYocv.Ts{k,l}{u} = ocv; end
                     
@@ -375,18 +379,7 @@ for k=1:iy % Inner permutation loop
             if ~isempty(MULTI) && MULTI.flag, tY.mTrL{k,l} = TrL; tY.mCVL{k,l} = CVL; end
             
             % save parameters
-            if paramfl.write || cv2flag, 
-                if isfield(paramfl,'writeCV1') && paramfl.writeCV1
-                    filename = sprintf('Preproc_CV2-R%gF%g_CV1-R%gF%gC%g.mat',i,j,k,l,u);
-                    if ~exist(inp.procdir,'dir'), mkdir(inp.procdir); end
-                    filepath = fullfile(inp.procdir,filename);
-                    fprintf('\tSaving to file.')
-                    save(filepath,'oTrainedParam','-v7.3');
-                    Pnt(k,l,u).TrainedParam = filename;
-                else
-                    Pnt(k,l,u).TrainedParam = oTrainedParam; 
-                end
-            end
+            if paramfl.write || cv2flag, Pnt(k,l,u).TrainedParam = oTrainedParam; end
             clear TrainedParam SrcParam
         end
     end

@@ -1,22 +1,26 @@
 function [tY, Pnt, paramfl, tYocv] = nk_PerfPreprocessMeta(inp, labels, paramfl)
 % =========================================================================
-% function [tY, tYocv] = nk_PerfPreprocessMeta(inp, labels, paramfl)
+% function [tY, Pnt, paramfl, tYocv] = nk_PerfPreprocessMeta(inp, labels, paramfl)
 % =========================================================================
 %
-% INPUTS:
-% -------
-% Yocv      = Independent test data
-
-% 
 % OUTPUTS:
+% -------
+% tY        : generated decision-based data from lower-layer models
+% Pnt       : preprocessing parameter structure containing information on
+%              the stacking process performed
+% paramfl   : the modified paramfl
+% tYocv     : Independent test data
+% 
+% INPUTS:
 % --------
-% inp       = input data and some parameters
-% labels    = the targets for prediction
-% paramfl   = preprocessing parameters
+% inp       : input data and some parameters
+% labels    : the targets for prediction
+% paramfl   : parameter structure describing the stacking process to be
+%               done
 % %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% (c) Nikolaos Koutsouleris, 01/2019
+% (c) Nikolaos Koutsouleris, 01/2020
 
-global MODEFL MULTI CV RAND VERBOSE PREPROC STACKING
+global MODEFL MULTI CV RAND VERBOSE PREPROC STACKING SVM
 
 i = inp.f; j = inp.d; kbin = inp.nclass;
 
@@ -47,7 +51,7 @@ tY.TrL      = cell(iy,jy);
 tY.CVL      = cell(iy,jy);
 tY.TrInd    = cell(iy,jy);
 tY.CVInd    = cell(iy,jy);
-
+tY.VI       = cell(iy,jy);
 % The order of statements here is critical: TsI should receive the original
 % TsInd before it is modified below!
 %
@@ -117,8 +121,8 @@ if isfield(inp,'oocvind') && ~isempty(inp.oocvind)
     smiss = sum(oocvconducted==0); missf = find(oocvconducted==0);
     if smiss>0
        fprintf('\n');cprintf('red*','=================================================================================================== ')
-       fprintf('\n'); cprintf('red*','%g input-layer model(s) have not been applied to the test data! The stacked models needs all of them. ', smiss);
-       fprintf('\n'); cprintf('red*','Following models need to be applied to the independent data to generated features for the stacker: ')
+       fprintf('\n'); cprintf('red*','%g input-layer model(s) have not been applied to the test data! The stacked model needs all of them. ', smiss);
+       fprintf('\n'); cprintf('red*','Following models need to be applied to the independent data to generate features for the stacker: ')
        for amx = 1:smiss
            fprintf('\n'); cprintf('red*','==> Analysis ID: %s ', inp.analyses{missf(amx)}.id);
        end
@@ -145,7 +149,8 @@ for am = 1:nA
     for jm=1:nM
         if nM>1, bgstr = 'bagged '; else, bgstr=''; end
          if ~exist(inp.analyses{am}.GDdims{jm}.RootPath,'dir')
-            GDD(cnt).RootPath = cellstr(spm_select(nM,'dir',sprintf('Select the root path(s) [n=%g] of %sanalysis %g [%s]:', nM, bgstr, am, inp.analysis{am}.desc)));
+             cprintf('red*','\nRoot path %s of analysis %g not found.', inp.analyses{am}.GDdims{jm}.RootPath, am);
+             GDD(cnt).RootPath = cellstr(spm_select(nM,'dir',sprintf('Select the root path(s) [n=%g] of %sanalysis %g [%s]:', nM, bgstr, am, inp.analyses{am}.desc)));
          else
             GDD(cnt).RootPath = inp.analyses{am}.GDdims{jm}.RootPath;
          end
@@ -181,14 +186,25 @@ for am = 1:nA
 end
 fprintf('\nDone loading CVdatamats.')
 
-for k=1:iy % Inner permutation loop
+% train parameters eventually only for a subset of partitions
+if isfield(inp,'CV1p')
+    sta_iy = inp.CV1p(1); stp_iy = inp.CV1p(2);
+    sta_jy = inp.CV1f(1); stp_jy = inp.CV1f(2);
+else
+    sta_iy = 1; stp_iy = iy;
+    sta_jy = 1; stp_jy = jy;
+end
 
-    for l=1:jy % Inner CV fold loop
+for k=sta_iy:stp_iy % Inner permutation loop
+
+    for l=sta_jy:stp_jy % Inner CV fold loop
 
         ll = ll+1;
-
+        tElapsed = tic;
+        fprintf('\nWorking on CV1 [%g, %g]: Prepare data', k, l);
+        
         if isempty(tY.Tr{k,l})
-            tY.Tr{k,l} = cell(1,ukbin); tY.CV{k,l} = cell(1,ukbin); tY.Ts{k,l} = cell(1,ukbin);
+            tY.Tr{k,l} = cell(1,ukbin); tY.CV{k,l} = cell(1,ukbin); tY.Ts{k,l} = cell(1,ukbin); tY.VI{k,l} = cell(1,ukbin);
         end
        
         for u=1:ukbin % Binary comparison loop depending on PREPROC.BINMOD 
@@ -210,7 +226,8 @@ for k=1:iy % Inner permutation loop
 
             if size(TrI,2)>2, TrI = TrI'; CVI = CVI'; TsI{u} = TsI{u}'; end
             trd = []; cvd=[]; tsd = []; ocv = []; 
-            cnt=1;
+            cnt=1; chn = []; chn_cnt = 0;
+            
             for am = 1:nA
 
                 nM = numel(inp.analyses{am}.GDdims);
@@ -230,6 +247,8 @@ for k=1:iy % Inner permutation loop
                         fprintf('.');
                     end
                     % Load CVdatamat
+                    chn_cnt = chn_cnt + 1;
+                    i_trd = []; i_cvd = []; i_tsd = []; i_ocv = [];
                     
                     for n=1:numel(Pspos)
 
@@ -241,66 +260,70 @@ for k=1:iy % Inner permutation loop
                             case 1
                                 if size(GDD(cnt).GD.DV{Pspos(n)}{k,l,u},2)>1
                                    mdfl = true;
-                                   trd = [trd nm_nanmedian(double(GDD(cnt).GD.DT{Pspos(n)}{k,l,u}))];
+                                   i_trd = [i_trd nm_nanmedian(double(GDD(cnt).GD.DT{Pspos(n)}{k,l,u}))];
                                 else
-                                   trd = [trd double(GDD(cnt).GD.DT{Pspos(n)}{k,l,u})]; 
+                                   i_trd = [i_trd double(GDD(cnt).GD.DT{Pspos(n)}{k,l,u})]; 
                                 end
                             case 2
                                 oot_ind  = [];
                                 oot_data = [];
-                                %First build an index array and data array
-                                %of out of fold predictions
+                                % First build an index array and data array
+                                % of out of fold predictions
                                 for lll = 1:jy
                                    oot_ind = [oot_ind; I.TestInd{k,lll}];
-                                   try
-                                       if size(GDD(cnt).GD.DV{Pspos(n)}{k,lll,u},2)>1
-                                           mdfl = true;
-                                           oot_data = [oot_data; nm_nanmedian(double(GDD(cnt).GD.DV{Pspos(n)}{k,lll,u}),2)];
-                                       else
-                                           oot_data = [oot_data; double(GDD(cnt).GD.DV{Pspos(n)}{k,lll,u})];
-                                       end
-                                   catch
-                                       fprintf('problem')
+                                   if size(GDD(cnt).GD.DV{Pspos(n)}{k,lll,u},2)>1
+                                       mdfl = true;
+                                       oot_data = [oot_data; nm_nanmedian(double(GDD(cnt).GD.DV{Pspos(n)}{k,lll,u}),2)];
+                                   else
+                                       oot_data = [oot_data; double(GDD(cnt).GD.DV{Pspos(n)}{k,lll,u})];
                                    end
                                 end
                                 [~,oot_order] = ismember(I.TrainInd{k,l},oot_ind);
                                 i0 = oot_order == 0;
                                 if any(i0), oot_order(i0) = I.TrainInd{k,l}(i0); end
-                                trd = [trd oot_data(oot_order,:)];
+                                i_trd = [i_trd oot_data(oot_order,:)];
                         end
                         if size(GDD(cnt).GD.DV{Pspos(n)}{k,l,u},2)>1
-                            cvd = [cvd nm_nanmedian(double(GDD(cnt).GD.DV{Pspos(n)}{k,l,u}),2)];
-                            tsd = [tsd nm_nanmedian(double(GDD(cnt).GD.DS{Pspos(n)}{k,l,u}),2)];
+                            i_cvd = [i_cvd nm_nanmedian(double(GDD(cnt).GD.DV{Pspos(n)}{k,l,u}),2)];
+                            i_tsd = [i_tsd nm_nanmedian(double(GDD(cnt).GD.DS{Pspos(n)}{k,l,u}),2)];
                             if oocvflag, 
                                 Is = OOCVDD(cnt).CNT{u}{n}(k,l,1);
                                 Ie = OOCVDD(cnt).CNT{u}{n}(k,l,2);
-                                ocv = [ ocv nm_nanmedian(double(OOCVDD(cnt).GD{u}(:,Is:Ie)),2)]; 
+                                i_ocv = [ i_ocv nm_nanmedian(double(OOCVDD(cnt).GD{u}(:,Is:Ie)),2)]; 
                             end
                         else
-                            try
-                                cvd = [cvd double(GDD(cnt).GD.DV{Pspos(n)}{k,l,u})];
-                            catch
-                                fprintf('problem')
-                            end
-                            tsd = [tsd double(GDD(cnt).GD.DS{Pspos(n)}{k,l,u})];
+                            i_cvd = [i_cvd double(GDD(cnt).GD.DV{Pspos(n)}{k,l,u})];
+                            i_tsd = [i_tsd double(GDD(cnt).GD.DS{Pspos(n)}{k,l,u})];
                             if oocvflag, 
                                 Is = OOCVDD(cnt).CNT{u}{n}(k,l,1);
                                 Ie = OOCVDD(cnt).CNT{u}{n}(k,l,2);
-                                ocv = [ ocv double(OOCVDD(cnt).GD{u}(:,Is:Ie))]; 
+                                i_ocv = [ i_ocv double(OOCVDD(cnt).GD{u}(:,Is:Ie))]; 
                             end
-                        end
-                        
+                        end   
                     end
-                    cnt=cnt+1;
+                    if strcmp(SVM.prog,'SEQOPT') && numel(Pspos) > 1
+                        numNode = 1;
+                        i_trd = nm_nanmedian(i_trd,2);
+                        i_cvd = nm_nanmedian(i_cvd,2);
+                        i_tsd = nm_nanmedian(i_tsd,2);
+                        if oocvflag, i_ocv = nm_nanmedian(i_ocv,2); end
+                    else
+                        numNode = size(i_trd,2);
+                    end
+                    trd = [trd i_trd];
+                    cvd = [cvd i_cvd];
+                    tsd = [tsd i_tsd];
+                    if oocvflag, ocv = [ocv i_ocv] ; end
+                    chn = [chn repmat(chn_cnt,1,numNode)];
+                    cnt = cnt + 1;
                 end
             end
             clear cnt    
-            [InputParam.Tr{1},~, SrcParam.iTrX] = nk_ManageNanCases(trd, TrL);
-            [InputParam.Ts{1}, TrL, SrcParam.iTr] = nk_ManageNanCases(trd, TrL);
-            [InputParam.Ts{2}, CVL, SrcParam.iCV] = nk_ManageNanCases(cvd, CVL);
-            [InputParam.Ts{3}, ~, SrcParam.iTs] = nk_ManageNanCases(tsd);
+            [InputParam.Tr{1},~, SrcParam.iTrX]     = nk_ManageNanCases(trd, TrL);
+            [InputParam.Ts{1}, TrL, SrcParam.iTr]   = nk_ManageNanCases(trd, TrL);
+            [InputParam.Ts{2}, CVL, SrcParam.iCV]   = nk_ManageNanCases(cvd, CVL);
+            [InputParam.Ts{3}, ~, SrcParam.iTs]     = nk_ManageNanCases(tsd);
                     
-            %InputParam.Ts{1} = trd; InputParam.Ts{2} = cvd; InputParam.Ts{3} = tsd;
             if oocvflag , InputParam.Ts{4} = ocv; end
 
             %% Generate SrcParam structure
@@ -315,6 +338,27 @@ for k=1:iy % Inner permutation loop
             SrcParam.covars             = inp.covars;
             SrcParam.covars_oocv        = inp.covars_oocv;
             %SrcParam.orig_labels        = inp.labels;
+            
+            %% Run ADASYN if needed
+            if isfield(SVM,'ADASYN') && SVM.ADASYN.flag == 1
+                if VERBOSE, fprintf('\nUsing ADASYN to generate synthetic training data for partition CV2 [%g, %g], CV [%g, %g]', i, j, k, l); else; fprintf('\t...ADASYN'); end
+                Covs = [];
+                % Do we have covars? if so, they have to be integrated
+                % into the creation of synthetic data.
+                if ~isempty(SrcParam.covars)
+                    Covs = SrcParam.covars( SrcParam.TrX(~SrcParam.iTrX),:);
+                    % Check if covariance matrix contains NaNs and
+                    % impute them.
+                    if any(isnan(Covs(:)))
+                        IN = struct('method','seuclidean','k',7,'X',Covs);
+                        Covs = nk_PerfImputeObj(Covs, IN);
+                    end
+                end
+                [ vTrSyn, LabelSyn, CovarsSyn ] = nk_PerfADASYN( InputParam.Tr, TrL, SVM.ADASYN, Covs, true);
+                InputParam.TrSyn = vTrSyn;
+                SrcParam.TrainLabelSyn = LabelSyn;
+                if ~isempty(SrcParam.covars), SrcParam.covarsSyn = CovarsSyn; end
+            end
 
             switch MODEFL
                 case 'classification'
@@ -332,8 +376,16 @@ for k=1:iy % Inner permutation loop
             %% Generate and execute for given CV1 partition preprocessing sequence
             [InputParam, oTrainedParam, SrcParam] = nk_GenPreprocSequence(InputParam, PREPROC, SrcParam, Pnt(k, l, u).TrainedParam);
             
-            % Check whether we have imputed labels
-            if isfield(SrcParam,'TrL_imputed'), TrL = SrcParam.TrL_imputed; end
+             % Check whether we have imputed labels
+            if isfield(SrcParam,'TrL_imputed'), 
+                TrL = SrcParam.TrL_imputed; 
+                [~,TrL] = nk_ManageNanCases(InputParam.Ts{1}, TrL, SrcParam.iTr); 
+                tTrL = labels(TrI,:);
+                TrL(~isnan(tTrL)) = tTrL(~isnan(tTrL));
+            else
+                % Overwrite labels adjusted to NaN cases
+                TrL = labels(TrI(~SrcParam.iTr),:); CVL = labels(CVI(~SrcParam.iCV),:);
+            end
             
             %% Write preprocessed data to mapY structure
             if isfield(paramfl,'PREPROC') && isfield(paramfl,'PXfull') && ~isempty(paramfl.PXopt{u})
@@ -356,13 +408,12 @@ for k=1:iy % Inner permutation loop
                 error('Empty training/test/validation data matrices return by preprocessing pipeline. Check your settings')
             end
             
-            TrL = labels(TrI,:); CVL = labels(CVI,:);
             switch BINMOD
 
                 case 0 % Multi-group mode both in FBINMOD and PREPROC.BINMOD
                     if ukbin > 1
-                        tY.Tr{k,l}{u} = nk_ManageNanCases(trd, [], SrcParam.iTr);
-                        tY.CV{k,l}{u} = nk_ManageNanCases(cvd, [], SrcParam.iCV);
+                        [tY.Tr{k,l}{u},TrL] = nk_ManageNanCases(trd, TrL, SrcParam.iTr);
+                        [tY.CV{k,l}{u},CVL] = nk_ManageNanCases(cvd, CVL, SrcParam.iCV);
                         tY.Ts{k,l}{u} = nk_ManageNanCases(tsd, [], SrcParam.iTs);
                         if oocvflag, tYocv.Ts{k,l}{u} = ocv; end
                     else
@@ -395,12 +446,13 @@ for k=1:iy % Inner permutation loop
                             tY.TrL{k,l}{zu} = labels(CV.TrainInd{i,j}(CV.cvin{i,j}.TrainInd{k,l}));
                             tY.CVL{k,l}{zu} = labels(CV.TrainInd{i,j}(CV.cvin{i,j}.TestInd{k,l}));
                         end
+                        tY.VI{k,l}{zu} = chn;
                     end
                 case 1
                     % Write data to CV1 partition
-                    tY.Tr{k,l}{u} = nk_ManageNanCases(trd, TrL, SrcParam.iTr); 
-                    tY.CV{k,l}{u} = nk_ManageNanCases(cvd, CVL, SrcParam.iCV); 
-                    tY.Ts{k,l}{u} = nk_ManageNanCases(tsd, [], SrcParam.iTs);
+                    [tY.Tr{k,l}{u},TrL] = nk_ManageNanCases(trd, TrL, SrcParam.iTr); 
+                    [tY.CV{k,l}{u},CVL] = nk_ManageNanCases(cvd, CVL, SrcParam.iCV); 
+                    [tY.Ts{k,l}{u}] = nk_ManageNanCases(tsd, [], SrcParam.iTs);
                     if oocvflag, tYocv.Ts{k,l}{u} = ocv; end
                     
                     if ~strcmp(MODEFL,'regression') && length(CV.class{i,j}{u}.groups) == 2
@@ -428,6 +480,7 @@ for k=1:iy % Inner permutation loop
                                 tY.CVL{k,l}{u} = labels(CV.TrainInd{i,j}(CV.cvin{i,j}.TestInd{k,l}),:);
                             end
                     end
+                    for jj=1:size(trd,1), tY.VI{k,l}{u}{jj} = chn'; end
             end
 
             if ~isempty(MULTI) && MULTI.flag, tY.mTrL{k,l} = TrL; tY.mCVL{k,l} = CVL; end    
@@ -435,6 +488,7 @@ for k=1:iy % Inner permutation loop
             if paramfl.write || cv2flag, Pnt(k,l,u).TrainedParam = oTrainedParam; end
             clear InputParam TrainParam SrcParam
         end
+        fprintf('\tCompleted in %1.2fs.',toc(tElapsed)); 
     end
 end
 

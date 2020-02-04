@@ -9,7 +9,7 @@ function [IN, OUT] = FoldPerm2(IN, OUT, strout, fRFE, FullPartflag, RetrainImmed
 
 global VERBOSE CV MODEFL RAND MULTILABEL MULTI RFE
 
-RF = []; fMULTI = false;
+RF = []; fMULTI = false; VI = []; 
 if MULTI.flag ==1 && ... 
         MULTI.train == 1 && ...
         ( isfield(RFE.Wrapper.GreedySearch,'MultiClassOptimization') && ...
@@ -162,7 +162,7 @@ for ii=1:PermNum % Loop through CV1 permutations
             OUT.Trtargs{i,j,curclass}    = zeros( kSubjTr, kFea(curclass) );
             OUT.Trdecs{i,j,curclass}     = zeros( kSubjTr, kFea(curclass) );
             
-            if ~FullPartflag || RetrainImmediate || cvts_fl
+            if ~FullPartflag || RetrainImmediate || any(cvts_fl)
                 OUT.ts{i,j,curclass}     = zeros( kFea(curclass),1 );
                 OUT.CVtargs{i,j,curclass}= zeros( kSubjCV, kFea(curclass) );
                 OUT.CVdecs{i,j,curclass} = zeros( kSubjCV, kFea(curclass) );
@@ -277,12 +277,13 @@ for ii=1:PermNum % Loop through CV1 permutations
                                         i, j, k(curclass) , lFea(curclass), nfeats)
                         end
                     end
-
+                    if isfield(IN.Y,'VI'), VI =  IN.Y.VI{ i,j}{curclass}; end
+                    
                     %% Train model(s)
                     if ~fRFE
 
                        % Train algorithm without wrapper
-                        [~, model]= nk_GetParam2(Ymodel{curclass}{k(curclass)}, modelTrL{curclass}, IN.Ps{curclass}, 1);
+                        [~, model]= nk_GetParam2(Ymodel{curclass}{k(curclass)}, modelTrL{curclass}, IN.Ps{curclass}, 1, VI);
                         
                     else
                         
@@ -358,12 +359,11 @@ if iscell(model)
 else
     iModel = model;
 end
-OUT.mdl{i,j,curclass}{indkX} = iModel;
 
  %% Apply trained algorithm to CV1 test data
 [OUT.tr{i,j,curclass}(indkX), ...
     OUT.Trtargs{i,j,curclass}(:,indkX) , ...
-    OUT.Trdecs{i,j,curclass}(:,indkX) ] = nk_GetTestPerf(Ytrain{curclass}{k(curclass)}, tTrL{curclass}, ...
+    OUT.Trdecs{i,j,curclass}(:,indkX), iModel ] = nk_GetTestPerf(Ytrain{curclass}{k(curclass)}, tTrL{curclass}, ...
                                                          [], iModel, Ymodel{curclass}{k(curclass)});
 if isnan(OUT.tr{i,j,curclass}(indkX))
     warning('Non-finite performance measures found in CV1 training data')
@@ -372,13 +372,15 @@ if VERBOSE, fprintf('\tTr = %1.2f', OUT.tr{i,j,curclass}(indkX)); end
 if ~FullPartflag || RetrainImmediate || cvts_fl(curclass)
     [OUT.ts{i,j,curclass}(indkX), ...
         OUT.CVtargs{i,j,curclass}(:,indkX), ...
-        OUT.CVdecs{i,j,curclass}(:,indkX)] = nk_GetTestPerf(Ytest{curclass}{k(curclass)}, tCVL{curclass}, ...
+        OUT.CVdecs{i,j,curclass}(:,indkX), iModel] = nk_GetTestPerf(Ytest{curclass}{k(curclass)}, tCVL{curclass}, ...
                                                          [], iModel, Ymodel{curclass}{k(curclass)});
     if isnan(OUT.ts{i,j,curclass}(indkX))
         warning('Non-finite performance measures found in CV1 test data')
     end
     if VERBOSE, fprintf(', CV = %1.2f',OUT.ts{i,j,curclass}(indkX)); end
 end
+
+OUT.mdl{i,j,curclass}{indkX} = iModel;
 
 function OUT = assign2out( OUT, RetrainImmediate, FullPartflag, cvts_fl, i , j, curclass)
     

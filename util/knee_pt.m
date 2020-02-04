@@ -98,9 +98,11 @@ end
 %another check
 if (sum(size(y)==1)~=1)
     if (issue_errors_p)
-        error('knee_pt: y must be a vector');
+        warning('knee_pt: y must be a vector');
     end
-    
+    res_x=nan;
+    idx_of_result=1
+
     return;
 end
 
@@ -126,8 +128,10 @@ end
 %and more checking
 if (length(y) < 3)
     if (issue_errors_p)
-        error('knee_pt: y must be at least 3 elements long');
+        warning('knee_pt: y must be at least 3 elements long');
     end
+    res_x = nan;
+    idx_of_result = 1;  
     return;
 end
 

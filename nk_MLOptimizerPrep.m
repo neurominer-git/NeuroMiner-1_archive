@@ -1,6 +1,6 @@
-function [act, inp, dat] = nk_MLOptimizerPrep(act, dat, inp, parentstr)
+function [act, inp] = nk_MLOptimizerPrep(act, inp, parentstr)
 % =========================================================================
-% analysis = nk_MLOptimizerPrep(dat, inp, parentstr)
+% [act, inp] = nk_MLOptimizerPrep(act, inp, parentstr)
 % =========================================================================
 % This function allows the interactive and batch use of the ML training and 
 % cross-validation module of NM
@@ -44,7 +44,7 @@ else
     AnalSelectStr = []; AnalSelectAct = [];
 end
 % Initialize analysis with current training parameters
-analysis = dat.analysis{inp.analind};
+analysis = NM.analysis{inp.analind};
 if ~exist('inp','var') || isempty(inp)
     if isfield(analysis,'GDdims')
         fprintf('\n')
@@ -77,7 +77,11 @@ if ~isempty(analysis)
     inp.sdatatypes = {'','PreprocData','CVdatamat','CVresults'};          
     inp.sfieldnames = {'','preprocmat','gdmat','gdanalmat'};    
     
-    [ix, jx] = size(CV(1).TrainInd);
+    if isempty(CV)
+         nk_SetupGlobVars2(NM.analysis{inp.analind(1)}.params, 'setup_main', 0); 
+    end
+    [ix, jx] = size(CV(1).TrainInd); 
+    
     
     if isempty(inp.preprocmat),     inp.preprocmat = cell(inp.nF,1); end
     if isempty(inp.gdanalmat),    inp.gdanalmat = cell(inp.nF,1); end
@@ -188,7 +192,7 @@ if ~isempty(analysis)
             return
         case 1
             if isfield(inp,'analind'), analind = inp.analind; end
-            brief = 1;t_act = 1; while t_act>0, [t_act, analind, ~, ~, brief] = nk_SelectAnalysis(dat, 0, 'MAIN INTERFACE >> TRAIN ML MODELS', analind, [], 0, 0, brief); end;
+            brief = 1;t_act = 1; while t_act>0, [t_act, analind, ~, ~, brief] = nk_SelectAnalysis(NM, 0, 'MAIN INTERFACE >> TRAIN ML MODELS', analind, [], 0, 0, brief); end;
             if ~isempty(analind)
                 inp.analind             = analind; 
                 inp.preprocmat          = cell(inp.nF,1); 
@@ -212,7 +216,7 @@ if ~isempty(analysis)
                     inp.gdanalmat           = []; 
                     inp.GridAct             = true(ix,jx); 
                 case 2 % Running with precomputed Preprocdatamats
-                    [preprocmat, emptfl]    = nk_GenPreprocMaster2(dat.id, CV(1), [],  dat.analysis{inp.analind}.rootdir, [], [], inp.varind, inp.varstr, inp.concatfl);
+                    [preprocmat, emptfl]    = nk_GenPreprocMaster2(NM.id, CV(1), [],  NM.analysis{inp.analind}.rootdir, [], [], inp.varind, inp.varstr, inp.concatfl);
                     if ~emptfl && ~isempty(preprocmat), 
                         inp.preprocmat      = preprocmat;
                         inp.gdmat           = [];
@@ -221,7 +225,7 @@ if ~isempty(analysis)
                     end
                 case 3 % Running with precomputed CVdatamats (aggregation run --- allowing to tweak some post-training model selection options)
                    
-                    [gdmat, emptfl]         = nk_GenCVdataMaster2(dat.id, CV(1), [], fullfile(dat.analysis{inp.analind}.rootdir, algostr), [], [], inp.varind, inp.varstr, inp.concatfl);
+                    [gdmat, emptfl]         = nk_GenCVdataMaster2(NM.id, CV(1), [], fullfile(NM.analysis{inp.analind}.rootdir, algostr), [], [], inp.varind, inp.varstr, inp.concatfl);
                     if ~emptfl && ~isempty(gdmat), 
                         inp.preprocmat      = cell(inp.nF,1);
                         inp.gdmat           = gdmat; 
@@ -229,7 +233,7 @@ if ~isempty(analysis)
                     end 
                 case 4 % Running with existing CVresults (simple aggregation run --- basically for multiple modalities)
                     
-                    [gdanalmat, emptfl]     = nk_GenCVresultsMaster(dat.id,[], fullfile(dat.analysis{inp.analind}.rootdir, algostr)); 
+                    [gdanalmat, emptfl]     = nk_GenCVresultsMaster(NM.id,[], fullfile(NM.analysis{inp.analind}.rootdir, algostr)); 
                     if ~emptfl && ~isempty(gdanalmat), 
                         inp.preprocmat      = cell(inp.nF,1);
                         inp.gdmat           = [];
@@ -247,18 +251,15 @@ if ~isempty(analysis)
             if inp.lfl ~=2, inp.preprocmat = []; end
 			% act==7 is the automation option. Make sure that inp is properly defined 
 			% To this end create an inp structure based on 
-            NM.runtime.curanal = inp.analind;
-            %nk_NMLogFileManager('add_entry', NM, NM.analysis{NM.runtime.curanal}, 'nm', messsage_str);
             nA = 1; if numel(inp.analind)>1, nA = numel(inp.analind); end
-            analind = inp.analind;
             for i=1:nA
-                taa = analind(i);
-                inp.analind = taa;
-                tA = dat.analysis{taa};
-                inp = nk_GetAnalModalInfo_config(NM, inp); 
-                dat.analysis{taa} = MLOptimizerPrep(dat, tA, inp);
+                nk_SetupGlobVars2(NM.analysis{inp.analind(i)}.params, 'setup_main', 0); 
+                NM.runtime.curanal = inp.analind(i);
+                inp.analysis_id = NM.analysis{inp.analind(i)}.id;
+                NM.analysis{inp.analind(i)} = MLOptimizerPrep(NM, NM.analysis{inp.analind(i)}, inp);
+                nk_SetupGlobVars2(NM.analysis{inp.analind(i)}.params, 'clear', 0); 
             end
-            h = findobj('Name','NM Optimization Status Viewer'); if ~isempty(h), delete(h); end
+            h = findobj('Tag','PrintCVBarsBin'); if ~isempty(h), delete(h); end
     end
 end
 

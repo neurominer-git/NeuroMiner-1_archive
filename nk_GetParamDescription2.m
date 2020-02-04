@@ -95,6 +95,8 @@ switch action
                         impstr = sprintf('median of %g nearest neighbors (%s)',params.LABELMOD.LABELIMPUTE.k, 'Jaccard');
                     case 'hamming'
                         impstr = sprintf('median of %g nearest neighbors (%s)',params.LABELMOD.LABELIMPUTE.k, 'Hamming');
+                    case 'none'
+                        impstr = 'none';
                 end
                 labelimputestr = sprintf('Label Imputation: %s', impstr);
             end
@@ -285,7 +287,12 @@ switch action
                         case 'reducedim'
 
                             if strcmp(params.ACTPARAM{i}.DR.RedMode,'PLS')
-                                RedMode = [ params.ACTPARAM{i}.DR.RedMode ': ' num2str(size(params.ACTPARAM{i}.DR.PLS.behav_mat,2)) ' behavioral variables' ];
+                                if isfield(params.ACTPARAM{i}.DR.PLS,'algostr')
+                                    PLSalgo = sprintf('PLS (%s)',params.ACTPARAM{i}.DR.PLS.algostr);
+                                else
+                                    PLSalgo = 'PLS';
+                                end
+                                RedMode = [ PLSalgo ': ' num2str(size(params.ACTPARAM{i}.DR.PLS.behav_mat,2)) ' behavioral variables' ];
                             else
                                 RedMode = params.ACTPARAM{i}.DR.RedMode;
                                 if isfield(params.ACTPARAM{i},'PX') && ~isempty(params.ACTPARAM{i}.PX)
@@ -377,6 +384,8 @@ switch action
                                     if params.ACTPARAM{i}.RANK.Pearson == 1, algostr = 'Pearson'; else algostr = 'Spearman'; end
                                 case 'extern'
                                     algostr = 'External ranking';
+                                case 'extern_fscore'
+                                    algostr = 'External combined with f-score ranking';
                                 otherwise
                                     algostr = params.ACTPARAM{i}.RANK.algostr;
                             end

@@ -105,10 +105,12 @@ switch IN.algostr
         IN.W = IN.W';
         
     case 'auc'
+        % Area-under-the-Curve ooperator
         IN.W = (nk_AUCFeatRank(Y, L))'; 
 
     case {'pearson','spearman'}
-       
+        % simple univariate correlation using Pearson's or Spearman's
+        % correlation coefficient
         if VERBOSE, fprintf(' %s', IN.algostr); end
         IN.W = abs(nk_CorrMat(Y,L,IN.algostr));
 
@@ -157,12 +159,25 @@ switch IN.algostr
         IN.weightmethod = 1;
         
     case 'extern'
-        IN.W = IN.EXTERN;
+        IN.W = abs(IN.EXTERN);
+		
+	case 'extern2'
+		W1 = abs(IN.EXTERN);
+		for i=1:numel(IN.algostr2);
+			IN2 = IN;
+			IN2.algostr = IN.algostr2{i};
+			if VERBOSE, fprintf(' ...adding ranking map using %s',IN2.algostr); end
+			IN2 = nk_PerfFeatRankObj(Y, IN2);
+			W2 = nk_PerfScaleObj(IN2.W');
+			W1 = feval(IN.operator, W1, W2');
+		end
+		IN.W = W1;
 end
     
 % Options 3 & 4 require to compute a threshold (Do this using
 % percentile method)
 if size(IN.W,2) == 1; IN.W = IN.W'; end
+% If downweighting has been selected invert the weight vector
 if IN.weightmethod == 2, IN.W = 1-IN.W; end
 % Make sure there are no NaNs in the weight vector
 IN.W(isnan(IN.W))=0;

@@ -1,4 +1,4 @@
-function [param, model] = nk_GetParam2(Y, label, Params, ModelOnly)
+function [param, model] = nk_GetParam2(Y, label, Params, ModelOnly, FeatGroups)
 % =========================================================================
 % FORMAT [param, model] = nk_GetParam2(Y, label, Params, ModelOnly)
 % =========================================================================
@@ -18,5 +18,14 @@ if isfield(SVM,'ADASYN') && SVM.ADASYN.flag == 1
 end
 
 % Pass training matrix and labels to training module
-[param, model] = feval( TRAINFUNC, Y, label, ModelOnly, Params );
+switch SVM.prog
+    case 'SEQOPT'
+        if  ~exist('FeatGroups','var') || isempty(FeatGroups)
+            [param, model] = feval( TRAINFUNC, Y, label, [], ModelOnly, Params );
+        else
+            [param, model] = feval( TRAINFUNC, Y, label, FeatGroups, ModelOnly, Params );
+        end
+    otherwise
+        [param, model] = feval( TRAINFUNC, Y, label, ModelOnly, Params );
+end
 

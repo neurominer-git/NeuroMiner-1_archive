@@ -121,6 +121,6 @@ else
         OUT.featnames = dat.featnames(OUT.tF); 
     end
 end
+
 OUT.varstr = varstr;
 
-end

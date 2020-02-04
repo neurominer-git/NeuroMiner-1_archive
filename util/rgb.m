@@ -42,7 +42,7 @@
 %     [3] "Web colors", http://en.wikipedia.org/wiki/Web_colors
 %
 %     [4] "X11 color names" http://en.wikipedia.org/wiki/X11_color_names
-function rgb = rgb(s)
+function [rgb] = rgb(s)
   persistent num name
   if isempty(num) % First time rgb is called
     [num,name] = getcolors();
@@ -55,6 +55,8 @@ function rgb = rgb(s)
   end
   if strcmpi(s,'chart')
     showcolors()
+  elseif strcmpi(s,'getcolors')
+    [rgb.num, rgb.name] = getcolors;
   else
     k = find(strcmpi(s, name));
     if isempty(k)

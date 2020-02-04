@@ -5,11 +5,15 @@ IN.p = zeros(n,1);
 IN.F = zeros(n,1);
 IN.R2 = zeros(n,1);
 if VERBOSE, fprintf('\t running ANOVA on %g variables ',n); end
-for i=1:size(Y,2)
-    if VERBOSE;fprintf('.'); end
-    % now we can do the almost exactly same analysis as above
-    IN.beta = pinv(IN.X)*Y(:,i); % almost as above
 
+for i=1:size(Y,2)
+    
+    if VERBOSE;fprintf('.'); end
+    try
+        IN.beta = pinv(IN.X)*Y(:,i); % almost as above
+    catch
+        fprintf('error')
+    end
     % here we use a pseudoinverse:
     % X is rank deficient, i.e. regressors are not independent, since any linear combination of
     % 3 columns can give us the 4th one, thus X'X is also rank deficient and singular ie inv(X'*X)

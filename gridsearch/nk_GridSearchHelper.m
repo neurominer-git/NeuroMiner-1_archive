@@ -141,14 +141,16 @@ for curlabel=1:MULTILABEL.dim
 
     if strcmp(SVM.prog,'SEQOPT')
         for curclass = 1:nclass
-           GD.mSEQI(i, curclass, curlabel)    = Perf.MeanCritGain(curclass);
-           GD.sdSEQI(i, curclass, curlabel)   = Perf.SDCritGain(curclass);
-           GD.mSEQE{i, curclass, curlabel}    = Perf.MeanExamFreq(curclass,:);  
-           GD.sdSEQE{i, curclass, curlabel}   = Perf.SDExamFreq(curclass,:); 
+           GD.mSEQI{i, curclass, curlabel}      = Perf.MeanCritGain(curclass,:);
+           GD.sdSEQI{i, curclass, curlabel}     = Perf.SDCritGain(curclass,:);
+           GD.mSEQE{i, curclass, curlabel}      = Perf.MeanExamFreq(curclass,:);  
+           GD.sdSEQE{i, curclass, curlabel}     = Perf.SDExamFreq(curclass,:); 
            GD.mSEQPercThrU{i, curclass, curlabel}= Perf.MeanPercThreshU(curclass,:);
            GD.sdSEQPercThrU{i, curclass, curlabel}= Perf.SDPercThreshU(curclass,:);
            GD.mSEQPercThrL{i, curclass, curlabel}= Perf.MeanPercThreshL(curclass,:);
            GD.sdSEQPercThrL{i, curclass, curlabel}= Perf.SDPercThreshL(curclass,:);
+           GD.CasePropagations{i, curclass, curlabel} = nk_cellcat(CV2Perf.binCV1CasePropagations(:,:,curclass),[],2);
+           GD.SeqPerfIncreases{i, curclass, curlabel} = nk_cellcat(CV2Perf.binCV1PerformanceIncreases(:,:,curclass),[],1);
         end
     end
     

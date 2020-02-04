@@ -127,24 +127,6 @@ FigPos(3:4)=[FigWidth FigHeight];
 set(hObject, 'Position', FigPos);
 set(hObject, 'Units', OldUnits);
 
-% Show a question icon from dialogicons.mat - variables questIconData
-% and questIconMap
-%load dialogicons.mat
-
-%IconData=questIconData;
-%questIconMap(256,:) = get(handles.figure1, 'Color');
-%IconCMap=questIconMap;
-
-%Img=image(IconData, 'Parent', handles.axes1);
-%set(handles.figure1, 'Colormap', IconCMap);
-% 
-% set(handles.axes1, ...
-%     'Visible', 'off', ...
-%     'YDir'   , 'reverse'       , ...
-%     'XLim'   , get(Img,'XData'), ...
-%     'YLim'   , get(Img,'YData')  ...
-%     );
-
 % Make the GUI modal
 set(handles.figure1,'WindowStyle','modal')
 

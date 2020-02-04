@@ -4,7 +4,7 @@
 % This function performs fixed grid search optimization of machine learning
 % parameters (e.g. slack, kernel params).
 % %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% (c) Nikolaos Koutsouleris, 03/2017
+% (c) Nikolaos Koutsouleris, 01/2020
 function GDanalysis = nk_MLOptimizer(inp, strout, id, GridAct, batchflag)
 
 global SVM RFE SAV GRD MULTI MODEFL BATCH ENSEMBLE MKLRVM CV DATID CL RAND MULTILABEL PREPROC TEMPL W2AVAIL
@@ -23,27 +23,15 @@ hx              = size(label,2);    % Multi-label mode?
 n_preml         = inp.nPreMLparams(1) - 1 ;
 modalvec        = inp.ModalityVec;
 [ix, jx]        = size(CV(1).TrainInd);
-if isfield(inp,'rootdir')
-    tdir        = inp.rootdir;
-else
-    tdir        = pwd;
-end
 
-if ~isfield(inp,'ovrwrtGD'), 
-    ovrwrtGD = false; 
-else
-    ovrwrtGD    = inp.ovrwrtGD;     % overwrite existing CVdatamats
-end
-if ~isfield(inp,'ovrwrtRes'), 
-    ovrwrtRes   = false; 
-else
-    ovrwrtRes   = inp.ovrwrtRes;   % overwrite existing CVresults
-end
-if ~isfield(inp,'updGD'), 
-    updGD       = false; 
-else
-    updGD       = inp.updGD;   % save modified CVdatamat files
-end
+tdir = pwd; if isfield(inp,'rootdir'), tdir = inp.rootdir; end
+% overwrite existing CVdatamats
+ovrwrtGD = false; if isfield(inp,'ovrwrtGD'), ovrwrtGD    = inp.ovrwrtGD; end    
+% overwrite existing CVresults
+ovrwrtRes   = false; if isfield(inp,'ovrwrtRes'), ovrwrtRes   = inp.ovrwrtRes; end  
+% save modified CVdatamat files
+updGD       = false; if isfield(inp,'updGD'), updGD = inp.updGD; end
+
 if (isfield(inp,'preprocmat') && ~isempty(inp.preprocmat))  && (~isfield(inp,'gdmat') || isempty(inp.gdmat))
     GDfl            = false;
     preprocmat      = inp.preprocmat;   % paths to preprocessed data files
@@ -58,7 +46,7 @@ else
     preprocmat      = inp.preprocmat;
 end
 
-if ( ~exist('batchflag','var') || isempty(batchflag)) || isempty(BATCH), batchflag = false; BATCH = false; end;
+if ( ~exist('batchflag','var') || isempty(batchflag)) || isempty(BATCH), batchflag = false; BATCH = false; end
 
 detrendfl = false;
 
@@ -69,8 +57,6 @@ switch MODEFL
          GDanalysis.predictions = cell(lx,nclass,hx);
         if ix>1
             GDanalysis.CV2grid.predictions      = nan(lx, ix, nclass, hx);
-            %GDanalysis.CV2grid.Xsvm             = nan(lx, ix, nclass, hx);
-            %GDanalysis.CV2grid.Ysvm             = nan(lx, ix, nclass, hx);
             GDanalysis.CV2grid.CI_predictions   = nan(lx, 2, nclass);
             GDanalysis.CV2grid.mean_predictions = nan(lx, nclass, hx);
             GDanalysis.CV2grid.std_predictions  = nan(lx, nclass, hx);
@@ -104,7 +90,7 @@ if ~ovrwrtRes && GDfl
            fprintf('\nFound CVresults-file. Overwrite it!')
         else
            fprintf('\nFound CVresults-file. Do not overwrite!')
-           load(GDanalpth)
+           load(GDanalpth,'GDanalysis')
            return
         end
     end
@@ -154,14 +140,16 @@ GDanalysis.grid.SelNodeFreq                 = nan(nPs(1),nclass,ix*jx,hx);
 
 if strcmp(SVM.prog,'SEQOPT')
     nE = size(SVM.SEQOPT.C,2);
-    GDanalysis.grid.mean_mSEQI              = nan(nPs(1),nclass,ix*jx,hx);
-    GDanalysis.grid.sd_mSEQI                = nan(nPs(1),nclass,ix*jx,hx);
+    GDanalysis.grid.mean_mSEQI              = nan(nPs(1),nE-1,nclass,ix*jx,hx);
+    GDanalysis.grid.sd_mSEQI                = nan(nPs(1),nE-1,nclass,ix*jx,hx);
     GDanalysis.grid.mean_mSEQE              = nan(nPs(1),nE,nclass,ix*jx,hx);
     GDanalysis.grid.sd_mSEQE                = nan(nPs(1),nE,nclass,ix*jx,hx);
     GDanalysis.grid.mean_mSEQPU             = nan(nPs(1),nE-1,nclass,ix*jx,hx);
     GDanalysis.grid.sd_mSEQPU               = nan(nPs(1),nE-1,nclass,ix*jx,hx);
     GDanalysis.grid.mean_mSEQPL             = nan(nPs(1),nE-1,nclass,ix*jx,hx);
     GDanalysis.grid.sd_mSEQPL               = nan(nPs(1),nE-1,nclass,ix*jx,hx); 
+    GDanalysis.grid.mean_SeqPerfGains       = nan(nPs(1),nE,nclass,ix*jx,hx);
+    GDanalysis.caseprops                    = cell(lx,1,hx);
 end
 
 if MULTI.flag
@@ -216,16 +204,14 @@ end
 [~, ~, ~, ~, act] = nk_ReturnEvalOperator(SVM.GridParam);
 
 if ~batchflag && RFE.dispres
-   DISP.binwintitle = 'NM Optimization Status Viewer';
+   DISP.binwintitle = sprintf('NM Optimization Status Viewer => Analysis: %s', inp.P.analysis_id);
 end
 
 % Parameter flag structure for preprocessing
 paramfl         = struct('use_exist',true,'found', false, 'write', true);
 
-if hx>1
-   MultiLabel_predictions = zeros(size(label));
-   MULTILABEL.flag = true;
-end
+% Multi-label mode?
+if hx>1, MULTILABEL.flag = true; end
 
 ol = 0; ll = 1; GridUsed = false(size(GridAct)); 
 
@@ -243,7 +229,7 @@ for f=1:ix % Loop through CV2 permutations
 
     for d=1:jx % Loop through CV2 folds
 
-        if ~GridAct(f,d), ll = ll +1; continue, end;
+        if ~GridAct(f,d), ll = ll +1; continue, end
         DISP.f = f; DISP.d = d;
         TsInd = CV(1).TestInd{f,d};
         GDxfl = false;
@@ -312,7 +298,7 @@ for f=1:ix % Loop through CV2 permutations
             case 1 % use already computed CVdatamats
 
                 gdpath = gdmat{inp.P.curmodal}{f,d};
-                if isempty(gdpath) || ~exist(gdpath,'file'),
+                if isempty(gdpath) || ~exist(gdpath,'file')
                     fprintf('\n')
                     warning(['No valid CV2datamat detected for CV2 partition. Continue ' ...
                             '[' num2str(f) ', ' num2str(d) ']!']); ll=ll+1;
@@ -409,14 +395,15 @@ for f=1:ix % Loop through CV2 permutations
             
             % For sequence optimizer only
             if strcmp(SVM.prog,'SEQOPT')
-               GD.mSEQI = zeros(nPs(1), nclass, hx);
-               GD.sdSEQI = zeros(nPs(1),nclass, hx);
+               GD.mSEQI = cell(nPs(1), nclass, hx);
+               GD.sdSEQI = cell(nPs(1),nclass, hx);
                GD.mSEQE = cell(nPs(1), nclass, hx);  
                GD.sdSEQE = cell(nPs(1), nclass, hx); 
-               GD.mSEQPercThrU = cell(nPs(1), nclass,hx);
-               GD.sdSEQPercThrU = cell(nPs(1),nclass,hx);
-               GD.mSEQPercThrL = cell(nPs(1),nclass,hx);
-               GD.sdSEQPercThrL = cell(nPs(1),nclass,hx);
+               GD.mSEQPercThrU = cell(nPs(1), nclass, hx);
+               GD.sdSEQPercThrU = cell(nPs(1), nclass, hx);
+               GD.mSEQPercThrL = cell(nPs(1), nclass, hx);
+               GD.sdSEQPercThrL = cell(nPs(1), nclass, hx);
+               GD.CasePropagations = cell(nPs(1), nclass, hx);
             end
 
             if detrendfl, GD.Detrend = cell(nPs(1),hx); end
@@ -450,7 +437,7 @@ for f=1:ix % Loop through CV2 permutations
 
             % if no mapY has been transmitted ask user
             if ~exist('mapY','var')
-                if probflag, 
+                if probflag 
                     fprintf('\nPreprocessed data needed for computation of probabilities!')
                     preprocmat = nk_GenPreprocMaster(DATID, CV);
                     ppath = preprocmat{dim_index,f,d};
@@ -463,7 +450,7 @@ for f=1:ix % Loop through CV2 permutations
             [tGD, MultiBinBind] = nk_ModelNodeSelector(tGD, MD, label, f, d, nclass, Ps, Params_desc, combcell, act);
 
              % Set saving flag to store GD on hard disk only if tGD ~= GD:
-            if isequaln(tGD,GD), 
+            if isequaln(tGD,GD) 
                 saveGDflag = false; 
             else
                 saveGDflag = true;
@@ -479,7 +466,7 @@ for f=1:ix % Loop through CV2 permutations
                 if ~exist(oCVpath,'file')
                     savflag = 1;
                 else
-                    if ~exist('keepflag','var'),
+                    if ~exist('keepflag','var')
                         savflag = nk_input(['Update ' oCVnam],0,'yes|no',[1,0],1);
                         keepflag = nk_input('Apply to all other cases',0,'yes|no',[1,0],1);
                     else
@@ -524,11 +511,11 @@ for f=1:ix % Loop through CV2 permutations
             GDanalysis.grid.mean_TsDiversity(:,:,ll,:)    = GD.CV2Div;
             % Specifically treat the sequence optimizer algorithm
             if strcmp(SVM.prog,'SEQOPT')
-                % Mean sequence gain
-                GDanalysis.grid.mean_mSEQI(:,:,ll,:)      = GD.mSEQI;
-                % SD sequence gain
-                GDanalysis.grid.sd_mSEQI(:,:,ll,:)        = GD.sdSEQI;
                 for curclass=1:nclass
+                    % Mean sequence gain
+                    GDanalysis.grid.mean_mSEQI(:,:,curclass, ll,:)   = cell2matpadnan(GD.mSEQI(:,curclass));
+                    % SD sequence gain
+                    GDanalysis.grid.sd_mSEQI(:,:,curclass, ll,:)     = cell2matpadnan(GD.sdSEQI(:,curclass));
                     % Mean examination frequencies
                     GDanalysis.grid.mean_mSEQE(:,:,curclass,ll,:)    = cell2matpadnan(GD.mSEQE(:,curclass));
                     % SD examination frequencies
@@ -540,7 +527,8 @@ for f=1:ix % Loop through CV2 permutations
                     % Mean lower thresholf for case propagation
                     GDanalysis.grid.mean_mSEQPL(:,:,curclass,ll,:)   = cell2matpadnan(GD.mSEQPercThrL(:,curclass));
                     % SD lower thresholf for case propagation
-                    GDanalysis.grid.mean_mSEQPL(:,:,curclass,ll,:)   = cell2matpadnan(GD.sdSEQPercThrL(:,curclass));
+                    GDanalysis.grid.sd_mSEQPL(:,:,curclass,ll,:)   = cell2matpadnan(GD.sdSEQPercThrL(:,curclass));
+                    GDanalysis.grid.mean_SeqPerfGains(:,:,curclass,ll,:) = cell2matpadnan(cellfun(@nm_nanmean, GD.SeqPerfIncreases(:,curclass), 'UniformOutput', false));
                 end
             end
             
@@ -628,9 +616,25 @@ for f=1:ix % Loop through CV2 permutations
 
                     % Concatenate (averaged) CV1 ensemble decisions along the 
                     % column dimension for each hold-out CV2 test sample
-                    GDanalysis.predictions(TsI, curclass, curlabel) = cellmat_mergecols(GDanalysis.predictions(TsI, curclass,curlabel), ...
-                                                                              num2cell(EnsDat(binInd,:),2));
+                    GDanalysis.predictions(TsI, curclass, curlabel) = ...
+                        cellmat_mergecols(GDanalysis.predictions(TsI, curclass,curlabel), ...
+                                            num2cell(EnsDat(binInd,:),2));
                     
+                    % Concatenate node propagation indices in case the
+                    % sequence optimization algorithm has been run on 
+                    if strcmp(SVM.prog,'SEQOPT')
+                        fSelNodes = find(GD.BinaryGridSelection{curclass}{curlabel}.SelNodes);
+                        if numel(fSelNodes)>1
+                            CaseProps = zeros([size(GD.CasePropagations{GD.BinaryGridSelection{curclass}{curlabel}.SelNodes(fSelNodes(1))}) numel(fSelNodes)]);
+                            for cp=1:numel(fSelNodes)
+                                CaseProps(:,:,cp) = GD.CasePropagations{GD.BinaryGridSelection{curclass}{curlabel}.SelNodes(fSelNodes(cp))};
+                            end
+                            mCaseProps = median(CaseProps,3);
+                        else
+                            mCaseProps = GD.CasePropagations{GD.BinaryGridSelection{curclass}{curlabel}.SelNodes};
+                        end
+                        GDanalysis.caseprops(TsI, curclass, curlabel) = cellmat_mergecols(GDanalysis.caseprops(TsI, curclass,curlabel), num2cell(mCaseProps,2));
+                    end
                 end
             end
             
@@ -648,7 +652,7 @@ for f=1:ix % Loop through CV2 permutations
                         MultiPred = []; 
                         MultiCV2Pred = []; 
                         MultiProb = []; 
-                        MultiCV2Prob = cell(1,nclass); 
+                        MultiCV2Prob = cell(1,ngroups); 
                         if ~MULTI.BinBind
                             % Compute multi-group performance measures            
                             GDanalysis.multi_bestTR(f,d,curlabel) = nm_nanmean(GD.MultiGroupGridSelection{curlabel}.bestacc);
@@ -660,8 +664,12 @@ for f=1:ix % Loop through CV2 permutations
                                 MultiPred = [MultiPred GD.MultiGroupGridSelection{curlabel}.bestpred{zu}];
                                 MultiCV2Pred = [MultiCV2Pred GD.MultiGroupGridSelection{curlabel}.bestCV2pred{zu} ];
                                 MultiProb = [ MultiProb GD.MultiGroupGridSelection{curlabel}.bestprob{zu} ];
-                                for curclass=1:nclass
-                                    MultiCV2Prob{curclass} = [ MultiCV2Prob{curclass} GD.MultiGroupGridSelection{curlabel}.bestCV2prob{zu,curclass}];
+                                for curclass=1:ngroups
+                                    try
+                                        MultiCV2Prob{curclass} = [ MultiCV2Prob{curclass} GD.MultiGroupGridSelection{curlabel}.bestCV2prob{zu,curclass}];
+                                    catch
+                                        fprintf('prob')
+                                    end
                                 end
                             end
                         else
@@ -763,12 +771,14 @@ if GDfl || ~batchflag
     if strcmp(SVM.prog,'SEQOPT')
         GDanalysis.grid.mean_SeqExamFreq    = nm_nanmean(GDanalysis.grid.mean_mSEQE,4);
         GDanalysis.grid.se_SeqExamFreq      = nm_nanmean(GDanalysis.grid.sd_mSEQE,4);
-        GDanalysis.grid.mean_SeqGain        = nm_nanmean(GDanalysis.grid.mean_mSEQI,3);
-        GDanalysis.grid.se_SeqGain          = nm_nanmean(GDanalysis.grid.sd_mSEQI,3);
+        GDanalysis.grid.mean_SeqGain        = nm_nanmean(GDanalysis.grid.mean_mSEQI,4);
+        GDanalysis.grid.se_SeqGain          = nm_nanmean(GDanalysis.grid.sd_mSEQI,4);
         GDanalysis.grid.mean_SeqPercUpper   = nm_nanmean(GDanalysis.grid.mean_mSEQPU,4);
         GDanalysis.grid.se_SeqPercUpper     = nm_nanmean(GDanalysis.grid.sd_mSEQPU,4);
         GDanalysis.grid.mean_SeqPercLower   = nm_nanmean(GDanalysis.grid.mean_mSEQPL,4);
         GDanalysis.grid.se_SeqPercLower     = nm_nanmean(GDanalysis.grid.sd_mSEQPL,4);
+        GDanalysis.grid.mean_SeqPerfGains   = nm_nanmean(GDanalysis.grid.mean_SeqPerfGains,4);
+        [GDanalysis.CV2grid.caseprop_freq, GDanalysis.CV2grid.caseprop_node] = nk_ComputeEnsembleCasePropagationProbability(GDanalysis.caseprops,size(SVM.SEQOPT.C,2));
     end                                
                                         
     % This has to be changed to work in multi-label mode
@@ -799,7 +809,7 @@ if GDfl || ~batchflag
                     labelh(ind1,h) = 1; labelh(~ind1,h) = -1;
                 end
                 if ix>1
-                    Px = GDanalysis.CV2grid.predictions; [Mx, Nx, Hx] = size(Px); labelhx = labelh(:,h); labelhx(labelh(:,h)<0)=0; Ix = find(labelh(:,h));
+                    Px = GDanalysis.CV2grid.predictions; [Mx, Nx, ~] = size(Px); labelhx = labelh(:,h); labelhx(labelh(:,h)<0)=0; Ix = find(labelh(:,h));
                     GDanalysis.CV2grid.mean_predictions(:,h) = nm_nanmean(Px(:,:,h),2);
                     GDanalysis.CV2grid.std_predictions(:,h)  = nm_nanstd(Px(:,:,h),2);
                     % I love anonymous functions - Compute performance measures
@@ -855,7 +865,7 @@ if GDfl || ~batchflag
         % Convert OOT predictions to probabilities for class membership
         GDanalysis = nk_MultiPerfComp(GDanalysis, multi_CV2pred, label, ngroups);
         tProbCat = nk_cellcat(multi_CV2prob(:,1),[],1);
-        mProb = zeros([lx size(tProbCat,2) nclass]);
+        mProb = zeros([lx size(tProbCat,2) ngroups]);
         Ix = ~cellfun(@isempty, multi_CV2prob(:,1));
         for g=1:ngroups
             try

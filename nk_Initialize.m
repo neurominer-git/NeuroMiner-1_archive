@@ -4,16 +4,17 @@ function nk_Initialize(action)
 % =========================================================================
 % startup script for NeuroMiner 
 % %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% (c) Nikolaos Koutsouleris, 11/2018
+% (c) Nikolaos Koutsouleris, 12/2019
 
 global NMinfo NM CALIBAVAIL OOCVAVAIL SPMAVAIL FSAVAIL
 
 NMinfo.info.name    = 'NeuroMiner';
 NMinfo.info.ver     = 'Development version 1.05 | ELESSAR ';
-NMinfo.info.author  = 'Nikolaos Koutsouleris & the PRONIA-WP2 team';
-NMinfo.info.affil   = 'Department of Psychiatry and Psychotherapy';
+NMinfo.info.author  = 'Nikolaos Koutsouleris';
+NMinfo.info.affil   = 'Section for Neurodiagnostic Applications';
+NMinfo.info.dep     = 'Department of Psychiatry and Psychotherapy';
 NMinfo.info.inst    = 'Ludwig-Maximilian-University';
-NMinfo.info.datever = '01/2019';
+NMinfo.info.datever = '01/2020';
 NMinfo.info.timestamp = date;
 NMinfo.info.email   = 'nm@pronia.eu';
 try

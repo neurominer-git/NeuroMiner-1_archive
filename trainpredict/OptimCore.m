@@ -32,7 +32,7 @@ end
 
 if rtrfl
     % Retrain without optimization
-    [ IN, OUT ] = FoldPerm(IN, OUT, 'Immediate Retrain (CV1-Tr + CV1-Ts)', 0, 1, 1, 0);
+    [ IN, OUT ] = FoldPerm2(IN, OUT, 'Immediate Retrain (CV1-Tr + CV1-Ts)', 0, 1, 1, 0);
 else
     % Train models with optimization
     [ IN, OUT ] = FoldPerm2(IN, OUT, strout, OptMode, 0, 0, Param.SubSpaceStepping);
@@ -91,11 +91,7 @@ switch Param.CostFun
                      tRankCrit = cellfun(@rdivide,X, repmat({2},size(X)),'UniformOutput',false);
                  end
         end
-        
-        if ~strcmp(MODEFL,'classification') && ...
-                (SVM.GridParam == 9 || SVM.GridParam == 11 || SVM.GridParam == 12 || SVM.GridParam == 18)
-            minmaxfl = 2;
-        end
+        if ~strcmp(MODEFL,'classification') && any(SVM.GridParam == [ 9 11 12 18 ]), minmaxfl = 2; end
 end
 
 % Evaluate margin based criterion / performance in all feature subspaces
@@ -123,7 +119,7 @@ end
 S=zeros(IN.nclass,1);
 
 if RetrainFlag
-     [ IN, OUT ] = FoldPerm(IN, OUT, 'Retrain (CV1-Tr + CV1-Ts)', 0, 1, 0, 0);
+     [ IN, OUT ] = FoldPerm2(IN, OUT, 'Retrain (CV1-Tr + CV1-Ts)', 0, 1, 0, 0);
      for curclass=1:IN.nclass
         S(curclass) = size(IN.Y.TrL{1,1}{curclass},1) + size(IN.Y.CVL{1,1}{curclass},1);
      end

@@ -54,7 +54,7 @@ function nm(varargin)
 % User can choose to use NM in expert mode by invoking nm with the 'expert'
 % option.
 % %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% (c) Nikolaos Koutsouleris, 07/2017
+% (c) Nikolaos Koutsouleris, 01/2019
 global EXPERT NM
 
 nosplash  = 0; EXPERT = 0;
@@ -276,10 +276,10 @@ try
              t_act = 'loop'; A = []; while ~strcmp(t_act,'BACK'), [t_act, NM, A] = nk_InitAnalysisPrep(NM, A, 'MAIN INTERFACE >> ANALYSIS MANAGER'); end
             
         case 'preproc'
-            BATCH = false; p = []; act = 1; analind = []; GridAct = []; while act>0, [act, analind, p, GridAct] = nk_PreprocessPrep(act, NM, analind, GridAct, p, 'MAIN' ); end; 
+            BATCH = false; p = []; act = 1; analind = []; GridAct = []; while act>0, [act, analind, p, GridAct] = nk_PreprocessPrep(act, analind, GridAct, p, 'MAIN' ); end; 
             
         case 'mlopt'    
-            if isfield(NM,'analysis'), act = 1;  inp = []; while act>0, [act, inp, NM] = nk_MLOptimizerPrep(act, NM, inp, 'MAIN INTERFACE >> ML TRAINING MODULE'); end; end
+            if isfield(NM,'analysis'), act = 1;  inp = []; while act>0, [act, inp] = nk_MLOptimizerPrep(act, inp, 'MAIN INTERFACE >> ML TRAINING MODULE'); end; end
             delete(findobj('Name','NM Optimization Status Viewer'));
             
         case 'disptrain'
@@ -290,14 +290,14 @@ try
 
         case 'visual'
             if isfield(NM,'analysis')
-                inp = []; act = 1; while act>0, [act, NM, inp] = nk_VisModelsPrep(act, NM, inp, 'MAIN INTERFACE >> VISUALIZE MODELS'); end
+                inp = []; act = 1; while act>0, [act, inp] = nk_VisModelsPrep(act, inp, 'MAIN INTERFACE >> VISUALIZE MODELS'); end
             end
 
         case 'oocv'
             if isfield(NM,'analysis')
                 inp = []; act = 1;
                 while act>0, 
-                    [act, NM, inp ] = nk_OOCVPrep(act, NM, inp, 'MAIN INTERFACE >> APPLY MODELS TO NEW DATA'); 
+                    [act, inp ] = nk_OOCVPrep(act, inp, 'MAIN INTERFACE >> APPLY MODELS TO NEW DATA'); 
                 end
             end
             
@@ -408,7 +408,7 @@ end
 function QuitNeuroMiner()
 global NM
 fprintf('\n'); cprintf('blue*','Good Bye... \n');
-delete(findobj('Name','NM Optimization Status Viewer'));
+delete(findobj('Tag','PrintCVBarsBin'));
 %delete(findobj('Name','NM Results Manager'));
 delete(findobj('Name','Probabilistic Feature Exraction'));
 clear CALIBAVAIL OOCVAVAIL

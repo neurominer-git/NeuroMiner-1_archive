@@ -22,7 +22,7 @@ function varargout = nk_PrintResults2(varargin)
 
 % Edit the above text to modify the response to help nk_PrintResults2
 
-% Last Modified by GUIDE v2.5 25-Dec-2018 13:43:17
+% Last Modified by GUIDE v2.5 12-Jan-2020 17:58:22
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -53,7 +53,7 @@ function nk_PrintResults2_OpeningFcn(hObject, eventdata, handles, varargin)
 
 % Choose default command line output for nk_PrintResults2
 handles.output = hObject;
-
+handles.pnStartup.Position = handles.pnBinary.Position;
 % Update handles structure
 guidata(hObject, handles);
 % This sets up the initial plot - only do when we are invisible
@@ -64,7 +64,7 @@ if strcmp(get(hObject,'Visible'),'off')
 end
 set(gcf, 'WindowButtonMotionFcn', @hoverCallback)
 set(gcf,'Units','Normalized','Outerposition',[0 0 0.9 0.9]);
-
+handles.lbStartup.String = 'Initializing NM Results Viewer ...';
 handles.colpt               = 'o';
 handles.colptin             = getNMcolors;
 handles.colpl               = '.';
@@ -165,17 +165,18 @@ else
     handles.curlabel = 1;
 end
 handles.oocvview = false;
+handles.lbStartup.String = 'Retrieve OOCV results if available ...';
 handles.OOCVinfo = nk_GetOOCVInfo(handles.NM,'analysis');
+handles.lbStartup.String = 'Retrieve Training/CV results ...';
 handles = perf_display(handles);
 guidata(handles.figure1,handles);
 handles.pnStartup.Visible='off';
-
 if isfield(handles,'ExportPredictionsM')
    for i=1:numel(handles.ExportPredictionsM)
-        handles.ExportPredictionsM(i).Callback = {@MenuItemPredictions_Callback, handles};
-        handles.ExportPerformanceM(i).Callback = {@MenuItemPerformance_Callback, handles};
+        handles.ExportPredictionsM(i).Callback = {@MenuItemPredictions_Callback, hObject};
+        handles.ExportPerformanceM(i).Callback = {@MenuItemPerformance_Callback, hObject};
    end
-   handles.ExportPredictionsDlg.Callback = {@MenuItemPerfTabulatur_Callback, handles};
+   handles.ExportPredictionsDlg.Callback = {@MenuItemPerfTabulatur_Callback, hObject};
 end
 
 if handles.n_analyses>1
@@ -186,9 +187,10 @@ end
 
 if isfield(handles,'ExportFeaturesM')
     for i=1:numel(handles.ExportFeaturesM)
-        handles.ExportFeaturesM(i).Callback = {@MenuItemFeatures_Callback, handles};
+        handles.ExportFeaturesM(i).Callback = {@MenuItemFeatures_Callback, hObject};
     end
 end
+handles.pnStartup.Visible='off';
 
 % --- Outputs from this function are returned to the command line.
 function varargout = nk_PrintResults2_OutputFcn(hObject, eventdata, handles)
@@ -740,7 +742,6 @@ if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgr
     set(hObject,'BackgroundColor','white');
 end
 
-
 % --- Executes on button press in cmdSubgroupSet.
 function cmdSubgroupSet_Callback(hObject, eventdata, handles)
 % hObject    handle to cmdSubgroupSet (see GCBO)
@@ -853,8 +854,8 @@ switch handles.modeflag
             cl2 = [0.6 0.6 0.6];
         else
              groupnames = handles.BinClass{h_class}.groupnames;
-            cl1 = handles.colptin{handles.BinClass{h_class}.groupind(1)};
-            cl2 = handles.colptin{handles.BinClass{h_class}.groupind(2)};
+            cl1 = handles.colptin(handles.BinClass{h_class}.groupind(1),:);
+            cl2 = handles.colptin(handles.BinClass{h_class}.groupind(2),:);
         end
     case 'regression'
         thesh = get(handles.txtBinarize,'String');
@@ -1052,20 +1053,24 @@ function ExportPerformanceMenu_Callback(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
-function MenuItemPerfTabulatur_Callback(hObject, eventdata, handles)
+function MenuItemPerfTabulatur_Callback(hObject, eventdata, figure_handle)
 
+handles = guidata(figure_handle);
 display_tablegenerator(handles);
 
-function MenuItemPerformance_Callback(hObject, eventdata, handles)
+function MenuItemPerformance_Callback(hObject, eventdata, figure_handle)
 
+handles = guidata(figure_handle);
 PrintFromMenuClick(hObject, handles, 'export_performance')
 
-function MenuItemPredictions_Callback(hObject, eventdata, handles)
+function MenuItemPredictions_Callback(hObject, eventdata, figure_handle)
 
+handles = guidata(figure_handle);
 PrintFromMenuClick(hObject, handles, 'export_scores')
 
-function MenuItemFeatures_Callback(hObject, eventdata, handles)
+function MenuItemFeatures_Callback(hObject, eventdata, figure_handle)
 
+handles = guidata(figure_handle);
 PrintFromMenuClick(hObject, handles, 'export_features')
 
 function PrintFromMenuClick(hObject, handles, ExportFunc)
@@ -1116,4 +1121,36 @@ function CompModelsStats_Callback(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
-display_comparator(handles);
+display_comparator(handles, 'stats');
+
+% --- Executes on selection change in selSubParam.
+function selSubParam_Callback(hObject, eventdata, handles)
+% hObject    handle to selSubParam (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hints: contents = cellstr(get(hObject,'String')) returns selSubParam contents as cell array
+%        contents{get(hObject,'Value')} returns selected item from selSubParam
+
+handles = display_SubParam(handles);
+
+% --- Executes during object creation, after setting all properties.
+function selSubParam_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to selSubParam (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    empty - handles not created until after all CreateFcns called
+
+% Hint: popupmenu controls usually have a white background on Windows.
+%       See ISPC and COMPUTER.
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end
+
+
+% --------------------------------------------------------------------
+function CompModelsVisual_Callback(hObject, eventdata, handles)
+% hObject    handle to CompModelsVisual (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+display_comparator(handles, 'visual');

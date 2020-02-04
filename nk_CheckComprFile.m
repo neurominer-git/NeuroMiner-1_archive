@@ -33,15 +33,18 @@ if ~exist(P,'file')
    PiZIP = fullfile(pth,[nam ext '.zip']);
    
    if exist(PiGZ,'file')
+       fprintf('\nGunzip file: %s', PiGZ);
        gunzip(PiGZ)
        comprcmd = 'gzip -9'; comprext = '.gz';
        
    elseif exist(PiBZ,'file')
        % try Linux command
+       fprintf('\nBunzip file: %s', PiBZ);
        system(['bzip -dv ' PiBZ]);
        comprcmd = 'bzip -9'; comprext = '.bz';
    
    elseif exist(PiZIP,'file')
+       fprintf('\nUnzip file: %s', PiZIP);
        unzip(PiBZ);
        comprcmd = 'zip'; comprext = '.zip';
    end

@@ -14,7 +14,7 @@ switch act
         if ~exist('I','var') || isempty(I) 
             % Remove NaN cases
             [~,n] = size(Y); 
-            I = sum(isnan(Y),2) == n | sum(Y==0,2) == n; 
+            I = sum(isnan(Y),2) == n ; 
             if any(I), 
                 Y(I,:) = []; 
                 if ~isempty(label), 
@@ -61,7 +61,11 @@ function Z = FillWithNan(Z, I)
 
         [~,n] = size(Z);
         tZ = nan(numel(I),n); 
-        tZ(~I,:) = Z;
+        try
+            tZ(~I,:) = Z;
+        catch
+            fprintf('error')
+        end
         Z = tZ;
 
 end

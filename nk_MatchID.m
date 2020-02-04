@@ -77,10 +77,12 @@ switch act
                 cprintf('red*','NO MATCH FOUND !!!'); 
                 cntnf = cntnf+1; 
                 nfid{cntnf} = dstr;    
+                if strcmp(act,'intersectnan'), cprintf('green', ' filled with NaN!'), end
             end
             nanDid = [nanDid; fndfl];
         end
         nanDid = logical(nanDid);
+        
         if Sfl && Dfl
             
             switch act
@@ -91,6 +93,7 @@ switch act
                     M(nanDid,1:size(S,2)) = S(mSid,:);
                     M(nanDid,size(S,2)+1:end) = D(mDid,:);
             end
+            
         elseif Sfl
 
             switch act

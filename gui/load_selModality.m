@@ -20,6 +20,10 @@ if ~multiflag
     if isfield(handles.visdata{1},'CVRatio_CV2'),               popuplist{end+1} = 'CV-ratio of feature weights [Grand Mean]';                  end
     if isfield(handles.visdata{1},'FeatProb'),                  popuplist{end+1} = 'Feature selection probability [Overall Mean]';              end
     if isfield(handles.visdata{1},'Prob_CV2'),                  popuplist{end+1} = 'Probability of feature reliability (95%-CI) [Grand Mean]';  end
+	if isfield(handles.visdata{1},'SignBased_CV2'),             popuplist{end+1} = 'Sign-based consistency';  									end
+	if isfield(handles.visdata{1},'SignBased_CV2_z'),           popuplist{end+1} = 'Sign-based consistency (Z score)';  						end
+	if isfield(handles.visdata{1},'SignBased_CV2_p_uncorr'),    popuplist{end+1} = 'Sign-based consistency -log10(P value)';  					end
+	if isfield(handles.visdata{1},'SignBased_CV2_p_fdr'),       popuplist{end+1} = 'Sign-based consistency -log10(P value, FDR)';  				end
     if isfield(handles.visdata{1},'Spearman_CV2'),              popuplist{end+1} = 'Spearman correlation [Grand Mean]';                         end
     if isfield(handles.visdata{1},'Pearson_CV2'),               popuplist{end+1} = 'Pearson correlation [Grand Mean]';                          end
     if isfield(handles.visdata{1},'Spearman_CV2_p_uncorr'),     popuplist{end+1} = 'Spearman correlation -log10(P value) [Grand Mean]';         end

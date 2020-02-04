@@ -8,5 +8,6 @@
 function param = CC(expected, predicted)
 if isempty(expected), param = []; return; end
 param = corrcoef(expected,predicted);
-    param = param(2);
+param = param(2);
+if isnan(param), error('Prediction algorithm returned non-finite performance measure'); end
 end

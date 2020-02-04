@@ -11,6 +11,7 @@ GreedySearch.FeatStepPerc           = 0;
 GreedySearch.FeatRandPerc           = 0;
 GreedySearch.KneePointDetection     = 2;
 GreedySearch.MultiClassOptimization = 1;
+GreedySearch.PreSort                = 1;
 GreedySearch.PERM.flag              = 0;
 GreedySearch.PERM.nperms            = 100;
 
@@ -40,6 +41,9 @@ if ~defaultsfl
         if isfield(param.GreedySearch,'MultiClassOptimization') && ~isempty( param.GreedySearch.MultiClassOptimization),
             GreedySearch.MultiClassOptimization = param.GreedySearch.MultiClassOptimization;
         end
+        if isfield(param.GreedySearch,'PreSort') && ~isempty( param.GreedySearch.PreSort),
+            GreedySearch.PreSort = param.GreedySearch.PreSort;
+        end
         if isfield(param.GreedySearch,'PERM')
             GreedySearch.PERM                   = param.GreedySearch.PERM;
         end
@@ -58,7 +62,7 @@ if ~defaultsfl
         LinMode = 0;
     end
     
-    if LinMode
+    if LinMode && GreedySearch.MultiClassOptimization ~= 1
         switch GreedySearch.WeightSort
             case 1 
                 linstr2 = 'Optimize features for prediction performance';
@@ -110,14 +114,14 @@ if ~defaultsfl
         kneestr = [];
     end
     
-    multistr = []; multipermflagstr = []; multinpermsstr = [];
+    multistr = []; multipermflagstr = []; multinpermsstr = []; presortstr=[];
     if MULTI.flag && MULTI.train
         if GreedySearch.MultiClassOptimization,
             multistrdef = 'Multi-class performance';
         else
             multistrdef = 'Binary/Regression performance';
         end
-        multistr = sprintf('|Optimize criterion [ %s ]', multistrdef); actind = [ actind 7 ]; 
+        multistr = sprintf('|Optimization criterion [ %s ]', multistrdef); actind = [ actind 7 ]; 
         if GreedySearch.MultiClassOptimization
             if GreedySearch.PERM.flag
                 multipermflagstrdef = 'activated';
@@ -128,8 +132,13 @@ if ~defaultsfl
             if GreedySearch.PERM.flag
                 multinpermsstr = sprintf('|Number of permutations to be performed [ %g ]', GreedySearch.PERM.nperms); actind = [ actind 9 ];
             end
+            if GreedySearch.PreSort
+                presortstrdef = 'yes';
+            else
+                presortstrdef = 'no';
+            end
+            presortstr = sprintf('|Sort features according to binary performance before multi-class optimization [ %s ]',presortstrdef); actind = [actind 10 ];
         end
-        
     end
     
     mestr = 'Greedy feature selection setup'; navistr = [parentstr ' >>> ' mestr]; cprintf('*blue','\nYou are here: %s >>>',parentstr);
@@ -144,7 +153,8 @@ if ~defaultsfl
                      kneestr ...
                      multistr ...
                      multipermflagstr ...
-                     multinpermsstr ], actind);
+                     multinpermsstr ...
+                     presortstr], actind);
     switch act
         case 1
             GreedySearch.Direction = nk_input('Feature search mode',0,'m', ...
@@ -171,7 +181,9 @@ if ~defaultsfl
         case 8
             GreedySearch.PERM.flag = ~GreedySearch.PERM.flag;
         case 9
-            GreedySearch.PERM.nperms = nk_input('Define number of permutations for multi-class feature optimization',0,'i', GreedySearch.PERM.nperms);            
+            GreedySearch.PERM.nperms = nk_input('Define number of permutations for multi-class feature optimization',0,'i', GreedySearch.PERM.nperms);     
+        case 10
+            GreedySearch.PreSort = ~GreedySearch.PreSort; 
     end
 else
     act = 0;

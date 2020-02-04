@@ -1,16 +1,16 @@
-function [act, dat, inp] = nk_VisModelsPrep(act, dat, inp, parentstr)
+function [act, inp] = nk_VisModelsPrep(act, inp, parentstr)
 % =========================================================================
-% function [act, dat, inp] = nk_VisModelsPrep(dat, inp, parentstr)
+% function [act, inp] = nk_VisModelsPrep(act, inp, parentstr)
 % =========================================================================
 % Wrapper function of the NM visualization module, which allows the user to
 % interactively chose run-time options for the analysis of model patterns.
 % %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% (c) Nikolaos Koutsouleris, 12/2018
+% (c) Nikolaos Koutsouleris, 01/2020
 
 global MULTI CV NM
 
 %% Setup defaults
-complvec = []; for z=1:numel(dat.analysis), if dat.analysis{z}.status, complvec = [ complvec z ]; end; end
+complvec = []; for z=1:numel(NM.analysis), if NM.analysis{z}.status, complvec = [ complvec z ]; end; end
 
 if ~exist('inp','var') || isempty(inp)
     inp = struct( 'analind', complvec(1), ...
@@ -18,25 +18,31 @@ if ~exist('inp','var') || isempty(inp)
                     'extraL', [], ...
                     'ovrwrt', 2, ...
                     'multiflag', 2, ...
+                    'CV1', 1, ...
                     'saveparam', 2, ...
-                    'saveCV1', 2, ...
                     'loadparam', 2, ...
                     'batchflag', 2);
 end
 na_str = '?'; inp.datatype = 'VISdatamat'; 
 % Resolves bug when running in batch mode
 if ~isfield(inp,'extraL') , inp.extraL=[]; end
-OverWriteStr = []; GridSelectStr = []; LoadModelsStr = []; LoadParamsStr = []; LoadStr = []; SaveStr = []; MultiStr = []; ExtraLStr = []; SaveCV1Str = [];
-OverWriteAct = []; GridSelectAct = []; LoadModelsAct = []; LoadParamsAct = []; LoadAct = []; SaveAct = []; MultiAct = []; ExtraLAct = []; SaveCV1Act = [];
+OverWriteStr = []; GridSelectStr = []; LoadModelsStr = []; LoadParamsStr = []; LoadStr = []; SaveStr = [];ExtraLStr = []; CV1OpStr = [];
+OverWriteAct = []; GridSelectAct = []; LoadModelsAct = []; LoadParamsAct = []; LoadAct = []; SaveAct = [];ExtraLAct = []; CV1OpAct = [];
 
 %% Configure menu
-if isfield(inp,'analind'), AnalSelStr = sprintf('Analysis %g', inp.analind); else, AnalSelStr = na_str;  end
+if numel(inp.analind)<2,
+    AnalSelStr = sprintf('Analysis %g', inp.analind);   
+else
+    AnalSelStr = sprintf('%g Analyses: %s',numel(inp.analind), strjoin(cellstr(num2str(inp.analind'))',', '));
+end
 AnalSelectStr = sprintf('Choose analysis to work on [ %s ]|', AnalSelStr);                                                  AnalSelectAct = 1;         
 
-analysis = dat.analysis{inp.analind}; 
+analysis = NM.analysis{inp.analind(1)}; 
 [inp.permfl, inp.permmode, inp.permsig] = get_permflag( analysis );
 
 if ~isempty(analysis)
+    
+    YesNo_opts  = {'yes', 'no'};   
     
     % Initialize global parameters for the selected analysis
     nk_SetupGlobVars2(analysis.params, 'setup_main', 0); 
@@ -63,12 +69,6 @@ if ~isempty(analysis)
     % Retrieve CV2 partitions to operate on
     if ~isfield(inp,'GridAct'), inp.GridAct = analysis.GDdims{1}.GridAct; end;                                              
     GridSelectStr = sprintf('Select CV2 partitions to operate on [ %g selected ]|',  sum(inp.GridAct(:)));                  GridSelectAct = 4;
-        
-    % Check multi-group settings
-    if ~isempty(MULTI) && MULTI.flag && ~MULTI.BinBind  
-        MULTI_opts      = {'Compute at multi-group optimum','Compute at binary optima'};                                        
-        MultiStr = sprintf('Visualize patters in the multi-group setting [ %s ]|',MULTI_opts{inp.multiflag});               MultiAct = 5;
-    end
 
     % Configure extra label dialogue
     if inp.permfl
@@ -82,8 +82,7 @@ if ~isempty(analysis)
 
     % Configure loading of pre-existing parameters and models
     if inp.saveparam == 2 && inp.lfl == 1
-        LOAD_opts        = {'yes', 'no'}; 
-        LoadStr = sprintf('Use saved pre-processing params and models [ %s ]|', LOAD_opts{inp.loadparam});                  LoadAct = 7;
+        LoadStr = sprintf('Use saved pre-processing params and models [ %s ]|', YesNo_opts{inp.loadparam});                  LoadAct = 7;
         if inp.loadparam == 1
             if isfield(inp,'optpreprocmat'), 
                 selGridPreproc = ~cellfun(@isempty,inp.optpreprocmat);
@@ -102,16 +101,14 @@ if ~isempty(analysis)
         end
     end
     
+    % Operate at the CV1 level to save RAM
+    CV1OpStr = sprintf('Operate at the CV1 level [ %s ]|', YesNo_opts{inp.CV1});                                             CV1OpAct = 12;
+    
     % If loading of pre-existing models and params is not chosen, allow to
     % save the computed params and models to disk
     if inp.loadparam == 2 && inp.lfl == 1
-        SAVE_opts       = {'yes', 'no'};   
-        SaveStr = sprintf('Save pre-processing params and models to disk [ %s ]|', SAVE_opts{inp.saveparam});               SaveAct = 6;
-        if inp.saveparam == 1
-            SaveCV1Str = sprintf('Save pre-processing params at CV1 level [ %s ]|', SAVE_opts{inp.saveCV1});                SaveCV1Act = 12;
-        end
+        SaveStr = sprintf('Save pre-processing params and models to disk [ %s ]|', YesNo_opts{inp.saveparam});               SaveAct = 6;
     end
-
 end
 
 %% Build interactive menu
@@ -120,9 +117,8 @@ menustr = [ AnalSelectStr ...
            ExtraLStr ...
            OverWriteStr ...
            GridSelectStr ...
-           MultiStr ...
+           CV1OpStr ...
            SaveStr ...
-           SaveCV1Str ...
            LoadStr ...
            LoadParamsStr ... 
            LoadModelsStr ];
@@ -132,9 +128,8 @@ menuact = [ AnalSelectAct ...
             ExtraLAct ...
             OverWriteAct ...
             GridSelectAct ...
-            MultiAct ...
+            CV1OpAct ...
             SaveAct ...
-            SaveCV1Act ...
             LoadAct ...
             LoadParamsAct ...
             LoadModelsAct ];       
@@ -161,13 +156,13 @@ switch act
         return
     case 1
         showmodalvec = []; analind = inp.analind; 
-        if length(dat.analysis)>1, t_act = 1; brief = 1;
+        if length(NM.analysis)>1, t_act = 1; brief = 1;
             while t_act>0, 
-                [t_act, analind, ~, showmodalvec, brief ] = nk_SelectAnalysis(dat, 0, navistr, analind, [], 1, showmodalvec, brief); 
+                [t_act, analind, ~, showmodalvec, brief ] = nk_SelectAnalysis(NM, 0, navistr, analind, [], 1, showmodalvec, brief); 
             end
             if ~isempty(analind), inp.analind = analind ; end
         end
-        inp.GridAct = dat.analysis{inp.analind}.GDdims{1}.GridAct;
+        inp.GridAct = NM.analysis{inp.analind(1)}.GDdims{1}.GridAct;
         
     case 2
         lfl = nk_input('Define run-time mode of visualization module',0,'mq',strjoin(LFL_opts, '|'),[1,2],inp.lfl);
@@ -177,25 +172,23 @@ switch act
             case 1
                 if inp.ovrwrt == 1, inp.ovrwrt = 2; elseif inp.ovrwrt  == 2, inp.ovrwrt = 1; end
             case 2
-                tdir = create_defpath(dat.analysis{inp.analind});
-                inp.vismat = nk_GenDataMaster(dat.id, 'VISdatamat', CV, [], tdir);
+                tdir = create_defpath(NM.analysis{inp.analind});
+                inp.vismat = nk_GenDataMaster(NM.id, 'VISdatamat', CV, [], tdir);
         end
     case 4
         [operms,ofolds] = size(CV.TrainInd);
         tact = 1; while tact > 0 && tact < 10, [ tact, inp.GridAct ] = nk_CVGridSelector(operms, ofolds, inp.GridAct, 0); end
-    case 5
-        if inp.multiflag  == 1, inp.multiflag = 2; elseif inp.multiflag == 2,  inp.multiflag = 1; end
     case 6
         if inp.saveparam == 1, inp.saveparam = 2; elseif inp.saveparam == 2,  inp.saveparam = 1; end
     case 7
         if inp.loadparam == 1, inp.loadparam = 2; elseif inp.loadparam == 2,  inp.loadparam = 1; end
     case 8
-        tdir = create_defpath(dat.analysis{inp.analind});
-        optpreprocmat = nk_GenDataMaster(dat.id, 'OptPreprocParam', CV, [], tdir);
+        tdir = create_defpath(NM.analysis{inp.analind});
+        optpreprocmat = nk_GenDataMaster(NM.id, 'OptPreprocParam', CV, [], tdir);
         if ~isempty(optpreprocmat), inp.optpreprocmat = optpreprocmat; end
     case 9
-        tdir = create_defpath(dat.analysis{inp.analind});
-        optmodelmat = nk_GenDataMaster(dat.id, 'OptModel', CV, [], tdir);
+        tdir = create_defpath(NM.analysis{inp.analind});
+        optmodelmat = nk_GenDataMaster(NM.id, 'OptModel', CV, [], tdir);
         if ~isempty(optmodelmat), inp.optmodelmat = optmodelmat; end
     case 10
         Ldef = []; Lsize = Inf; LNameDef = []; ActStr = 'Define'; 
@@ -213,10 +206,18 @@ switch act
         del_extraL = nk_input('Do you really want to delete the extra labels?',0,'yes|no',[1,0]);
         if del_extraL, inp.extraL = []; end
     case 12
-        if inp.saveCV1 == 1, inp.saveCV1 = 2; elseif inp.saveCV1 == 2,  inp.saveCV1 = 1; end
+        if inp.CV1 == 1, inp.CV1 = 2; elseif inp.CV1 == 2,  inp.CV1 = 1; end
     case 99
-        NM.runtime.curanal = inp.analind;
-        dat.analysis{inp.analind} = VisModelsPrep(dat, inp, analysis);
+        if MULTI.flag && MULTI.train && ~MULTI.BinBind, inp.multiflag = 1; else, inp.multiflag = 2; end
+        nA = 1; if numel(inp.analind)>1, nA = numel(inp.analind); end
+        for i=1:nA
+            nk_SetupGlobVars2(NM.analysis{inp.analind(i)}.params, 'setup_main', 0); 
+            NM.runtime.curanal = inp.analind(i);
+            inp.analysis_id = NM.analysis{inp.analind(i)}.id;
+            NM.analysis{inp.analind(i)} = VisModelsPrep(NM, inp, NM.analysis{inp.analind(i)});
+            nk_SetupGlobVars2(NM.analysis{inp.analind(i)}.params, 'clear', 0); 
+        end
+        
 end
 
 function tdir = create_defpath(analysis)
@@ -285,6 +286,7 @@ end
 inp1.procdir = fullfile( analysis.rootdir, 'proc');
 if ~exist(inp1.rootdir,'dir'), mkdir(inp1.rootdir); end
 
+
 %%%%%%%%%%%%%%%%%%%%%%% RUN VISUALIZATION ANALYSIS  %%%%%%%%%%%%%%%%%%%%%%%
 for i = 1:nF
     inp2            = nk_SetFusionMode2(dat, analysis, F, nF, i);
@@ -293,7 +295,7 @@ for i = 1:nF
     VIS = analysis.params.TrainParam.VIS{analysis.params.TrainParam.FUSION.M(i)};
     % Per default do not activate normalization of the weight vector
     % (30.12.2018)
-    if isfield(VIS,'norm'), inp.norm = VIS.norm; else, inp.norm = false; end
+    if isfield(VIS,'norm'), inp.norm = VIS.norm; else, inp.norm = 1; end
 
     for j = 1:MULTILABEL.dim
         if MULTILABEL.flag && MULTILABEL.dim>1, 

@@ -19,21 +19,24 @@ oocvind = handles.selCVoocv.Value - 1;
 % Check whether the labels are known
 labels_known = handles.OOCVinfo.Analyses{handles.curranal}.labels_known(oocvind);
 
+% Current label
+l=1;
+
 switch GraphType
     case {1,2,3}
         P_h         = handles.BinClass{h}.mean_predictions;
-        P_oocv_h    = nm_nanmedian(handles.OOCV(oocvind).data.predictions{h},2);
+        P_oocv_h    = handles.OOCV(oocvind).data.BinResults{l}.MeanCV2PredictedValues{h};
     case 4
         % Majority voting probabilities
         P_h = handles.BinClass{h}.prob_predictions(:,1);
-        P_oocv_h    = nm_nanmedian(handles.OOCV(oocvind).data.prob_predictions{h},2);
+        P_oocv_h    = handles.OOCV(oocvind).data.BinResults{l}.BinMajVoteProbabilities{h};
     case 5
         % Mean Manjority voting probabilities
         P_h = handles.BinClass{h}.CV2grid.mean_predictions;
-        P_oocv_h    = nm_nanmedian(handles.OOCV(oocvind).data.prob_predictions{h},2);
+        P_oocv_h    = handles.OOCV(oocvind).data.BinResults{l}.BinMajVoteProbabilities{h};
     case 6
         P_h = handles.BinClass{h}.CV2grid.mean_predictions;
-        P_oocv_h    = nm_nanmedian(handles.OOCV(oocvind).data.prob_predictions{h},2);
+        P_oocv_h    = handles.OOCV(oocvind).data.BinResults{l}.BinMajVoteProbabilities{h};
 end
 
 % Mark groups with color
@@ -237,7 +240,7 @@ set(hx(1), ...%'FontSize',handles.AxisLabelSize-2,
 hx(2) = ylabel(['Binned ' algostr]); 
 set(hx(2), ...%'FontSize',handles.AxisLabelSize-2, ...
     'FontWeight',handles.AxisLabelWeight);
-handles.legend_classplot = legend(Hvec, legendvec, 'Location','Best', 'FontUnits','normalized', 'FontSize', 8,'LineWidth',1);%,'FontSize',handles.LegendFontSize); 
+handles.legend_classplot = legend(Hvec, legendvec, 'Location','Best','FontSize', 8,'LineWidth',1);%,'FontSize',handles.LegendFontSize); 
 legend('boxon')
 flg = 'off'; flg2='off';  xlims = 6;
 switch labels_known

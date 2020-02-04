@@ -156,14 +156,19 @@ elseif isnan(param) && ~optfound
 else
     optfound = 1;
     if r.KneePoint,
-        kneepoint = knee_pt(Opt.Param);
+        kneepoint = knee_pt(Opt.Param,[],true);
         if isnan(kneepoint)
             cprintf('err','\nNot enough data points to compute kneepoint. Selecting final feature mask.');
         else
             fprintf('\nSelected kneepoint of optimization curve at wrapper cycle #%g => %s = %g', kneepoint, ActStr, Opt.Param(kneepoint));
         end
         if isnan(kneepoint), kneepoint = numel(Opt.S); end
-        optind = r.FullInd(Opt.S{kneepoint});
+        try
+            optind = r.FullInd(Opt.S{kneepoint});
+        catch
+            cprintf('err','\nNo optimum found. Selecting original feature mask.');
+            optind = r.FullInd;
+        end
     else
         optind = r.FullInd(S);
     end

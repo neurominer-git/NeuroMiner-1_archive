@@ -1,4 +1,4 @@
-function A = nk_Ambiguity(P,L)
+function A = nk_Ambiguity(P,~)
 %
 % Compute the entropy-based ambiguity according to the formula given in 
 % Padraig Cunningham TCD-CS-2000-07

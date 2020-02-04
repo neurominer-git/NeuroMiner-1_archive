@@ -1,4 +1,4 @@
-function STATS = wilcoxon(x1, x2, alpha)
+function STATS = wilcoxon(x1, x2, alpha, xnames, ynames, filename)
 % Based on the WILCOXON code of Giuseppe Cardillo
 
 dff=sort(x2-x1); %difference between x1 and x2
@@ -67,4 +67,28 @@ else
     STATS.std=sW;
     STATS.z=zW;
     STATS.p=p;
+end
+
+if exist('filename','var') && ~isempty(filename)
+   sh = {'pp','stats'};
+   tbl_perf = array2table([x1 x2],'VariableNames',ynames', 'RowNames', xnames);
+   tbl_stats = struct2table(STATS);
+   writetable(tbl_perf,filename,'Sheet',sh{1},'WriteRowNames',true);
+   writetable(tbl_stats,filename,'Sheet',sh{2});
+   if ispc
+        try
+            objExcel = actxserver('Excel.Application');
+            objExcel.Workbooks.Open(filename); 
+            % MRZ: delte default sheets in freshly created .xls
+            [~, sheets] = xlsfinfo(filename);
+            sheetNames2remove = setdiff(sheets,sh); 
+            for i = 1:numel(sheetNames2remove)
+                objExcel.ActiveWorkbook.Worksheets.Item(sheetNames2remove{i}).Delete;
+            end
+            objExcel.ActiveWorkbook.Save
+            objExcel.ActiveWorkbook.Close(filename);
+            delete(objExcel);
+        catch
+        end         
+    end
 end
