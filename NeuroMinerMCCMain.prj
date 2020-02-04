@@ -1,0 +1,336 @@
+<deployment-project plugin="plugin.ezdeploy" plugin-version="1.0">
+  <configuration file="/opt/NM/NeuroMiner_Elessar_Dev/NeuroMinerMCCMain.prj" location="/opt/NM/NeuroMiner_Elessar_Dev" name="NeuroMinerMCCMain" target="target.ezdeploy.standalone" target-name="Application Compiler">
+    <param.appname>NeuroMinerMCCMain</param.appname>
+    <param.icon />
+    <param.icons />
+    <param.version>1.0</param.version>
+    <param.authnamewatermark>Nikolaos Koutsouleris</param.authnamewatermark>
+    <param.email>nikolaos.koutsouleris@med.uni-muenchen.de</param.email>
+    <param.company>LMU</param.company>
+    <param.summary>pattern recognition for neurodiagnostic applications</param.summary>
+    <param.description />
+    <param.screenshot />
+    <param.guid />
+    <param.installpath.string>/LMU/NeuroMinerMCCMain_Dev/</param.installpath.string>
+    <param.installpath.combo>option.installpath.user</param.installpath.combo>
+    <param.logo />
+    <param.install.notes />
+    <param.target.install.notes>In the following directions, replace MR/v95 by the directory on the target machine where MATLAB is installed, or MR by the directory where the MATLAB Runtime is installed.
+
+(1) Set the environment variable XAPPLRESDIR to this value:
+
+MR/v95/X11/app-defaults
+
+
+(2) If the environment variable LD_LIBRARY_PATH is undefined, set it to the following:
+
+MR/v95/runtime/glnxa64:MR/v95/bin/glnxa64:MR/v95/sys/os/glnxa64:MR/v95/sys/opengl/lib/glnxa64
+
+If it is defined, set it to the following:
+
+${LD_LIBRARY_PATH}:MR/v95/runtime/glnxa64:MR/v95/bin/glnxa64:MR/v95/sys/os/glnxa64:MR/v95/sys/opengl/lib/glnxa64</param.target.install.notes>
+    <param.intermediate>${PROJECT_ROOT}/NeuroMinerMCCMain/for_testing</param.intermediate>
+    <param.files.only>${PROJECT_ROOT}/NeuroMinerMCCMain/for_redistribution_files_only</param.files.only>
+    <param.output>${PROJECT_ROOT}/NeuroMinerMCCMain/for_redistribution</param.output>
+    <param.logdir>${PROJECT_ROOT}/NeuroMinerMCCMain</param.logdir>
+    <param.enable.clean.build>false</param.enable.clean.build>
+    <param.user.defined.mcr.options />
+    <param.target.type>subtarget.standalone</param.target.type>
+    <param.support.packages />
+    <param.web.mcr>false</param.web.mcr>
+    <param.package.mcr>true</param.package.mcr>
+    <param.no.mcr>false</param.no.mcr>
+    <param.web.mcr.name>MyAppInstaller_web</param.web.mcr.name>
+    <param.package.mcr.name>MyAppInstaller_mcr</param.package.mcr.name>
+    <param.no.mcr.name>MyAppInstaller_app</param.no.mcr.name>
+    <param.windows.command.prompt>false</param.windows.command.prompt>
+    <param.create.log>false</param.create.log>
+    <param.log.file />
+    <param.native.matlab>false</param.native.matlab>
+    <param.checkbox>false</param.checkbox>
+    <param.example />
+    <param.help.text />
+    <unset>
+      <param.icon />
+      <param.icons />
+      <param.version />
+      <param.description />
+      <param.screenshot />
+      <param.guid />
+      <param.installpath.combo />
+      <param.logo />
+      <param.install.notes />
+      <param.intermediate />
+      <param.files.only />
+      <param.output />
+      <param.logdir />
+      <param.enable.clean.build />
+      <param.user.defined.mcr.options />
+      <param.target.type />
+      <param.support.packages />
+      <param.no.mcr />
+      <param.web.mcr.name />
+      <param.package.mcr.name />
+      <param.no.mcr.name />
+      <param.windows.command.prompt />
+      <param.create.log />
+      <param.log.file />
+      <param.native.matlab />
+      <param.checkbox />
+      <param.example />
+      <param.help.text />
+    </unset>
+    <fileset.main>
+      <file>${PROJECT_ROOT}/NeuroMinerMCCMain.m</file>
+    </fileset.main>
+    <fileset.resources>
+      <file>${PROJECT_ROOT}/BugReports_01Oct2018_updated.docx</file>
+      <file>${PROJECT_ROOT}/Changes4Release_NM-Elessar.docx</file>
+      <file>${PROJECT_ROOT}/Changes4Release_NM1.1.docx</file>
+      <file>${PROJECT_ROOT}/ComputeMeanSDPerf.m</file>
+      <file>${PROJECT_ROOT}/FeatGen</file>
+      <file>${PROJECT_ROOT}/LICENSE</file>
+      <file>${PROJECT_ROOT}/NeuroMinerMCCMain.m</file>
+      <file>${PROJECT_ROOT}/README.md</file>
+      <file>${PROJECT_ROOT}/Scale.m</file>
+      <file>${PROJECT_ROOT}/UpdateCVDatamat.m</file>
+      <file>${PROJECT_ROOT}/automation</file>
+      <file>${PROJECT_ROOT}/cfiles</file>
+      <file>${PROJECT_ROOT}/compute_analytical_pvals.m</file>
+      <file>${PROJECT_ROOT}/cprintf.m</file>
+      <file>${PROJECT_ROOT}/ensemble</file>
+      <file>${PROJECT_ROOT}/genID.m</file>
+      <file>${PROJECT_ROOT}/getAlgoStr.m</file>
+      <file>${PROJECT_ROOT}/getD.m</file>
+      <file>${PROJECT_ROOT}/getModelNumDim.m</file>
+      <file>${PROJECT_ROOT}/getNMcolors.m</file>
+      <file>${PROJECT_ROOT}/gridsearch</file>
+      <file>${PROJECT_ROOT}/gui</file>
+      <file>${PROJECT_ROOT}/h.m</file>
+      <file>${PROJECT_ROOT}/help</file>
+      <file>${PROJECT_ROOT}/hpc</file>
+      <file>${PROJECT_ROOT}/imaging_init.mat</file>
+      <file>${PROJECT_ROOT}/imaging_init_lin.mat</file>
+      <file>${PROJECT_ROOT}/nk_ApplyLabelTransform.m</file>
+      <file>${PROJECT_ROOT}/nk_ApplyTrainedPreproc2.asv</file>
+      <file>${PROJECT_ROOT}/nk_ApplyTrainedPreproc2.m</file>
+      <file>${PROJECT_ROOT}/nk_ApplyTrainedPreproc3.m</file>
+      <file>${PROJECT_ROOT}/nk_BuildEnsembleEntropy.m</file>
+      <file>${PROJECT_ROOT}/nk_CVGridSelector.m</file>
+      <file>${PROJECT_ROOT}/nk_CVpartition2.m</file>
+      <file>${PROJECT_ROOT}/nk_CalibrateProbabilities.m</file>
+      <file>${PROJECT_ROOT}/nk_CatNodes.m</file>
+      <file>${PROJECT_ROOT}/nk_CheckComprFile.m</file>
+      <file>${PROJECT_ROOT}/nk_CheckFieldStatus.m</file>
+      <file>${PROJECT_ROOT}/nk_CheckFileExist.m</file>
+      <file>${PROJECT_ROOT}/nk_CheckFixedFeatOrderStackInput.asv</file>
+      <file>${PROJECT_ROOT}/nk_CheckFixedFeatOrderStackInput.m</file>
+      <file>${PROJECT_ROOT}/nk_CheckLoadFile.m</file>
+      <file>${PROJECT_ROOT}/nk_CheckMatrixEmptyNonVarNonFinite.m</file>
+      <file>${PROJECT_ROOT}/nk_CheckNumCoresAvail.m</file>
+      <file>${PROJECT_ROOT}/nk_CheckNumParam.m</file>
+      <file>${PROJECT_ROOT}/nk_CheckSPMver.m</file>
+      <file>${PROJECT_ROOT}/nk_CheckW2Avail.m</file>
+      <file>${PROJECT_ROOT}/nk_CompGridFreq.m</file>
+      <file>${PROJECT_ROOT}/nk_CompPlattProbOptimum.m</file>
+      <file>${PROJECT_ROOT}/nk_CompareClass.m</file>
+      <file>${PROJECT_ROOT}/nk_CompareClassResample.m</file>
+      <file>${PROJECT_ROOT}/nk_CompatY2.m</file>
+      <file>${PROJECT_ROOT}/nk_ComputeEnsembleCasePropagationProbability.m</file>
+      <file>${PROJECT_ROOT}/nk_ComputeSVMPmap.m</file>
+      <file>${PROJECT_ROOT}/nk_ComputeTransNodePerformance.m</file>
+      <file>${PROJECT_ROOT}/nk_ConcatParamstr.m</file>
+      <file>${PROJECT_ROOT}/nk_ConcatSubgroupPredictions.m</file>
+      <file>${PROJECT_ROOT}/nk_ConvProbabilities.m</file>
+      <file>${PROJECT_ROOT}/nk_CopyY2Struct.m</file>
+      <file>${PROJECT_ROOT}/nk_CountUniqueOccurences.m</file>
+      <file>${PROJECT_ROOT}/nk_CountUniques.m</file>
+      <file>${PROJECT_ROOT}/nk_CreateSubSets.m</file>
+      <file>${PROJECT_ROOT}/nk_DecideClassMem.m</file>
+      <file>${PROJECT_ROOT}/nk_DefineCaseListIntegrity.m</file>
+      <file>${PROJECT_ROOT}/nk_DefineCaseNames2.m</file>
+      <file>${PROJECT_ROOT}/nk_DefineFiles.m</file>
+      <file>${PROJECT_ROOT}/nk_DefineGroups.m</file>
+      <file>${PROJECT_ROOT}/nk_DefineLIBSVMfun.m</file>
+      <file>${PROJECT_ROOT}/nk_DefineLabels.m</file>
+      <file>${PROJECT_ROOT}/nk_DefineMLParamStr.m</file>
+      <file>${PROJECT_ROOT}/nk_DefineModeflag.m</file>
+      <file>${PROJECT_ROOT}/nk_DirSelector.m</file>
+      <file>${PROJECT_ROOT}/nk_EqualizeHisto.m</file>
+      <file>${PROJECT_ROOT}/nk_ExtrIndVol.m</file>
+      <file>${PROJECT_ROOT}/nk_ExtractFeatures.m</file>
+      <file>${PROJECT_ROOT}/nk_ExtractID.m</file>
+      <file>${PROJECT_ROOT}/nk_ExtractPredictions.m</file>
+      <file>${PROJECT_ROOT}/nk_FSreslice.m</file>
+      <file>${PROJECT_ROOT}/nk_FigSetup2.m</file>
+      <file>${PROJECT_ROOT}/nk_FileSelector.m</file>
+      <file>${PROJECT_ROOT}/nk_FormatNicely.m</file>
+      <file>${PROJECT_ROOT}/nk_GenConfMatrix.m</file>
+      <file>${PROJECT_ROOT}/nk_GenGridAct_batch.m</file>
+      <file>${PROJECT_ROOT}/nk_GenTemplParam.m</file>
+      <file>${PROJECT_ROOT}/nk_GenerateNMFilePath.m</file>
+      <file>${PROJECT_ROOT}/nk_GetAlgoWeightVec.m</file>
+      <file>${PROJECT_ROOT}/nk_GetAnalysisInfo.m</file>
+      <file>${PROJECT_ROOT}/nk_GetAnalysisStatus.m</file>
+      <file>${PROJECT_ROOT}/nk_GetCV2EnsembleDims.m</file>
+      <file>${PROJECT_ROOT}/nk_GetModelParams2.m</file>
+      <file>${PROJECT_ROOT}/nk_GetNMStatus.m</file>
+      <file>${PROJECT_ROOT}/nk_GetOOCVInfo.m</file>
+      <file>${PROJECT_ROOT}/nk_GetParamDescription2.m</file>
+      <file>${PROJECT_ROOT}/nk_GetPrimalW.m</file>
+      <file>${PROJECT_ROOT}/nk_GetScaleYAxisLabel.m</file>
+      <file>${PROJECT_ROOT}/nk_GetTestParam.m</file>
+      <file>${PROJECT_ROOT}/nk_GetVariateDescription.m</file>
+      <file>${PROJECT_ROOT}/nk_GridSearchEnsembleAdaBoost.m</file>
+      <file>${PROJECT_ROOT}/nk_INDEPpartition.m</file>
+      <file>${PROJECT_ROOT}/nk_ImagingInit.m</file>
+      <file>${PROJECT_ROOT}/nk_InitAnalysisPrep.m</file>
+      <file>${PROJECT_ROOT}/nk_Initialize.m</file>
+      <file>${PROJECT_ROOT}/nk_LOOpartition.m</file>
+      <file>${PROJECT_ROOT}/nk_LabelTransform.m</file>
+      <file>${PROJECT_ROOT}/nk_MLOptimizerMeta.m</file>
+      <file>${PROJECT_ROOT}/nk_MLOptimizerPrep.m</file>
+      <file>${PROJECT_ROOT}/nk_MakeCVInd.m</file>
+      <file>${PROJECT_ROOT}/nk_MakeCrossFolds.m</file>
+      <file>${PROJECT_ROOT}/nk_MakeDummyVariables.m</file>
+      <file>${PROJECT_ROOT}/nk_MakeRVMTargetMatrix.m</file>
+      <file>${PROJECT_ROOT}/nk_ManageNanCases.m</file>
+      <file>${PROJECT_ROOT}/nk_MatchID.m</file>
+      <file>${PROJECT_ROOT}/nk_ModelComplexityParams.m</file>
+      <file>${PROJECT_ROOT}/nk_Move2OOCV.m</file>
+      <file>${PROJECT_ROOT}/nk_MultiBinBind.m</file>
+      <file>${PROJECT_ROOT}/nk_MultiClassAssessConfMatrix.m</file>
+      <file>${PROJECT_ROOT}/nk_MultiDecideDAG.asv</file>
+      <file>${PROJECT_ROOT}/nk_MultiDecideDAG.m</file>
+      <file>${PROJECT_ROOT}/nk_MultiDecideErrorCorrOutCodes.asv</file>
+      <file>${PROJECT_ROOT}/nk_MultiDecideErrorCorrOutCodes.m</file>
+      <file>${PROJECT_ROOT}/nk_MultiDecideHierarchOneVsOne.m</file>
+      <file>${PROJECT_ROOT}/nk_MultiDecideMaxWins.asv</file>
+      <file>${PROJECT_ROOT}/nk_MultiDecideMaxWins.m</file>
+      <file>${PROJECT_ROOT}/nk_MultiDecideMaxWinsNegTiesOpt.m</file>
+      <file>${PROJECT_ROOT}/nk_MultiPerfComp.m</file>
+      <file>${PROJECT_ROOT}/nk_NMLogFileManager.m</file>
+      <file>${PROJECT_ROOT}/nk_OOCV.asv</file>
+      <file>${PROJECT_ROOT}/nk_OOCV.m</file>
+      <file>${PROJECT_ROOT}/nk_OOCVMeta.m</file>
+      <file>${PROJECT_ROOT}/nk_OOCVPrep.m</file>
+      <file>${PROJECT_ROOT}/nk_OneVsAll.m</file>
+      <file>${PROJECT_ROOT}/nk_OneVsOne.m</file>
+      <file>${PROJECT_ROOT}/nk_PTfromR.m</file>
+      <file>${PROJECT_ROOT}/nk_PerfInitSpatial.m</file>
+      <file>${PROJECT_ROOT}/nk_PerfResampleImages.m</file>
+      <file>${PROJECT_ROOT}/nk_PerfSubspaceOperations.txt</file>
+      <file>${PROJECT_ROOT}/nk_PermInd2.m</file>
+      <file>${PROJECT_ROOT}/nk_PermPrep.m</file>
+      <file>${PROJECT_ROOT}/nk_PermX.m</file>
+      <file>${PROJECT_ROOT}/nk_PredictData.m</file>
+      <file>${PROJECT_ROOT}/nk_PredictData.m~</file>
+      <file>${PROJECT_ROOT}/nk_PrepMLParams.m</file>
+      <file>${PROJECT_ROOT}/nk_PrepPreprocParams.m</file>
+      <file>${PROJECT_ROOT}/nk_PrintLogo.m</file>
+      <file>${PROJECT_ROOT}/nk_PrintWs.m</file>
+      <file>${PROJECT_ROOT}/nk_Range.m</file>
+      <file>${PROJECT_ROOT}/nk_ReadMaskIndVol.m</file>
+      <file>${PROJECT_ROOT}/nk_ReadVol2Vec.m</file>
+      <file>${PROJECT_ROOT}/nk_RenormalizeScores.m</file>
+      <file>${PROJECT_ROOT}/nk_ReorderComponents.m</file>
+      <file>${PROJECT_ROOT}/nk_ResizeImg.m</file>
+      <file>${PROJECT_ROOT}/nk_ReturnActionParam.m</file>
+      <file>${PROJECT_ROOT}/nk_ReturnAtOptPos.m</file>
+      <file>${PROJECT_ROOT}/nk_ReturnEvalOperator.m</file>
+      <file>${PROJECT_ROOT}/nk_ReturnParam.m</file>
+      <file>${PROJECT_ROOT}/nk_ReturnParamChain.m</file>
+      <file>${PROJECT_ROOT}/nk_ReturnSubSpaces.m</file>
+      <file>${PROJECT_ROOT}/nk_SA.m</file>
+      <file>${PROJECT_ROOT}/nk_SelectAnalysis.m</file>
+      <file>${PROJECT_ROOT}/nk_SelectCovariateIndex.m</file>
+      <file>${PROJECT_ROOT}/nk_SelectOOCVdata.m</file>
+      <file>${PROJECT_ROOT}/nk_SelectVariateIndex.m</file>
+      <file>${PROJECT_ROOT}/nk_SetFusionMode2.m</file>
+      <file>${PROJECT_ROOT}/nk_SetParamChain.m</file>
+      <file>${PROJECT_ROOT}/nk_SetupGlobVars2.m</file>
+      <file>${PROJECT_ROOT}/nk_SetupGlobVarsForLIBSVM.m</file>
+      <file>${PROJECT_ROOT}/nk_SwapY_OOCV.m</file>
+      <file>${PROJECT_ROOT}/nk_ThreshImages.m</file>
+      <file>${PROJECT_ROOT}/nk_ThreshWriteImg.m</file>
+      <file>${PROJECT_ROOT}/nk_Threshold.m</file>
+      <file>${PROJECT_ROOT}/nk_Utilities.m</file>
+      <file>${PROJECT_ROOT}/nk_VisModels.m</file>
+      <file>${PROJECT_ROOT}/nk_VisModelsPrep.asv</file>
+      <file>${PROJECT_ROOT}/nk_VisModelsPrep.m</file>
+      <file>${PROJECT_ROOT}/nk_VisModels_ExtraLabels.m</file>
+      <file>${PROJECT_ROOT}/nk_VisNonImg.m</file>
+      <file>${PROJECT_ROOT}/nk_VisSV.m</file>
+      <file>${PROJECT_ROOT}/nk_VisSmooth.m</file>
+      <file>${PROJECT_ROOT}/nk_VisXHelper.m</file>
+      <file>${PROJECT_ROOT}/nk_VisXPermHelper.m</file>
+      <file>${PROJECT_ROOT}/nk_VisXPermY.m</file>
+      <file>${PROJECT_ROOT}/nk_VisXWeight2.m</file>
+      <file>${PROJECT_ROOT}/nk_Vol2Vec.m</file>
+      <file>${PROJECT_ROOT}/nk_Write2Atlas.m</file>
+      <file>${PROJECT_ROOT}/nk_WriteVol.m</file>
+      <file>${PROJECT_ROOT}/nk_cellcat.m</file>
+      <file>${PROJECT_ROOT}/nk_input.m</file>
+      <file>${PROJECT_ROOT}/nk_kurtosis.m</file>
+      <file>${PROJECT_ROOT}/nk_mahalanobis.m</file>
+      <file>${PROJECT_ROOT}/nk_make.m</file>
+      <file>${PROJECT_ROOT}/nk_mapY2Struct.m</file>
+      <file>${PROJECT_ROOT}/nk_orthviews.m</file>
+      <file>${PROJECT_ROOT}/nk_skewness.m</file>
+      <file>${PROJECT_ROOT}/nk_smooth.m</file>
+      <file>${PROJECT_ROOT}/nk_strsplit.m</file>
+      <file>${PROJECT_ROOT}/nm.m</file>
+      <file>${PROJECT_ROOT}/percentile.m</file>
+      <file>${PROJECT_ROOT}/perfcurve2.m</file>
+      <file>${PROJECT_ROOT}/preproc</file>
+      <file>${PROJECT_ROOT}/ranking.m</file>
+      <file>${PROJECT_ROOT}/resample_image.m</file>
+      <file>${PROJECT_ROOT}/rotateticklabel.m</file>
+      <file>${PROJECT_ROOT}/scale_matrix.m</file>
+      <file>${PROJECT_ROOT}/splash.m</file>
+      <file>${PROJECT_ROOT}/splash.png</file>
+      <file>${PROJECT_ROOT}/util</file>
+    </fileset.resources>
+    <fileset.package />
+    <fileset.depfun />
+    <build-deliverables>
+      <file location="${PROJECT_ROOT}/NeuroMinerMCCMain/for_testing" name="run_NeuroMinerMCCMain.sh" optional="false">/opt/NM/NeuroMiner_Elessar_Dev/NeuroMinerMCCMain/for_testing/run_NeuroMinerMCCMain.sh</file>
+      <file location="${PROJECT_ROOT}/NeuroMinerMCCMain/for_testing" name="splash.png" optional="false">/opt/NM/NeuroMiner_Elessar_Dev/NeuroMinerMCCMain/for_testing/splash.png</file>
+      <file location="${PROJECT_ROOT}/NeuroMinerMCCMain/for_testing" name="NeuroMinerMCCMain" optional="false">/opt/NM/NeuroMiner_Elessar_Dev/NeuroMinerMCCMain/for_testing/NeuroMinerMCCMain</file>
+      <file location="${PROJECT_ROOT}/NeuroMinerMCCMain/for_testing" name="readme.txt" optional="true">/opt/NM/NeuroMiner_Elessar_Dev/NeuroMinerMCCMain/for_testing/readme.txt</file>
+    </build-deliverables>
+    <workflow />
+    <matlab>
+      <root>/opt/matlab/R2018b</root>
+      <toolboxes>
+        <toolbox name="matlabcoder" />
+        <toolbox name="neuralnetwork" />
+      </toolboxes>
+      <toolbox>
+        <matlabcoder>
+          <enabled>true</enabled>
+        </matlabcoder>
+      </toolbox>
+      <toolbox>
+        <neuralnetwork>
+          <enabled>true</enabled>
+        </neuralnetwork>
+      </toolbox>
+    </matlab>
+    <platform>
+      <unix>true</unix>
+      <mac>false</mac>
+      <windows>false</windows>
+      <win2k>false</win2k>
+      <winxp>false</winxp>
+      <vista>false</vista>
+      <linux>true</linux>
+      <solaris>false</solaris>
+      <osver>3.10.0-1062.4.3.el7.x86_64</osver>
+      <os32>false</os32>
+      <os64>true</os64>
+      <arch>glnxa64</arch>
+      <matlab>true</matlab>
+    </platform>
+  </configuration>
+</deployment-project>
