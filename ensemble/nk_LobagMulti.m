@@ -1,6 +1,6 @@
-function mED = nk_LobagMulti(E, T, L, C, uC, luC, G)
+function mED = nk_LobagMulti(E, T, L, C, uC, luC)
 
-[dum, hE] = nk_MultiEnsPerf(E, T, L, C, G);
+[dum, hE] = nk_MultiEnsPerf(E, T, L, C);
 if nargin < 6
     uC = unique(C); luC = length(uC);
 end

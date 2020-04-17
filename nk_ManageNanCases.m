@@ -13,14 +13,7 @@ switch act
         NanStats = [];
         if ~exist('I','var') || isempty(I) 
             % Remove NaN cases
-            [~,n] = size(Y); 
-            I = sum(isnan(Y),2) == n | sum(Y==0,2) == n; 
-            if any(I), 
-                Y(I,:) = []; 
-                if ~isempty(label), 
-                    label(I,:)=[]; 
-                end; 
-            end
+            [~,n] = size(Y); I = sum(isnan(Y),2) == n | sum(Y==0,2) == n; if any(I), Y(I,:) = []; if ~isempty(label), label(I,:)=[]; end; end
         elseif ~isempty(I) && any(I)
             % Add NaN cases
             if ~isempty(Y),

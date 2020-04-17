@@ -44,7 +44,7 @@
 % %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % (c) Nikolaos Koutsouleris 09/2017
 
-function performance = nk_TrainPermFold2(Y, nclass, ngroups, Ps, FilterSubSets, batchflag)
+function performance = nk_TrainPermFold2(Y, nclass, Ps, FilterSubSets, batchflag)
 
 global RFE BATCH VERBOSE SVM
 
@@ -66,7 +66,6 @@ if ( ~exist('batchflag','var') || isempty(batchflag)) || isempty(BATCH), batchfl
     
     % Prepare I structure to input to optimcore
     I.Y         = Y;
-    I.ngroups   = ngroups;
 	I.nclass    = nclass;
     I.nperms    = nperms;
     I.nfolds    = nfolds;
@@ -87,7 +86,7 @@ if ( ~exist('batchflag','var') || isempty(batchflag)) || isempty(BATCH), batchfl
             end
         end
         strout='CV1 Train'; OptMode = 0;
-        performance.Filter = OptimCore(I, [], strout, RFE.Filter, OptMode, Weighting);
+        performance.Filter = OptimCore2(I, [], strout, RFE.Filter, OptMode, Weighting);
                     
     %end
     
@@ -101,7 +100,7 @@ if ( ~exist('batchflag','var') || isempty(batchflag)) || isempty(BATCH), batchfl
         strout=[SVM.prog '-Wrapper']; OptMode = 1;
         
         if RFE.Filter.flag,  I.F = performance.Filter.SubSpaces; end
-        performance.Wrapper = OptimCore(I, [], strout, RFE.Wrapper, OptMode, Weighting);
+        performance.Wrapper = OptimCore2(I, [], strout, RFE.Wrapper, OptMode, Weighting);
                     
     end
     

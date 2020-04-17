@@ -6,7 +6,7 @@ d = nk_GetParamDescription2(NM,TrainParam,'GridParam');
 if (isfield(NM,'TrainParam') && isfield(NM.TrainParam,'RAND') && NM.TrainParam.RAND.InnerFold == -1 )
     SVM.GridParam = 1; optimstr = ''; menusel = [];
 else
-    optimstr = d.GridParam; optimstr = ['Define ML model performance criterion [ ' optimstr ' ]|']; menusel = 3;
+    optimstr = d.GridParam; optimstr = ['Define ML model performance criterion [' optimstr ']|']; menusel = 3;
 end
 
 if isfield(SVM,'prog')
@@ -18,8 +18,8 @@ if isfield(SVM,'prog')
     else
         progstr = d.prog;
     end
-    progstr = [ 'Configure learning algorithm [ ' progstr ' ]|'];
-    kernelstr = ['Define kernel type [ ' d.kernel ' ]|']; 
+    progstr = [ 'Configure learning algorithm [' progstr ']|'];
+    kernelstr = ['Define kernel type [' d.kernel ']|']; 
     
     % Some learners do not operate in kernel space - skip kernel menu item
     % in these cases
@@ -37,7 +37,7 @@ if isfield(SVM,'prog')
 else
     
     if isempty(SVM)
-        cprintf('red','No model configuration found for modality %g', varind)
+        cprintf('red','No Model configuration found for modality %g', varind)
         copyflag = nk_input('Do you want to use another modality''s configuration as template for current model configuration',0,'yes|no',[1,0],1);
         if copyflag
             varind_copy = nk_input('Specify modality index',0,'e');
@@ -61,51 +61,16 @@ if EXPERT && ~strcmp(SVM.prog, 'SEQOPT')
     end
     switch NM.modeflag
         case 'regression'
-            mnuact = [ mnuact 'Detrend predicted targets [ ' detrendstr ']|' ]; 
+            mnuact = [ mnuact 'Detrending of predicted targets (' detrendstr ')|' ]; 
             mnusel = [ mnusel 4 ];
 
         case 'classification'
-            mnuact = [ mnuact 'Optimize decision threshold based on ROC [ ' detrendstr ' ]|' ]; 
+            mnuact = [ mnuact 'Optimizing decision threshold based on ROC (' detrendstr ')|' ]; 
             mnusel = [ mnusel 5 ];
     end
 end
 
 if isfield(SVM,'kernel'), kerntype = SVM.kernel.kernstr; else kerntype = []; end
-
-switch NM.modeflag
-    case 'classification'
-        if EXPERT 
-            adasyndef = {'yes','no'};
-            if ~isfield(SVM,'ADASYN'),
-                SVM.ADASYN.flag = 2;
-                adasynstr = adasyndef{2}; 
-            else
-                adasynstr = adasyndef{SVM.ADASYN.flag};
-            end    
-            mnuact = [ mnuact 'Use ADASYN to adjust for unbalanced class settings [ ' adasynstr ' ]|' ];
-            mnusel = [ mnusel 6 ];
-            if SVM.ADASYN.flag == 1
-                if ~isfield(SVM.ADASYN,'beta'), SVM.ADASYN.beta = 1; end
-                betadef = SVM.ADASYN.beta; 
-                mnuact = [ mnuact sprintf('Define beta value (defines how much balancing will be applied, 0<->1) [ k=%g ]|',betadef)];
-                mnusel = [ mnusel 7 ];
-                if ~isfield(SVM.ADASYN,'kDensity'), SVM.ADASYN.kDensity = 5; end
-                kdensdef = SVM.ADASYN.kDensity; 
-                mnuact = [ mnuact sprintf('Define k value of density algorithm (kNN looking at both classes) [ k=%g ]|',kdensdef)];
-                mnusel = [ mnusel 8 ];
-                if ~isfield(SVM.ADASYN,'kSMOTE'), SVM.ADASYN.kSMOTE = 5; end
-                ksmotedef = SVM.ADASYN.kSMOTE; 
-                mnuact = [ mnuact sprintf('Define k value of SMOTE algorithm (kNN looking only at the minority class) [ k=%g ]|',ksmotedef)];
-                mnusel = [ mnusel 9 ];
-                if ~isfield(SVM.ADASYN,'normalized'), SVM.ADASYN.normalized = false; end
-                if SVM.ADASYN.normalized, normstr = 'yes'; else, normstr = 'no'; end
-                mnuact = [ mnuact sprintf('Normalize data for kNN [ %s ]|',normstr) ];
-                mnusel = [ mnusel 10 ];
-            end
-        end
-    case 'regression'
-        SVM.ADASYN.flag = 2;
-end
 
 switch NM.modeflag
     
@@ -349,27 +314,6 @@ switch act
     case 5
         
         SVM.Post.Detrend = nk_input('Enable post-hoc optimization of decision threshold (using ROC analysis of C1 test data)',0,'yes|no',[1,0],1);
-        
-    case 6
-        
-        if SVM.ADASYN.flag ==1, SVM.ADASYN.flag = 2; else, SVM.ADASYN.flag = 1; end
-        
-    case 7
-        
-        SVM.ADASYN.beta = nk_input('Define beta for degree of balancing',0,'e',SVM.ADASYN.beta);
-        
-    case 8
-        
-        SVM.ADASYN.kDensity = nk_input('Define k for Density estimation in ADASYN',0,'i',SVM.ADASYN.kDensity);
-        
-    case 9
-        
-        SVM.ADASYN.kSMOTE = nk_input('Define k for SMOTE in ADASYN',0,'i',SVM.ADASYN.kSMOTE);
-        
-    case 10
-        
-        SVM.ADASYN.normalized = ~SVM.ADASYN.normalized;
-        
     
 end
 

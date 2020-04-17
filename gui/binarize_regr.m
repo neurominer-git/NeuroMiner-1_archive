@@ -11,18 +11,14 @@ elseif m <= min(label) || m >= max(label)
 else
     handles.Regr.b_label = label; handles.Regr.b_label(label>=m) = 1; handles.Regr.b_label(label<m) = -1;
     handles.Regr.b_pred = pred; 
-    handles.Regr.b_pred = handles.Regr.b_pred - m;
-    [handles.Regr.X, ...
-     handles.Regr.Y, ...
-     handles.Regr.T, ...
-     handles.Regr.AUC] = perfcurve2(handles.Regr.b_label, handles.Regr.b_pred, 1);
+    handles.Regr.b_pred= handles.Regr.b_pred - m;
     handles.Regr.contigmat = ALLPARAM(handles.Regr.b_label, handles.Regr.b_pred);
     handles.Regr.contigmat.BINARIZATION_THRESHOLD = m;
     handles = display_contigmat(handles);
 end
 
 %% Display ROC
-[handles.hroc, handles.hroc_random] = display_roc(handles);
+[handles.hroc, handles.hroc_random] = display_roc(handles, handles.Regr.b_label, handles.Regr.b_pred);
 
 %% Display pie charts
 [handles.h1pie, handles.h2pie] = display_piecharts(handles);

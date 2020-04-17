@@ -17,33 +17,42 @@ if ~hx
     end
 else
     h = D.h; set(0,'CurrentFigure',h)
-end
+end;
 
-if ~isfield(D,'hl') || ~ishandle(D.hl)
-    hl = findobj('Tag','CurrParam');
-    if isempty(hl)
-        D.hl = axes('Parent',D.h,'Position',[0.1 0.95 0.85 0.025],'Tag','CurrParam', 'Visible','on',  'YTick', []); 
+%set(0,'CurrentFigure',D.h); 
+%for i = 1:numel(D.Pdesc)
+    %tx = sprintf('%s\nModel #%g: ',tx, i);
+
+    if ~isfield(D,'hl') || ~ishandle(D.hl)
+        hl = findobj('Tag','CurrParam');
+        if isempty(hl)
+            D.hl = axes('Parent',D.h,'Position',[0.1 0.95 0.85 0.025],'Tag','CurrParam', 'Visible','on',  'YTick', []); 
+            %title(D.ax{p}.h, D.ax{p}.title)
+        else
+            D.hl = hl;
+        end
+    end
+    hold on
+    set(h,'CurrentAxes',D.hl); cla; barh(D.hl,1,D.pltperc, 'FaceColor', 'b'); hold on
+   
+    if ~isempty(D.Pdesc{1}),
+        tx = sprintf('%s\nParams: ',D.s); 
+        txi = []; i=1;
+        for j = 1:numel(D.Pdesc{i})
+            if iscell(D.P{i}(j)), ParVal = D.P{i}{j}; else, ParVal = D.P{i}(j); end
+            if isnumeric(ParVal), ParVal = num2str(ParVal,'%g'); end
+            txi = [ txi sprintf('%s = %s, ', D.Pdesc{i}{j}, ParVal) ];
+        end
+        tx = [tx txi(1:end-2)];
     else
-        D.hl = hl;
+        tx = D.s;
     end
-end
-hold on
-set(h,'CurrentAxes',D.hl); cla; barh(D.hl,1,D.pltperc, 'FaceColor', 'b'); hold on
+    %end
+    % if ~isfield(D,'h_text') || ~ishandle(D.h_text)
+    %     D.h_text = text(0,0.05,[ D.s tx]);
+    % end
+    xlabel(D.hl, tx); xlim([0 100]); hold off
 
-if ~isempty(D.Pdesc{1}),
-    tx = sprintf('%s\nParams: ',D.s); 
-    txi = []; i=1;
-    for j = 1:numel(D.Pdesc{i})
-        if iscell(D.P{i}(j)), ParVal = D.P{i}{j}; else, ParVal = D.P{i}(j); end
-        if isnumeric(ParVal), ParVal = num2str(ParVal,'%g'); end
-        txi = [ txi sprintf('%s = %s, ', D.Pdesc{i}{j}, ParVal) ];
-    end
-    tx = [tx txi(1:end-2)];
-else
-    tx = D.s;
-end
-
-xlabel(D.hl, tx); xlim([0 100]); hold off
 
 for p=1:numel(D.ax)
     
@@ -127,8 +136,8 @@ if multiflag
             else
                 D.m_ax{p}.h = hm;
             end
-            %axes(D.m_ax{p}.h); 
-            cla; hold on
+            axes(D.m_ax{p}.h); cla;    
+            hold on
             % Plot bar & error charts
             [D.m_ax{p}.h_bar, D.m_ax{p}.err_bar] = barwitherr(D.m_ax{p}.std_y, D.m_ax{p}.val_y); 
             if D.nclass ==1, set(D.m_ax{p}.h_bar,'FaceColor',D.m_ax{p}.fc); end

@@ -6,35 +6,18 @@ if ~isempty(Pnt.data_ind)
 else
     Ix = 1;
 end
-if iscell(oTr)
-    Tr = oTr{Ix}; CV = oCV{Ix}; Ts = oTs{Ix};   
-    if ~isempty(oOcv), Ocv = oOcv{Ix}; end
-else
-    Tr = oTr; CV = oCV; Ts = oTs;   
-    if ~isempty(oOcv), Ocv = oOcv; end
-end
+Tr = oTr{Ix}; CV = oCV{Ix}; Ts = oTs{Ix};   
+if ~isempty(oOcv), Ocv = oOcv{Ix}; end
 
-if nargout == 5
-    if ischar(Pnt.TrainedParam) 
-        if exist(Pnt.TrainedParam,'file')
-            fprintf('\tLoading parameter file.')
-            load( Pnt.TrainedParam );
+if ~isempty(Pnt.nA)
+    TrainedParam = cell(1,Pnt.nA);
+    for a = 1:Pnt.nA
+        if isstruct(Pnt.TrainedParam{a})
+            TrainedParam{a} = Pnt.TrainedParam{a};
         else
-            error('Parameter file %s could not be found.',Pnt.TrainedParam );
+            TrainedParam{a} = Pnt.TrainedParam{a}(Pnt.train_ind(z,a));
         end
-    else
-        oTrainedParam = Pnt.TrainedParam;
     end
-    if ~isempty(Pnt.nA)
-        TrainedParam = cell(1,Pnt.nA);
-        for a = 1:Pnt.nA
-            if isstruct(Pnt.TrainedParam{a})
-                TrainedParam{a} = oTrainedParam{a};
-            else
-                TrainedParam{a} = oTrainedParam{a}{Pnt.train_ind(z,a)};
-            end
-        end
-    else
-        TrainedParam = oTrainedParam;
-    end
+else
+    TrainedParam = Pnt.TrainedParam;
 end

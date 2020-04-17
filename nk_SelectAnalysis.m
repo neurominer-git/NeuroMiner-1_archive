@@ -412,10 +412,8 @@ for i=1:numel(analyses)
     fprintf('\n\t** Analysis [ %3g ]: ID : %s', i, analyses{i}.id);
 end
 fprintf('\n');
-analsel = nk_input(sprintf('Type the number of analysis you want to choose,\n\t''S'' for analysis sequence\n\t''M'' for detailed analysis information,\n\tor some other string to return'),0,'sq');
-if any(strcmp({'S','s'},analsel))
-    analind = nk_input('Type sequence of analyses you want to work on',0,'e');
-elseif ~any(strcmp({'M','m'}, analsel)) && ~isnan(str2double(analsel)) 
+analsel = nk_input(sprintf('Type the number of analysis you want to choose,\n\tM for detailed analysis information,\n\tor some other string to return'),0,'sq');
+if ~any(strcmp({'M','m'}, analsel)) && ~isnan(str2double(analsel)) 
     analind = str2double(analsel);
     if analind < 1 || analind > numel(analyses), analind = 0; end
 elseif any(strcmp({'M','m'}, analsel))

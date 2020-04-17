@@ -12,26 +12,26 @@ if analysis.Model.NumPreMLParams > 0
     NumMLParam = analysis.Model.NumParamDims - analysis.Model.NumPreMLParams ;
     
     for u=1:numel(analysis.bestP)
-        
-        % Set pointer to modality-specific preprocessing ignoring the ML
-        % parameters
+             
         if ~any(indm)
             pnt_vec = NumMLParam(u) + 1;
         else
             pnt_vec = NumMLParam(u) + find(indm);
         end
         
-        % Check whether multi-class optimization is needed
         if MULTI.flag && paramfl.multiflag
-            fld = 'multi_bestP';
+            if iscell(analysis.multi_bestPpos)
+                Ppos = analysis.multi_bestPpos{ll, curlabel};
+            else
+                Ppos = analysis.multi_bestPpos(ll, curlabel);
+            end
+            paramfl.PXopt{u} = analysis.Model.ParamCombs{u}(Ppos, pnt_vec);
         else
-            fld = 'bestP';
-        end    
-        % Retrieve parameters
-        if ~iscell(analysis.bestP{1})
-            paramfl.PXopt{u} = analysis.(fld){u}(ll, pnt_vec, curlabel);
-        else
-            paramfl.PXopt{u} = analysis.(fld){u}{ll}(:, pnt_vec, curlabel);
+            if ~iscell(analysis.bestP{1})
+                paramfl.PXopt{u} = analysis.bestP{u}(ll, pnt_vec, curlabel);
+            else
+                paramfl.PXopt{u} = analysis.bestP{u}{ll}(:, pnt_vec, curlabel);
+            end
         end
         % Retrieve unique combinations
         paramfl.PXunique{u} = unique(paramfl.PXopt{u},'rows','stable');

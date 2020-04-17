@@ -5,7 +5,8 @@ switch rowind
     case 1
         %% Display ROC
         delete(findall(handles.figure1,'Tag','AnnotPerfMeas'))
-        [handles.hroc, handles.hroc_random] = display_roc(handles);
+        [handles.hroc, handles.hroc_random] = display_roc(handles, ...
+            handles.MultiClass.onevsall_labels, handles.MultiClass.onevsall_scores);
         %% Display Cobweb
         [handles.hspider, handles.MultiClass.misclass_confusion] = nk_PlotCobWeb(handles.MultiClass.confusion_matrix, handles.NM.groupnames, handles.axes5);
         %handles.axes4.Visible='off'; handles.axes3.Visible='off';
@@ -19,7 +20,7 @@ switch rowind
         handles.cmdMetricExport.Visible = 'off';
         
     otherwise
-        if isfield(handles,'hspider'),handles.hspider.Title.Visible='off'; end
+        
         handles.cmdExportPies.Visible = 'on';
         handles.cmdMetricExport.Visible = 'on';
         handles.cmdExportCobWeb.Visible = 'off';
@@ -27,8 +28,8 @@ switch rowind
         %% Display ROC
         %handles.txtPerf.Visible='on';
         legend off %set(handles.txtPerf,'visible','on');
-        
-        [handles.hroc, handles.hroc_random] = display_roc(handles);
+        [handles.hroc, handles.hroc_random] = display_roc(handles, ...
+            handles.MultiClass.onevsall_labels(:,rowind-1), handles.MultiClass.onevsall_scores(:,rowind-1));
         
         %% Display contingency info
         handles.h_contiginfo = display_contigmat(handles);

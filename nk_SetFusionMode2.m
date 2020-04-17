@@ -84,10 +84,6 @@ switch FUSION.flag
         nk_SetupGlobVars2(analysis.params, 'setup_strat', 0, tF); 
 end
 
-% Check whether stacking is active and allow user to compute 
-% fixed feature-order relevance metrics
-OUT.fixedOrder = nk_CheckFixedFeatOrderStackInput(OUT.stacking, OUT.analyses);
-
 OUT.PREPROC     = PREPROC;
 OUT.VIS         = VIS;
 OUT.F           = F;

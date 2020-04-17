@@ -14,7 +14,6 @@ W2AVAIL = false;
 % %%%%%%%%%%%%%%%%%%%%%%%%%%%%% INITIALIZATION %%%%%%%%%%%%%%%%%%%%%%%%%%%%
 label           = inp.label;        % targets to predict
 nclass          = inp.nclass;       % # of binary comparisons
-ngroups         = inp.ngroups;      % # of groups in the analysis
 lx              = inp.l;            % # of subjects
 probflag        = inp.probflag;     % translate decision values to probabilities
 Params          = inp.Params;
@@ -174,11 +173,8 @@ if MULTI.flag
             GDanalysis.multi_bestPpos   = zeros(ix*jx,hx);
         end
     end
-    GDanalysis.multi_bestP              = cell(nclass,1);
     GDanalysis.multi_predictions        = cell(lx,hx);
     GDanalysis.multi_CV2predictions     = cell(lx,hx);
-    GDanalysis.multi_probabilities      = cell(lx,ngroups,hx);
-    GDanalysis.multi_CV2probabilities   = cell(lx,ngroups,hx);
     GDanalysis.grid.MultiCVPerf         = nan(nPs(1),ix*jx,hx);
     GDanalysis.grid.MultiTSPerf         = nan(nPs(1),ix*jx,hx);
     GDanalysis.grid.MultiERR_CVTSPerf   = nan(nPs(1),ix*jx,hx);
@@ -204,11 +200,9 @@ for h=1:nclass
     
     if (isfield(GRD,'NodeSelect') &&  GRD.NodeSelect.mode ~= 1) || combcell
         GDanalysis.bestP{h}                 = cell(ix*jx,hx);
-        if MULTI.flag, GDanalysis.multi_bestP{h} = cell(ix*jx,hx); end
         GDanalysis.bestPpos{h}              = cell(ix*jx,hx);
     else
         GDanalysis.bestP{h}                 = zeros(ix*jx,nPdims(h),hx);
-        if MULTI.flag, GDanalysis.multi_bestP{h} = zeros(ix*jx,nPdims(h),hx); end
         GDanalysis.bestPpos{h}              = zeros(ix*jx,hx);
     end
 end
@@ -374,8 +368,6 @@ for f=1:ix % Loop through CV2 permutations
                GD.MultiERR      = zeros(nPs(1),hx); % generalization error
                GD.MultiCV1TrPred= cell(nPs(1),hx); % CV1 traindata predictions
                GD.MultiCV1CVPred= cell(nPs(1),hx); % CV1 test data predictions
-               GD.MultiCV1TrProb= cell(nPs(1),ngroups,hx); % CV1 traindata predictions
-               GD.MultiCV1CVProb= cell(nPs(1),ngroups,hx); % CV1 test data predictions
                GD.MultiPred     = cell(nPs(1),hx); % CV2 test data predictions
                GD.MultiM_DivT   = zeros(nPs(1),hx);
                GD.MultiSD_DivT  = zeros(nPs(1),hx);             
@@ -409,21 +401,21 @@ for f=1:ix % Loop through CV2 permutations
             
             % For sequence optimizer only
             if strcmp(SVM.prog,'SEQOPT')
-               GD.mSEQI = zeros(nPs(1), nclass, hx);
-               GD.sdSEQI = zeros(nPs(1),nclass, hx);
-               GD.mSEQE = cell(nPs(1), nclass, hx);  
-               GD.sdSEQE = cell(nPs(1), nclass, hx); 
-               GD.mSEQPercThrU = cell(nPs(1), nclass,hx);
-               GD.sdSEQPercThrU = cell(nPs(1),nclass,hx);
-               GD.mSEQPercThrL = cell(nPs(1),nclass,hx);
-               GD.sdSEQPercThrL = cell(nPs(1),nclass,hx);
+               GD.mSEQI = zeros(nPs(1),hx);
+               GD.sdSEQI = zeros(nPs(1),hx);
+               GD.mSEQE = cell(nPs(1),hx);  
+               GD.sdSEQE = cell(nPs(1),hx); 
+               GD.mSEQPercThrU = cell(nPs(1),hx);
+               GD.sdSEQPercThrU = cell(nPs(1),hx);
+               GD.mSEQPercThrL = cell(nPs(1),hx);
+               GD.sdSEQPercThrL = cell(nPs(1),hx);
             end
 
             if detrendfl, GD.Detrend = cell(nPs(1),hx); end
             if isfield(RFE.Wrapper,'optflag') && RFE.Wrapper.optflag == 1, RFE.Wrapper.flag = 0; end
             
             %%%%%%%%%%%%%%%% PARAMETER OPTIMIZATION %%%%%%%%%%%%%%%%
-            [ GD, MD ] = nk_MLOptimizer_ParamCycler(GD, MD, DISP, Ps, Params_desc, mapY, algostr, f, d, n_preml, nclass, ngroups, batchflag, [], combcell);
+            [ GD, MD ] = nk_MLOptimizer_ParamCycler(GD, MD, DISP, Ps, Params_desc, mapY, algostr, f, d, n_preml, nclass, batchflag, [], combcell);
             
             %%%%%%%%%%%%%%%% MODEL SELECTION LOGIC %%%%%%%%%%%%%%%%%
             [GD, MultiBinBind] = nk_ModelNodeSelector(GD, MD, label, f, d, nclass, Ps, Params_desc, combcell, act);
@@ -431,14 +423,13 @@ for f=1:ix % Loop through CV2 permutations
             %%%%%%%%%%%%%%%% WRAPPER-BASED LEARNING AT OPTIMA %%%%%%%%%%%%%%%% 
             if isfield(RFE.Wrapper,'optflag') && RFE.Wrapper.optflag == 1
                 RFE.Wrapper.flag = 1;
-                [ GD, MD ] = nk_MLOptimizer_ParamCycler(GD, MD, DISP, Ps, Params_desc, mapY, algostr, f, d, n_preml, nclass, ngroups, batchflag, GD.BinaryGridSelection, combcell);
+                [ GD, MD ] = nk_MLOptimizer_ParamCycler(GD, MD, DISP, Ps, Params_desc, mapY, algostr, f, d, n_preml, nclass, batchflag, GD.BinaryGridSelection, combcell);
                 [ GD, MultiBinBind ] = nk_ModelNodeSelector(GD, MD, label, f, d, nclass, Ps, Params_desc, combcell, act);
             end
             
             if inp.stacking
                 GD.nM_cnt = mapY.nM_cnt;
             end
-            
             % Set saving flag to store GD on hard disk
             saveGDflag = true;
 
@@ -463,11 +454,7 @@ for f=1:ix % Loop through CV2 permutations
             [tGD, MultiBinBind] = nk_ModelNodeSelector(tGD, MD, label, f, d, nclass, Ps, Params_desc, combcell, act);
 
              % Set saving flag to store GD on hard disk only if tGD ~= GD:
-            if isequaln(tGD,GD), 
-                saveGDflag = false; 
-            else
-                saveGDflag = true;
-            end
+            if isequal(tGD,GD), saveGDflag = false; else saveGDflag = true; end
             GD = tGD; clear tGD;
         end
 
@@ -528,20 +515,18 @@ for f=1:ix % Loop through CV2 permutations
                 GDanalysis.grid.mean_mSEQI(:,:,ll,:)      = GD.mSEQI;
                 % SD sequence gain
                 GDanalysis.grid.sd_mSEQI(:,:,ll,:)        = GD.sdSEQI;
-                for curclass=1:nclass
-                    % Mean examination frequencies
-                    GDanalysis.grid.mean_mSEQE(:,:,curclass,ll,:)    = cell2matpadnan(GD.mSEQE(:,curclass));
-                    % SD examination frequencies
-                    GDanalysis.grid.sd_mSEQE(:,:,curclass,ll,:)      = cell2matpadnan(GD.sdSEQE(:,curclass));
-                    % Mean upper threshold for case propagation
-                    GDanalysis.grid.mean_mSEQPU(:,:,curclass,ll,:)   = cell2matpadnan(GD.mSEQPercThrU(:,curclass));
-                    % SD upper threshold for case propagation
-                    GDanalysis.grid.sd_mSEQPU(:,:,curclass,ll,:)     = cell2matpadnan(GD.sdSEQPercThrU(:,curclass));
-                    % Mean lower thresholf for case propagation
-                    GDanalysis.grid.mean_mSEQPL(:,:,curclass,ll,:)   = cell2matpadnan(GD.mSEQPercThrL(:,curclass));
-                    % SD lower thresholf for case propagation
-                    GDanalysis.grid.mean_mSEQPL(:,:,curclass,ll,:)   = cell2matpadnan(GD.sdSEQPercThrL(:,curclass));
-                end
+                % Mean examination frequencies
+                GDanalysis.grid.mean_mSEQE(:,:,:,ll,:)    = cell2mat(GD.mSEQE);
+                % SD examination frequencies
+                GDanalysis.grid.sd_mSEQE(:,:,:,ll,:)      = cell2mat(GD.sdSEQE);
+                % Mean upper threshold for case propagation
+                GDanalysis.grid.mean_mSEQPU(:,:,:,ll,:)   = cell2mat(GD.mSEQPercThrU);
+                % SD upper threshold for case propagation
+                GDanalysis.grid.sd_mSEQPU(:,:,:,ll,:)     = cell2mat(GD.sdSEQPercThrU);
+                % Mean lower thresholf for case propagation
+                GDanalysis.grid.mean_mSEQPL(:,:,:,ll,:)   = cell2mat(GD.mSEQPercThrL);
+                % SD lower thresholf for case propagation
+                GDanalysis.grid.mean_mSEQPL(:,:,:,ll,:)   = cell2mat(GD.sdSEQPercThrL);
             end
             
             if MULTI.flag
@@ -557,9 +542,6 @@ for f=1:ix % Loop through CV2 permutations
                     % Best performance measures
                     if (isfield(GRD,'NodeSelect') && ( GRD.NodeSelect.mode ~= 1)) || combcell
                         GDanalysis.bestP{curclass}{ll,curlabel}      = GD.BinaryGridSelection{curclass}{curlabel}.bestP;
-                        if MULTI.flag
-                            GDanalysis.multi_bestP{curclass}{ll,curlabel} = GD.MultiGroupGridSelection{curlabel}.bestP{curclass};
-                        end
                         GDanalysis.bestPpos{curclass}{ll,curlabel}   = GD.BinaryGridSelection{curclass}{curlabel}.Npos;
                         GDanalysis.bestTR{curclass}(f,d,curlabel)    = nm_nanmean(GD.BinaryGridSelection{curclass}{curlabel}.bestacc);
                         GDanalysis.bestTS{curclass}(f,d,curlabel)    = nm_nanmean(GD.BinaryGridSelection{curclass}{curlabel}.besttestparam);
@@ -571,10 +553,7 @@ for f=1:ix % Loop through CV2 permutations
                             EnsDat = [EnsDat nk_cellcat(GD.BinaryGridSelection{curclass}{curlabel}.bestpred{zu},[],2)];
                         end
                     else
-                        GDanalysis.bestP{curclass}(ll,:,curlabel) = GD.BinaryGridSelection{curclass}{curlabel}.bestP(1,:);
-                        if MULTI.flag
-                            GDanalysis.multi_bestP{curclass}(ll,:,curlabel) = GD.MultiGroupGridSelection{curlabel}.bestP{curclass};
-                        end
+                        GDanalysis.bestP{curclass}(ll,:,curlabel)    = GD.BinaryGridSelection{curclass}{curlabel}.bestP(1,:);
                         GDanalysis.bestPpos{curclass}(ll,curlabel)   = GD.BinaryGridSelection{curclass}{curlabel}.Npos(1);
                         GDanalysis.bestTR{curclass}(f,d,curlabel)    = GD.BinaryGridSelection{curclass}{curlabel}.bestacc(1);
                         GDanalysis.bestTS{curclass}(f,d,curlabel)    = GD.BinaryGridSelection{curclass}{curlabel}.besttestparam(1);
@@ -639,42 +618,31 @@ for f=1:ix % Loop through CV2 permutations
                 % MULTI-CLASS PERFORMANCE
                 % =========================================================
                 % Prepare for the OOT multi-class prediction by
-                % concatenating prediction values for each sample 
+                % building concatenating prediction values for each sample 
                 % across CV2 partitions
                 for curlabel=1:MULTILABEL.dim
                     GDanalysis.grid.MultiSelNodeFreq(:,ll,curlabel) = GD.MultiGroupGridSelection{curlabel}.SelNodes;
-                   
+
                     if (isfield(GRD,'NodeSelect') && ( GRD.NodeSelect.mode == 2 || GRD.NodeSelect.mode == 3 )) || combcell
-                        MultiPred = []; 
-                        MultiCV2Pred = []; 
-                        MultiProb = []; 
-                        MultiCV2Prob = cell(1,nclass); 
+                        MultiPred=[]; MultiCV2Pred=[];
                         if ~MULTI.BinBind
                             % Compute multi-group performance measures            
                             GDanalysis.multi_bestTR(f,d,curlabel) = nm_nanmean(GD.MultiGroupGridSelection{curlabel}.bestacc);
                             GDanalysis.multi_bestTS(f,d,curlabel) = nm_nanmean(GD.MultiGroupGridSelection{curlabel}.besttestparam);
                             % Store multi-group grid position
-                            GDanalysis.multi_bestPpos{ll,curlabel} = GD.MultiGroupGridSelection{curlabel}.Npos;
+                            GDanalysis.multi_Ppos{ll,curlabel} = GD.MultiGroupGridSelection{curlabel}.Npos;
                             % Select from multi-group prediction grid   
                             for zu=1:GD.MultiGroupGridSelection{curlabel}.Nodes
                                 MultiPred = [MultiPred GD.MultiGroupGridSelection{curlabel}.bestpred{zu}];
                                 MultiCV2Pred = [MultiCV2Pred GD.MultiGroupGridSelection{curlabel}.bestCV2pred{zu} ];
-                                MultiProb = [ MultiProb GD.MultiGroupGridSelection{curlabel}.bestprob{zu} ];
-                                for curclass=1:nclass
-                                    MultiCV2Prob{curclass} = [ MultiCV2Prob{curclass} GD.MultiGroupGridSelection{curlabel}.bestCV2prob{zu,curclass}];
-                                end
                             end
                         else
                             GDanalysis.multi_bestTR(f,d,curlabel) = MultiBinBind.Mean_CVPerf;
                             GDanalysis.multi_bestTS(f,d,curlabel) = GD.MultiGroupGridSelection{curlabel}.besttestparam;
                             MultiPred = GD.MultiGroupGridSelection{curlabel}.bestpred;
                             MultiCV2Pred = GD.MultiGroupGridSelection{curlabel}.bestCV2pred;
-                            MultiProb = GD.MultiGroupGridSelection{curlabel}.bestprob;
-                            MultiCV2Prob = GD.MultiGroupGridSelection{curlabel}.bestCV2prob;
                         end
-                        
                     else
-                        %MultiProb = zeros([size(GD.MultiGroupGridSelection{curlabel}.bestprob{1}) GD.MultiGroupGridSelection{curlabel}.Nodes]);                        
                         if ~MULTI.BinBind
                             % Compute multi-group performance measures            
                             GDanalysis.multi_bestTR(f,d,curlabel) = GD.MultiGroupGridSelection{curlabel}.bestacc(1);
@@ -683,8 +651,7 @@ for f=1:ix % Loop through CV2 permutations
                             % Select from multi-group prediction grid
                             MultiPred = GD.MultiGroupGridSelection{curlabel}.bestpred{1};
                             MultiCV2Pred = GD.MultiGroupGridSelection{curlabel}.bestCV2pred{1};
-                            MultiProb = GD.MultiGroupGridSelection{curlabel}.bestprob{1};
-                            MultiCV2Prob = GD.MultiGroupGridSelection{curlabel}.bestCV2prob;
+
                             % Store multi-group grid position
                             GDanalysis.multi_bestPpos(ll,curlabel) = GD.MultiGroupGridSelection{curlabel}.Npos(1);
                         else
@@ -693,8 +660,6 @@ for f=1:ix % Loop through CV2 permutations
                             % Select multi-group prediction from binary optima
                             MultiPred = GD.MultiGroupGridSelection{curlabel}.bestpred;
                             MultiCV2Pred = GD.MultiGroupGridSelection{curlabel}.bestCV2pred;
-                            MultiProb = GD.MultiGroupGridSelection{curlabel}.bestprob;
-                            MultiCV2Prob = GD.MultiGroupGridSelection{curlabel}.bestCV2prob;
                         end
                     end
                     if ~RFE.CV2Class.EnsembleStrategy.AggregationLevel, 
@@ -704,21 +669,7 @@ for f=1:ix % Loop through CV2 permutations
                     end
                     % Concatenate multi-group prediction across CV2 perms
                     GDanalysis.multi_predictions(TsInd,curlabel) = cellmat_mergecols(GDanalysis.multi_predictions(TsInd,curlabel), num2cell(MEnsDat,2));
-                    for g=1:ngroups
-                        if ~RFE.CV2Class.EnsembleStrategy.AggregationLevel, 
-                            MEnsDat = MultiProb(:,g,:); 
-                        else
-                            if iscell(MultiCV2Prob)
-                                MEnsDat = [];
-                                for gg=1:size(MultiCV2Prob,2)
-                                    MEnsDat = [MEnsDat MultiCV2Prob{gg}(:,g)];
-                                end
-                            else
-                                MEnsDat = MultiCV2Prob(:,g);
-                            end
-                        end
-                        GDanalysis.multi_probabilities(TsInd, g, curlabel) = cellmat_mergecols(GDanalysis.multi_probabilities(TsInd, g, curlabel), num2cell(MEnsDat,2));
-                    end
+
                     GDanalysis.grid.MultiCVPerf(:,ll,curlabel) = GD.MultiTR(:,curlabel);
                     GDanalysis.grid.MultiTSPerf(:,ll,curlabel) = GD.MultiTS(:,curlabel);
                     GDanalysis.grid.MultiERR_CVTSPerf(:,ll,curlabel) = GD.MultiERR(:,curlabel);
@@ -820,7 +771,7 @@ if GDfl || ~batchflag
                     end
                 end
                 % Do performance stats over the entire experiment
-                GDanalysis.BinClass{h} = nk_ComputeEnsembleProbability(GDanalysis.predictions(:,h), labelh(:,h));
+                GDanalysis.BinClass{h}                   = nk_ComputeEnsembleProbability(GDanalysis.predictions(:,h), labelh(:,h));
             end
     end
 
@@ -837,7 +788,6 @@ if GDfl || ~batchflag
         % ************** MULTI-CLASS PERF across CV2-PERMS ****************
         %multi_pred = GDanalysis.multi_predictions;
         multi_CV2pred = GDanalysis.multi_predictions;
-        multi_CV2prob = GDanalysis.multi_probabilities;
         % ** Mean multi-classification performance across CV2 partitions **
         GDanalysis.grid.seMultiCVPerf       = nm_nanstd(GDanalysis.grid.MultiCVPerf,2);
         GDanalysis.grid.seMultiTSPerf       = nm_nanstd(GDanalysis.grid.MultiTSPerf,2);
@@ -853,19 +803,10 @@ if GDfl || ~batchflag
         GDanalysis.grid.MultiComplexity     = nm_nanmean(GDanalysis.grid.mean_Complexity,2);
         GDanalysis.grid.MultiSelNodeFreq    = nm_nanmean(GDanalysis.grid.MultiSelNodeFreq,2);
         % Convert OOT predictions to probabilities for class membership
+        % (This makes really sense only if more than one CV2 permutation has been
+        % performed)
         GDanalysis = nk_MultiPerfComp(GDanalysis, multi_CV2pred, label, ngroups);
-        tProbCat = nk_cellcat(multi_CV2prob(:,1),[],1);
-        mProb = zeros([lx size(tProbCat,2) nclass]);
-        Ix = ~cellfun(@isempty, multi_CV2prob(:,1));
-        for g=1:ngroups
-            try
-                mProb(Ix,:,g) =  nk_cellcat(multi_CV2prob(:,g),[],1);
-            catch
-                fprintf('Problem')
-            end
-        end
-        mProbI = squeeze(mean(mProb,2)); mProbI(~Ix,:)=NaN;
-        GDanalysis = nk_MultiPerfComp(GDanalysis, mProbI, label, ngroups, 'prob');
+
     end
 
     % **************************** SAVE DATA *****************************

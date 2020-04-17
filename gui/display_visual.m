@@ -14,6 +14,17 @@ sortfl = get(handles.tglSortFeat,'Value');
 axes(handles.axes33); cla; hold on
 set(handles.axes33,'TickLabelInterpreter','none')
 
+switch meas{measind}
+    case 'Model P value histogram'
+        fl = 'off';
+    otherwise
+        fl = 'on';
+end
+
+handles.selPager.Enable = fl;
+handles.tglSortFeat.Enable = fl;
+handles.cmdExportFeats.Enable = fl;
+
 v = handles.visdata{varind};
 if v.params.visflag == 1
     featind = 1:v.params.nfeats;
@@ -27,35 +38,11 @@ end
 
 x = featind(1) - 0.5: featind(end);
 curclass = get(handles.popupmenu1,'Value');
-
-if strcmp(handles.popupmenu1.String{curclass},'Multi-group classifier')
-    multiflag = true;
-else
-    multiflag = false;
-end
-
 if measind>numel(meas)
     measind=numel(meas);
     handles.selVisMeas.Value=measind;
 end
-
-switch meas{measind} 
-    case 'Model P value histogram'
-        fl = 'off';
-    otherwise
-        if isfield(v,'PermModel_Crit_Global_Multi') && multiflag
-            fl = 'off';
-        else
-            fl = 'on';
-        end
-end
-
-handles.selPager.Enable = fl;
-handles.tglSortFeat.Enable = fl;
-handles.cmdExportFeats.Enable = fl;
-
 switch meas{measind}
-    
     case {'Feature weights [Overall Mean (StErr)]','Feature weights [Grand Mean (StErr)]'}
         switch meas{measind}
             case 'Feature weights [Overall Mean (StErr)]'
@@ -158,6 +145,7 @@ switch meas{measind}
                         se = sqrt(v.Spearman_CV2_p_uncorr_STD);
                     end
                 end
+               
                 miny = 0; maxy = max(y(:));
             case 'Pearson correlation -log10(P value) [Grand Mean]'
                 if iscell(v.Pearson_CV2_p_uncorr)
@@ -209,25 +197,7 @@ switch meas{measind}
                 miny = 0; maxy = max(y(:));
             case 'Model P value histogram'
                 y = v.PermModel_Crit_Global(curclass,:); 
-                vp = v.ObsModel_Eval_Global(curclass);
-                ve = v.PermModel_Eval_Global(curclass,:);
-                perms = length(v.PermModel_Eval_Global(curclass,:));
         end
-        
-        if multiflag && isfield(v,'PermModel_Crit_Global_Multi')
-            if measind == 1
-                 y = v.PermModel_Crit_Global_Multi; 
-                 vp = v.ObsModel_Eval_Global_Multi;
-                 ve = v.PermModel_Eval_Global_Multi;
-            else
-                 y = v.PermModel_Crit_Global_Multi_Bin(measind-1,:); 
-                 vp = v.ObsModel_Eval_Global_Multi_Bin(measind-1);
-                 ve = v.PermModel_Eval_Global_Multi_Bin(measind-1,:);
-            end
-            perms = length(v.PermModel_Eval_Global_Multi);
-            meas{measind} = 'Model P value histogram';
-        end
-        
         y(~isfinite(y))=0;
         
         if ~strcmp(meas{measind},'Model P value histogram')
@@ -265,25 +235,24 @@ switch meas{measind}
                     end
 
             end
-            legend('off');
         else
              set(handles.pn3DView,'Visible','off'); set(handles.axes33,'Visible','on');
-             ah=histogram(handles.axes33,y,'Normalization','probability','BinWidth',2.5,'EdgeColor','none','FaceColor',rgb('CornflowerBlue')); 
+             ah=histogram(handles.axes33,y,'Normalization','probability'); 
              maxah= max(ah.Values); ylim([0 maxah]); 
              handles.axes33.YTick = 0:maxah/10:maxah;
              yticklabels(handles.axes33,'auto')
              [xl,xlb]=nk_GetScaleYAxisLabel(handles.NM.analysis{handles.curranal}.params.TrainParam.SVM);
              xlim(xl); miny = xl(1); maxy=xl(2);
-             xlabel(['Optimization criterion: ' xlb]);
-             ylabel('Probability');
+             xlabel(['Optimization criterion: ' xlb])
+             ylabel('Probability')
              hold on;
-             xp = [ vp vp ]; yp = [ 0 maxah ];
+             xp = [v.ObsModel_Eval_Global(curclass) v.ObsModel_Eval_Global(curclass)]; yp = [ 0 maxah ];
              hl=line(xp, yp ,'LineWidth',2,'Color','r');
-             Pval = sum(ve)/size(ve,2);
+             Pval = sum(v.PermModel_Eval_Global(curclass,:))/size(v.PermModel_Eval_Global(curclass,:),2);
              if Pval ~= 0
                 Pvalstr = sprintf('P=%g',Pval);
              else
-                Pvalstr = sprintf('P<%g',1/perms);
+                Pvalstr = sprintf('P<%g',1/length(v.PermModel_Eval_Global(curclass,:)));
              end
              legend(hl,Pvalstr);
         end

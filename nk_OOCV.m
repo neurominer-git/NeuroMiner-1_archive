@@ -78,8 +78,6 @@ else
     if strcmp(MODEFL,'classification')
         Results.BinCV2Performance_DecisionValues_History    = cell(nclass,1);
         Results.BinCV2Performance_Targets_History           = cell(nclass,1);
-        Results.BinCV2Performance_DecisionValues            = nan(nclass,1);
-        Results.BinCV2Performance_Targets                   = nan(nclass,1);
         % Create binary indices
         for curclass=1:nclass
             if numel(CV.class{1,1}{curclass}.groups)>1
@@ -118,8 +116,9 @@ if isfield(iPREPROC,'LABELMOD') && isfield(iPREPROC.LABELMOD,'LABELIMPUTE');
     IMPUTE.flag = true; 
 end
 
-BINMOD = iPREPROC.BINMOD;
-
+% Always set to binary preprocessing (unless true multi-group learners have
+% been intergrated in NM)
+BINMOD = 1;
 FileNames = cell(ix,jx);
 % =========================================================================
 for f=1:ix % Loop through CV2 permutations
@@ -141,7 +140,8 @@ for f=1:ix % Loop through CV2 permutations
         switch inp.analmode
             case 0
                 
-                 OptModelPath = nk_GenerateNMFilePath( inp.rootdir, SAV.matname, 'OOCVOptModel', [], inp.varstr, inp.id, operm, ofold);
+                OptModelPath = nk_GenerateNMFilePath( inp.rootdir, SAV.matname, 'OOCVOptModel', [], inp.varstr, inp.id, operm, ofold);
+                %OptOOCVDataPath = nk_GenerateNMFilePath( inp.rootdir, SAV.matname, 'PreprocOOCVData',  [], inp.varstr, inp.id, operm, ofold);
         
                  loadfl = false;
                  if exist(oOOCVpath,'file') && ~ovrwrt && ~batchflag
@@ -166,10 +166,9 @@ for f=1:ix % Loop through CV2 permutations
                 if ~loadfl 
 
                     % Parameter flag structure for preprocessing
-                    paramfl = struct('use_exist',inp.loadparam, ...
+                    paramfl = struct('use_exist',true, ...
                                      'found', false, ...
-                                     'write', inp.saveparam, ...
-                                     'writeCV1', inp.saveCV1, ...
+                                     'write', true, ...
                                      'multiflag', multiflag);
 
                     [ contfl, analysis, mapY, GD, MD, Param, paramfl, mapYocv ] = nk_ApplyTrainedPreproc2(analysis, inp, paramfl);
@@ -227,23 +226,14 @@ for f=1:ix % Loop through CV2 permutations
 
                                     % Set the pointer to the correct mapY shelf
                                     for n=1:numel(paramfl)
-                                        pnt = 1;
-                                        if ~BINMOD
-                                             if isfield(paramfl{n},'PREPROC') && ...
-                                               isfield(paramfl{n},'PXfull') && ...
-                                               ~isempty(paramfl{n}.P{1})
-                                                pnt = m;
-                                                break   
-                                            end
+                                        if isfield(paramfl{n},'PREPROC') && ...
+                                           isfield(paramfl{n},'PXfull') && ...
+                                           ~isempty(paramfl{n}.P{h})
+                                            pnt = m; 
                                         else
-                                            if isfield(paramfl{n},'PREPROC') && ...
-                                               isfield(paramfl{n},'PXfull') && ...
-                                               ~isempty(paramfl{n}.P{h})
-                                                %Actual parameter node
-                                                pnt = m; 
-                                                break   
-                                            end
+                                            pnt = 1;
                                         end
+                                        break
                                     end
 
                                     % get training data using pointers
@@ -362,12 +352,11 @@ for f=1:ix % Loop through CV2 permutations
 
             % Compute multi-group labels (& performance, if labels are
             % available)
+           
             [MultiCV2PerformanceLL, MultiCV2PredictionsLL] = ...
-                nk_MultiEnsPerf(multiOOCVll, sign(multiOOCVll), labelOOCV, multiClassll, ngroups);
+                nk_MultiEnsPerf(multiOOCVll, sign(multiOOCVll), labelOOCV, multiClassll);
 
-            if LabelMode,    
-                Results.MultiCV2PerformanceLL = [ Results.MultiCV2PerformanceLL MultiCV2PerformanceLL ]; 
-            end
+            if LabelMode,    Results.MultiCV2PerformanceLL = [ Results.MultiCV2PerformanceLL MultiCV2PerformanceLL ]; end
             Results.MultiCV2PredictionsLL = [ Results.MultiCV2PredictionsLL MultiCV2PredictionsLL ];
             
             %% Step 4b: Compute multi-group prediction based on ensemble generated from ...
@@ -387,12 +376,13 @@ for f=1:ix % Loop through CV2 permutations
 
             % Compute multi-group labels (& performance, if labels are
             % available)
-            
-            [Results.MultiCV2Performance, Results.MultiCV2Predictions] = ...
-                nk_MultiEnsPerf(multiOOCV, sign(multiOOCV), labelOOCV, multiClass, ngroups);
             if LabelMode
-                Results.MultiCV2Performance_History = ...
-                    [ Results.MultiCV2Performance_History Results.MultiCV2Performance];
+                [Results.MultiCV2Performance, Results.MultiCV2Predictions] = ...
+                    nk_MultiEnsPerf(multiOOCV, sign(multiOOCV), labelOOCV, multiClass);
+                if LabelMode
+                    Results.MultiCV2Performance_History = ...
+                        [ Results.MultiCV2Performance_History Results.MultiCV2Performance];
+                end
             end
 
         end

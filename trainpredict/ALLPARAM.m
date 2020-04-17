@@ -37,14 +37,14 @@ TN = sum( predicted < 0 & expected < 0 );
 FN = sum( predicted < 0 & expected > 0 );
 
 param.TP = TP;
-param.TN = TN;
 param.FP = FP;
+param.TN = TN;
 param.FN = FN;
 param.P = TP + FP;
 param.N = TN + FN;
 param.acc   = ((TP + TN) / (TP+FP+TN+FN)) * 100 ;
-param.sens  = (TP / (TP + FN)) * 100;
 param.spec  = (TN / (TN + FP)) * 100;
+param.sens  = (TP / (TP + FN)) * 100;
 param.FPR   = (FP / (TN + FP)) * 100;
 param.PPV   = (TP / (TP + FP)) * 100;
 param.NPV   = (TN / (TN + FN)) * 100;

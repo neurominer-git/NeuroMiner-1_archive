@@ -20,5 +20,5 @@ else
     indf = sum(isnan(L),2)>0;
     L(indf,:)=[];
     X(indf,:)=[];
-    IND(indf) = [];
+    IND(indf,:) = 0;
 end

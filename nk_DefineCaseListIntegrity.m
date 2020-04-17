@@ -6,7 +6,7 @@ if ~isempty(cases)
 
     fprintf('\n*** Case list integrity check ***')
     if ~isequal(numel(cases),numel(tcases))
-        error('Case numbers in current variate differ from previous variates.')
+        error('\nCase numbers in current variate differ from previous variates.')
     end
     if ~isequal(cases,tcases)
         for i=1:numel(tcases)

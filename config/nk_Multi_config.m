@@ -54,8 +54,7 @@ if ~defaultfl
             multitraindef = 1;
         end
         switch method
-            case 1
-                multimethodstr = 'One-vs-One-Max-Wins ';
+            case {1,3}
                 switch MULTI.decisiontype
                     case 1
                         decodestr = 'Sum';
@@ -68,7 +67,12 @@ if ~defaultfl
                     case 5
                         decodestr = 'Median';
                 end
-                
+                switch method
+                    case 1
+                        multimethodstr = 'One-vs-One-Max-Wins ';
+                    case 3
+                        multimethodstr = 'Hierarchical One-vs-One ';
+                end
             case 2
                 multimethodstr = 'Error Correcting Output Codes ';
                 switch MULTI.decoding
@@ -83,8 +87,6 @@ if ~defaultfl
                     case 5
                         decodestr = 'Linear loss-based decoding';
                 end
-            case 3
-                multimethodstr = 'Directed Acyclic Graph '; decodestr = 'DAG';
         end
         multimethodstr = [multimethodstr '( ' decodestr ' )'] ;
         menustr = [ sprintf('Train multi-class predictor [ %s ]|', multiflagstr) ...
@@ -115,10 +117,10 @@ if ~defaultfl
                 method = nk_input('Multi-class decision method',0,'m',...
                     ['Simple Pairwise Decoding (Maximum-Wins method)|' ...
                     'Error-correcting output codes|' ...
-                    'Directed Acyclic Graph'],1:3,method);
+                    'Hierarchical One-vs-One method'],1:3,method);
              end
-             switch method
-                case 1
+            switch method
+                case {1,3}
                     decisiontype = nk_input('Multi-class decision type',0,'m', ...
                         ['Sum of decision values|' ...
                          'Mean of decision values|' ...
@@ -126,7 +128,7 @@ if ~defaultfl
                          'Majority voriting|' ...
                          'Median of decision values'],1:5,decisiontype);
                 case 2
-                    coding = 1; % Pairwise
+                    coding = 1; %Pairwise for the moment
                     decoding = nk_input('Decoding method',0,'m', ...
                         ['Hamming distance|' ...
                         'Euclidean distance|' ...

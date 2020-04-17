@@ -1,4 +1,4 @@
-function [classes, perf, dist, sim, minimum] = nk_MultiDecideErrorCorrOutCodes(X, L, ClX, Groups, Coding, Decoding, WeightFlag, ProbComp)
+function [classes, perf, dist, minimum] = nk_MultiDecideErrorCorrOutCodes(X, L, ClX, Coding, Decoding, WeightFlag)
 % [classes, ECOC] = nk_ErrorCorrOutCodes(X, L, ClX, Coding, Decoding, Weightflag)
 % ===================================================================================
 % 
@@ -8,10 +8,10 @@ function [classes, perf, dist, sim, minimum] = nk_MultiDecideErrorCorrOutCodes(X
 % 
 % Inputs:
 % =======
-% X         : The data instances to be classified, where rows (n) are instances
-%             and columns (m) the decision outputs of the base learners
+% X         : The data instances to be classified, where rows are instances
+%             and columns the decision outputs of the base learners
 % L         : Label vector
-% ClX       : A 1 x m vector identifying the dichotomization index of the
+% ClX       : A 1xm vector identifying the dichotomization id of the
 %             respective base learners
 % Coding    : Coding strategy. Currently: 
 %               1 = one-vs-one 
@@ -44,60 +44,49 @@ if ~isempty(SVM) && SVM.GridParam == 14
         multimode = 0;
 end
 
-if ~exist('ProbComp','var') || isempty(ProbComp)
-    ProbComp = 'invnormquad';
-end
-
 nr_classes = numel(unique(ClX));
 
 % Only binary decoding needed
-if nr_classes==1, nr_classes = 2; end;
+if nr_classes==1, nr_classes=2;end;
 
 % Compute code words if not available
 switch Coding
     case 1 % One-vs-One
         %fprintf('\nOne-vs-One coding')
-        oECOC = nk_OneVsOne(ClX, Groups);
+        oECOC = nk_OneVsOne(ClX,nr_classes);
 
     case 2 % One-vs-All
-        oECOC = nk_OneVsAll(ClX, Groups);
+        oECOC = nk_OneVsAll(ClX,nr_classes);
 end
 
-% if WeightFlag
-%     Weights = zeros(1,nr_classes);
-%     for curclass=1:nr_classes
-%         Weights(curclass) = sum(ClX==curclass);
-%     end
-%     [~,mXI] = max(Weights);
-%     Weights = Weights./Weights(mXI);
-%     
-% end
+if WeightFlag
+    Weights = zeros(1,nr_classes);
+    for curclass=1:nr_classes
+        Weights(curclass) = sum(ClX==curclass);
+    end
+    [~,mXI] = max(Weights);
+    Weights = Weights./Weights(mXI);
+else
+    Weights = [];
+end
 
 % Decode (with or without weighting according to number of dichotomizers in each class)
-[classes, dist, minimum] = decoding_main(X, oECOC, Decoding);
+[classes, dist, minimum] = decoding_main(X, oECOC, Weights, Decoding);
 
 if isempty(L), L = ones(numel(classes),1); end
 
-switch ProbComp
-    case 'softmax'
-        sim = 1-nk_softmax(dist);
-    case 'invnorm'
-        sim = (1./dist)./(sum(1./dist,2));
-    case 'invnormquad'
-        sim = (1./dist.^2)./(sum(1./dist.^2,2));
-end
 % Compute multi-class accuracy
 perf = nk_MultiPerfQuant(L,classes,multimode);
 
 return
 
 %% DECODING MAIN
-function [classes, dist, minimum] = decoding_main(X, ECOC, decoding)
+function [classes, dist, minimum] = decoding_main(X, ECOC, Weights, decoding)
 
 n_test = size(X,1);
 n_classes = size(ECOC,1);
 %classes = zeros(n_test,1);
-dist = zeros(n_test, n_classes);
+dist = zeros(n_test,n_classes);
 
 % Get code word for test instace X_i
 for k=1:n_classes
@@ -115,13 +104,14 @@ for k=1:n_classes
             dist(:,k) = AED(X,Y);
         case 5 % Linear loss-based decoding
             dist(:,k) = LLB(X,Y);
-%         case 6 % Cosine distance-based decoding
-%             dist(:,k) = COSD(X,Y);
     end
 end
 
+if ~isempty(Weights)
+    dist = dist .* repmat(Weights,n_test,1); 
+end
+
 [minimum, classes] = min(dist,[],2);
-classes(isnan(minimum))=NaN;
 return
 
 %% DECODING FUNCTIONS
@@ -152,8 +142,3 @@ return
 function d=LLB(x,y)
 d=sum(-1*(x.*y),2);            
 return
-
-% % Cosine-distance based decoding
-% function d=COSD(x,y)
-% d=pdist2(x',y','cosine');
-% return

@@ -124,7 +124,7 @@ while ( T > end_T )
     % ... Pn] using the CV1 data partitions. Apply single or ensemble model
     % to CV2 test sample in order to estimate the generalization 
     % capacity of the classification / prediction rule    
-    [CV1perf, CV2perf, models] = nk_CVPermFold(mapYi, nclass, cPs, FilterSubSets, batchflag);      
+    [CV1perf, CV2perf, models] = nk_CVPermFold2(mapYi, nclass, cPs, FilterSubSets, batchflag);      
     
     % Transfer results from CV1perf and CV2perf to GD
     % structure using nk_GridSearchHelper2 function

@@ -10,12 +10,12 @@ AbsThreshL = ExamFreq;
 for h=1:nclass
     for k = 1:ix
         for l= 1:jx
-            CritGain(k,l,h) = Models{k,l,h}{1}.(Models{k,l,h}{1}.Crit)(end) - Models{k,l,h}{1}.(Models{k,l,h}{1}.Crit)(1); 
-            ExamFreq{k,l,h} = Models{k,l,h}{1}.examsfreq; 
-            PercThreshU{k,l,h} = Models{k,l,h}{1}.optuvec; 
-            PercThreshL{k,l,h} = Models{k,l,h}{1}.optlvec;
-            AbsThreshU{k,l,h} = Models{k,l,h}{1}.optuthr;
-            AbsThreshL{k,l,h} = Models{k,l,h}{1}.optlthr;
+            CritGain(k,l,h) = Models{k,l}{h}.(Models{k,l}{h}.Crit)(end) - Models{k,l}{h}.(Models{k,l}{h}.Crit)(1); 
+            ExamFreq{k,l,h} = Models{k,l}{h}.examsfreq; 
+            PercThreshU{k,l,h} = Models{k,l}{h}.optuvec; 
+            PercThreshL{k,l,h} = Models{k,l}{h}.optlvec;
+            AbsThreshU{k,l,h} = Models{k,l}{h}.optuthr;
+            AbsThreshL{k,l,h} = Models{k,l}{h}.optlthr;
         end
     end
 end

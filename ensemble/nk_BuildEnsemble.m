@@ -1,4 +1,4 @@
-function [opt_F, opt_hE, opt_E, opt_D, opt_Fcat, opt_mPred] = nk_BuildEnsemble(C, L, EnsStrat, Classes, Groups)
+function [opt_F, opt_hE, opt_E, opt_D, opt_Fcat, opt_mPred] = nk_BuildEnsemble(C, L, EnsStrat, Classes)
 %
 % This is the main interface function for building ensembles of predictors
 %
@@ -14,7 +14,7 @@ if ~exist('Classes','var'), Classes=[]; end;
 
 if MULTI.flag && MULTI.train
     funcname = ['nk_Multi' EnsStrat.OptFunc];
-    [opt_hE, opt_E, opt_F, opt_Fcat, opt_D, opt_mPred] = feval(funcname, C, L, EnsStrat, Classes, Groups);
+    [opt_hE, opt_E, opt_F, opt_Fcat, opt_D, opt_mPred] = feval(funcname, C, L, EnsStrat, Classes);
 else
     funcname = ['nk_' EnsStrat.OptFunc];
     [opt_hE, opt_E, opt_F, opt_D] = feval(funcname, C, L, EnsStrat);

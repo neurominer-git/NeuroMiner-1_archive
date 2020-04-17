@@ -46,7 +46,7 @@ if ~isempty(act) || ~defaultsfl
             acti = 1; while acti>0, [acti, RFE] = nk_Filter_config(acti, RFE, SVM, MODEFL, MULTI, [], navistr); end
         case 2
             if ~isfield(RFE,'Wrapper') || isempty(RFE.Wrapper), [~, RFE] = nk_Wrapper_config([], RFE, SVM, MODEFL, GRD, 1); end
-            acti = 1; while acti>0, [acti, RFE] = nk_Wrapper_config(acti, RFE, SVM, MODEFL, GRD, MULTI, [], navistr); end
+            acti = 1; while acti>0, [acti, RFE] = nk_Wrapper_config(acti, RFE, SVM, MODEFL, GRD, [], navistr); end
         case 3
             RFE = config_ens(RFE, MODEFL, navistr);    
         case 4
@@ -55,7 +55,7 @@ if ~isempty(act) || ~defaultsfl
 else
     RFE = [];
     [~,RFE] = nk_Filter_config([], RFE, SVM, MODEFL, MULTI,1);
-    [~,RFE] = nk_Wrapper_config([], RFE, SVM, MODEFL, GRD, MULTI, 1);
+    [~,RFE] = nk_Wrapper_config([], RFE, SVM, MODEFL, GRD, 1);
     RFE.CV2Class.type = 2;
     RFE.CV2Class.EnsembleStrategy.type = 0;
     RFE.CV2Class.EnsembleStrategy.DataType = 2;

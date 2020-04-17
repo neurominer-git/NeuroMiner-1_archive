@@ -563,8 +563,6 @@ switch action
                     vargout.FeatFlt = ['Relief [ k = ' num2str(params.Filter.Relief.k) ' ]' ];
                 case 13
                     vargout.FeatFlt = 'FScore';
-                case 14
-                    vargout.FeatFlt = 'Bhattacharya distance';
             end
                 
             if params.Filter.SubSpaceStrategy > 1 && params.Filter.SubSpaceFlag

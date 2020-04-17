@@ -3,13 +3,11 @@ function visdata = nk_VisModels(inp, id, GridAct, batchflag)
 % visdata = nk_VisModels(inp, strout, id, GridAct, batchflag)
 % =========================================================================
 % Visualisation module of NeuroMiner
-% This core NeuroMiner function analyzes the relevance of the elements in 
-% the predictive patterns of the models and optionally computed model 
-% significance using a permutation-based approach
+% ...
 % %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% (c) Nikolaos Koutsouleris, 12/2018
+% (c) Nikolaos Koutsouleris, 02/2017
 
-global SVM SAV RFE MODEFL CV VERBOSE FUSION MULTILABEL EVALFUNC 
+global SVM SAV RFE MODEFL CV VERBOSE FUSION MULTILABEL EVALFUNC
 
 % %%%%%%%%%%%%%%%%%%%%%%%%%%%%% INITIALIZATION %%%%%%%%%%%%%%%%%%%%%%%%%%%%
 visdata         = [];                               % Initialize with empty output
@@ -20,7 +18,6 @@ switch inp.analmode
         vismat  = inp.vismat;                       % Visualization datamat
 end
 saveparam       = inp.saveparam;
-saveCV1         = inp.saveCV1;
 loadparam       = inp.loadparam;
 strout          = inp.varstr;                       % Suffix for filename indicating modality assignment of file
 nclass          = inp.nclass;                       % Number of binary comparisons
@@ -28,7 +25,6 @@ analysis        = inp.analysis;                     % GDanalysis structure to be
 varind          = inp.tF;                           % Current modality index
 ol              = 0;                                % Counter for computing mean vectors
 ll              = 1;                                % Counter for looping through CV2 arrays
-lx              = size(inp.labels,1);               % number of cases
 [ix, jx]        = size(CV.TrainInd);                % No. of Perms / Folds at CV2 level
 ind0            = false(1,ix*jx);
 algostr         = GetMLType(SVM);                   % Algorithm descriptions
@@ -39,11 +35,7 @@ permfl          = false(1,nM);                      % flag for permutation mode
 sigfl           = false(1,nM);                      % flag for significance estimation mode
 nperms          = ones(1,nM);                       % number of permuations per modality
 pmode           = ones(1,nM);                       % Permutation mode
-if strcmp(MODEFL,'classification') && nclass > 1
-    ngroups     = numel(unique(inp.labels(~isnan(inp.labels)))); % Number of classes in the label
-else
-    ngroups     = 1;
-end
+
 % Loop through modalities (in early fusion: nM = 1)
 Dall = 0;
 
@@ -109,7 +101,21 @@ for i = 1 : nM
             permfile = fullfile(inp.rootdir,[SAV.matname '_VISpermmat_ID' id '.mat']);
             if ~exist(permfile,'file')
                 fprintf('\nCreating parent permutation matrix with %g perms', nperms(1))
-                indpermA = nk_VisXPermHelper('genpermlabel', size(inp.labels,1), nperms(1));
+    %             if nclass>1
+    %                 indpermA = cell(nclass,1);
+    %                 for curclass=1:nclass
+    %                     fprintf('\n\tBinary comparison: %g', curclass);
+    %                     groups = CV.class{1,1}{curclass}.groups;
+    %                     if numel(groups)==2
+    %                         N = sum(inp.labels == groups(1) | inp.labels == groups(2)) + sum(isnan(inp.labels));
+    %                     else
+    %                         N = size(inp.labels,1);
+    %                     end
+    %                     indpermA{curclass} = nk_VisXPermHelper('genpermlabel', N, nperms(1));
+    %                 end
+    %             else
+                    indpermA = nk_VisXPermHelper('genpermlabel', size(inp.labels,1), nperms(1));
+     %           end
                 save(permfile,'indpermA');
             else
                 fprintf('\nLoading parent permutation matrix from file: \n%s', permfile);
@@ -138,13 +144,8 @@ end
 % Initialize CV2 data containers
 I = nk_VisXHelper('init', nM, nclass,  decompfl, permfl, ix, jx);
 if any(permfl), 
-    I.VCV2MPERM_S = cell(lx,nclass,nperms(1)); 
-    I.VCV2MORIG_S = cell(lx,nclass); 
-    if inp.multiflag
-        I.VCV2MORIG_S_MULTI = nan(lx,ix);
-        I.VCV2MPERM_S_MULTI = nan(lx,ix, nperms(1));
-        I.VCV2MPERM_MULTI   = zeros(1,ix*jx);
-    end
+    I.VCV2MPERM_S = cell(size(inp.labels,1),nclass,nperms(1)); 
+    I.VCV2MORIG_S = cell(size(inp.labels,1),nclass); 
 end
 
 % Obtain feature labels for the selected modalities
@@ -228,9 +229,8 @@ for f=1:ix % Loop through CV2 permutations
                 inp.f = f; inp.d = d; inp.ll = ll;  
                 % Parameter flag structure for preprocessing
                 paramfl = struct('use_exist', loadparam, ...
-                                 'found', false, ... 
-                                 'write', true, ... % has to be set to true otherwise no params will be returned from the preproc module
-                                 'writeCV1', saveCV1, ...
+                                 'found', false, ...
+                                 'write', 1, ...
                                  'multiflag', multiflag);
                 
                 % Apply prerpocessing on the entire data and use these
@@ -271,12 +271,6 @@ for f=1:ix % Loop through CV2 permutations
                     I1.DS           = cell(nclass,1);
                     I1.TS_perm      = cell(nclass,1);
                     I1.DS_perm      = cell(nclass,1);
-                    if inp.multiflag
-                        I1.mTS      = cell(nclass,1);
-                        I1.mDS      = cell(nclass,1);
-                        I1.mDS_perm = cell(nclass,1);
-                        I1.mTS_perm = cell(nclass,1);
-                    end
                 end
                 
                 for h=1:nclass % Loop through binary comparisons
@@ -289,7 +283,6 @@ for f=1:ix % Loop through CV2 permutations
                     switch MODEFL
                         case 'classification'
                             TsInd2 = CV.TestInd{f,d}(CV.classnew{f,d}{h}.ind);
-                            if inp.multiflag, TsIndM = CV.TestInd{f,d}; end
                         case 'regression'
                             TsInd2 = CV.TestInd{f,d};
                     end
@@ -341,13 +334,6 @@ for f=1:ix % Loop through CV2 permutations
                             I1.DS{h}            = nan(nTs, ill);
                             I1.DS_perm{h}       = nan(nTs, ill, nperms(1));
                             I1.TS_perm{h}       = nan(nTs, ill, nperms(1));
-                            if inp.multiflag
-                                nTsM = size(CV.TestInd{f,d},1);
-                                I1.mTS{h}       = nan(nTsM, ill);
-                                I1.mDS{h}       = nan(nTsM, ill);
-                                I1.mDS_perm{h}  = nan(nTsM, ill, nperms(1));
-                                I1.mTS_perm{h}  = nan(nTsM, ill, nperms(1));
-                            end
                             I1.VCV1PERM{h, n}   = nan(D, ill,'single');
                             I1.VCV1PERM_FDR{h, n} = nan(D, ill,'single');
                             I1.VCV1ZSCORE{h, n} = nan(D, ill,'single');
@@ -405,8 +391,7 @@ for f=1:ix % Loop through CV2 permutations
                                         if isfield(paramfl{n},'PREPROC') && ...
                                            isfield(paramfl{n},'PXfull') && ...
                                            ~isempty(paramfl{n}.P{h})
-                                            %Actual parameter node
-                                            pnt = m; 
+                                            pnt = m;
                                             break   
                                         end
                                     end
@@ -418,12 +403,11 @@ for f=1:ix % Loop through CV2 permutations
                                 [ modelTr , modelCV, modelTs] = nk_ReturnAtOptPos(mapY.Tr{k,l}{hix},  mapY.CV{k,l}{hix}, mapY.Ts{k,l}{hix}, [], Param{1}(k,l,hix), pnt); 
                                 switch FUSION.flag
                                     case 2
-                                        ParamX = cell(n,1);
-                                        for n=1:nM
+                                        for n=1:nM, 
                                             [~,~,~,~, ParamX{n} ] = nk_ReturnAtOptPos(mapY.Tr{k,l}{hix},  mapY.CV{k,l}{hix}, mapY.Ts{k,l}{hix}, [], Param{n}(k,l,hix), pnt); 
                                         end
                                     otherwise
-                                         [~,~,~,~, ParamX ] = nk_ReturnAtOptPos(mapY.Tr{k,l}{hix},  mapY.CV{k,l}{hix}, mapY.Ts{k,l}{hix}, [], Param{1}(k,l,hix), pnt); 
+                                        ParamX = Param{1}(k,l,hix).TrainedParam;
                                 end      
 
                                 % Get label info
@@ -456,10 +440,6 @@ for f=1:ix % Loop through CV2 permutations
                                     if size(pCVInd,2)>1,pCVInd=pCVInd'; end
                                     if FullPartFlag, pTrInd = [pTrInd; pCVInd];end
                                     if pmode(1)==1, indperm = indpermA(pTrInd,:); end
-                                    if inp.multiflag ==1,
-                                        modelTsm = modelTs;
-                                        modelTsmL = inp.labels(TsIndM);
-                                    end
                                     modelTs = modelTs(TsInd,:); 
                                     modelTsL = mapY.TsL{h};
                                 else
@@ -500,15 +480,12 @@ for f=1:ix % Loop through CV2 permutations
                                     
                                     if ~any(permfl)
                                         % Compute original weight map in input space
-                                        [Tx, Psel, Rx, SRx, ~, PAx] = nk_VisXWeight2(inp, MD{h}{m}{k,l}{u}, Ymodel, modelTrL, varind, ParamX, Find, Vind, decompfl);
+                                        [Tx, Psel, Rx, SRx, ~, PAx] = nk_VisXWeight2(inp, MD{h}{m}{k,l}{u}, Ymodel, modelTrL, varind, ParamX, Find, Vind, decompfl, pnt);
                                     else
                                         fprintf('\n\t%3g | OptModel =>', u);
                                          % Build permutation index array if
                                         % needed and compute further variables
                                         % needed for perm-based stats
-                                        if inp.multiflag
-                                            [~, I1.mTS{h}(:,il), I1.mDS{h}(:,il)] = nk_GetTestPerf(modelTsm, modelTsmL, Find, MD{h}{m}{k,l}{u}, modelTr); 
-                                        end
                                         [perf_orig, I1.TS{h}(:,il), I1.DS{h}(:,il)] = nk_GetTestPerf(modelTs, modelTsL, Find, MD{h}{m}{k,l}{u}, modelTr); 
                                         fprintf(' %1.2f',perf_orig)
                                         % if sigfl = true
@@ -517,7 +494,7 @@ for f=1:ix % Loop through CV2 permutations
                                         if sigfl
                                             fprintf(' | Significant pattern components (%g perms):\t',nperms(1));
                                             % Original weight vector
-                                            [~,~,~,~, Vx] = nk_VisXWeight2(inp, MD{h}{m}{k,l}{u}, Ymodel, modelTrL, varind, ParamX, Find, Vind, decompfl, false);
+                                            [~,~,~,~, Vx] = nk_VisXWeight2(inp, MD{h}{m}{k,l}{u}, Ymodel, modelTrL, varind, ParamX, Find, Vind, decompfl, pnt, false);
                                             Vx_perm = zeros( size(Vx,1), nperms(1) );
                                             MD_perm = cell(nperms(1),1);
                                             for perms = 1:nperms(1)
@@ -526,7 +503,7 @@ for f=1:ix % Loop through CV2 permutations
                                                 [L_perm, Ymodel_perm]       = nk_VisXPermY(Ymodel, inp.labels, pTrInd, pmode(1), indperm, indpermfeat, perms);
                                                 [~, MD_perm{perms}]         = nk_GetParam2(Ymodel_perm, L_perm, sPs, 1);
                                                 % Compute permuted weight vector in feature space
-                                                [~,~,~,~,Vx_perm(:, perms)] = nk_VisXWeight2(inp, MD_perm{perms}, Ymodel_perm, L_perm, varind, ParamX, Find, Vind, decompfl, false);
+                                                [~,~,~,~,Vx_perm(:, perms)] = nk_VisXWeight2(inp, MD_perm{perms}, Ymodel_perm, L_perm, varind, ParamX, Find, Vind, decompfl, pnt, false);
                                             end
                                             % Determine significance by comparing observed weight vector
                                             % against null distribution of permuted models' weight vectors
@@ -551,7 +528,7 @@ for f=1:ix % Loop through CV2 permutations
                                         
                                         fprintf(' | Permuting:\t');
                                         % Compute original weight map in input space
-                                        [Tx, Psel, Rx, SRx, ~, PAx ] = nk_VisXWeight2(inp, MD{h}{m}{k,l}{u}, Ymodel, modelTrL, varind, ParamX, Find, Vind, decompfl, [], Fadd);
+                                        [Tx, Psel, Rx, SRx, ~, PAx ] = nk_VisXWeight2(inp, MD{h}{m}{k,l}{u}, Ymodel, modelTrL, varind, ParamX, Find, Vind, decompfl, pnt, [], Fadd);
                                         Tx_perm = cell(1,nM); Px_perm = zeros(1,nperms(1));
                                         for n=1:nM, Tx_perm{n} = zeros(size(Tx{n},1),nperms(n)); end
                                         for perms = 1:nperms(1)
@@ -565,16 +542,13 @@ for f=1:ix % Loop through CV2 permutations
                                             end
                                             % Compute permuted model test performance
                                             [perf_perm, I1.TS_perm{h}(:,il,perms), I1.DS_perm{h}(:,il,perms)] = nk_GetTestPerf(modelTs, modelTsL, Find, MDs, modelTr);
-                                            if inp.multiflag
-                                                [~, I1.mTS_perm{h}(:,il,perms), I1.mDS_perm{h}(:,il,perms)] = nk_GetTestPerf(modelTsm, modelTsmL, Find, MDs, modelTr); 
-                                            end
                                             % Compare against original model performance
                                             if feval(compfun, perf_perm, perf_orig),
                                                 fprintf('.'); 
                                                 Px_perm(perms) = Px_perm(perms) + 1;
                                             end
                                             % Compute permuted weight map in input space
-                                            TXperms = nk_VisXWeight2(inp, MDs, Ymodel_perm, L_perm, varind, ParamX, Find, Vind, decompfl, [], Fadd);
+                                            TXperms = nk_VisXWeight2(inp, MDs, Ymodel_perm, L_perm, varind, ParamX, Find, Vind, decompfl, pnt, [], Fadd);
                                             for n=1:nM, Tx_perm{n}(:,perms) = TXperms{n}; end
                                         end
                                         
@@ -637,11 +611,6 @@ for f=1:ix % Loop through CV2 permutations
                                                     end
                                                 end
                                             end
-                                             %% Comnpute feature selection probabilities %%
-                                             if inp.fixedOrder
-                                                 if isempty(I1.PCV1SUM{h, n}), I1.PCV1SUM{h, n} = zeros(inp.nD,1); end
-                                                 I1.PCV1SUM{h, n} = I1.PCV1SUM{h, n} + Psel{n}; 
-                                             end
                                         else
                                             % Define index vector to
                                             % original space of modality
@@ -684,18 +653,28 @@ for f=1:ix % Loop through CV2 permutations
                         I1.VCV1MORIG_EVALFUNC_CV2{h} = feval(EVALFUNC, modelTsL, nm_nanmedian(I1.DS{h},2)); 
                         I1.VCV1MPERM_CV2{h} = zeros(nperms(1),1); 
                         I1.VCV1MPERM_EVALFUNC_CV2{h} = zeros(nperms(1),1);
+                        I.VCV2MORIG_S(TsInd2,h) = cellmat_mergecols(I.VCV2MORIG_S(TsInd2,h), num2cell(I1.DS{h},2));
                         for perms = 1:nperms(1)
                             I1.VCV1MPERM_EVALFUNC_CV2{h}(perms) = feval(EVALFUNC, modelTsL, nm_nanmedian(I1.DS_perm{h}(:,:,perms),2)); 
                             I1.VCV1MPERM_CV2{h}(perms)          = feval(compfun, I1.VCV1MPERM_EVALFUNC_CV2{h}(perms), I1.VCV1MORIG_EVALFUNC_CV2{h} );
+                            I.VCV2MPERM_S(TsInd2,h,perms)       = cellmat_mergecols(I.VCV2MPERM_S(TsInd2,h,perms), num2cell(I1.DS_perm{h}(:,:,perms),2));
                         end
                     end
+                    %I.VCV2MPERM_CV2(h,ll) = sum(I1.VCV1MPERM_CV2{h})/nperms(1);
                     clear Tx tmp V Ymodel modelTr modelTrL F Fkl dum 
+                    %try, I = rmfield(I,'PCV1SUM'); end
+                
                 end
                 I = nk_VisXHelper('accum', nM, nclass, decompfl, permfl, ix, jx, I, inp, ll, nperms(1), I1);  
+                if any(permfl), 
+                    for h=1:nclass
+                        fprintf('\nCV2 [%g, %g]: Observed performance [ model #%g ]: %1.2f; P[CV2]: %1.3f', operm, ofold, h, I1.VCV1MORIG_EVALFUNC_CV2{h}, I.VCV2MPERM_CV2(h,ll) ); 
+                    end
+                end
                 fprintf('\nSaving %s', oVISpath); save(oVISpath,'I1','sPs','operm','ofold');
                 if saveparam, fprintf('\nSaving %s', OptModelPath); save(OptModelPath, 'MD', 'ofold','operm'); end
                 if isfield(I1,'PCV1SUM'), PCV1SUMflag=true; else PCV1SUMflag = false; end
-                clear Param MD
+                clear Param I1 MD
                 
             case 1
 
@@ -709,93 +688,35 @@ for f=1:ix % Loop through CV2 permutations
                     fprintf('\n\nLoading visualization data:');
                     fprintf('\n%s',vnam);
                     [I, I1] = nk_VisXHelper('accum', nM, nclass, decompfl, permfl, ix, jx, I, inp, ll, nperms(1), vpth);
+                    if any(permfl)
+                        for h=1:nclass
+                             switch MODEFL
+                                case 'classification'
+                                    TsInd2 = CV.TestInd{f,d}(CV.classnew{f,d}{h}.ind);
+                                case 'regression'
+                                    TsInd2 = CV.TestInd{f,d};
+                            end
+                            I.VCV2MORIG_S(TsInd2,h) = cellmat_mergecols(I.VCV2MORIG_S(TsInd2,h), num2cell(I1.DS{h},2));
+                            for perms = 1:nperms(1), I.VCV2MPERM_S(TsInd2,h,perms) = cellmat_mergecols(I.VCV2MPERM_S(TsInd2,h,perms), num2cell(I1.DS_perm{h}(:,:,perms),2)); end
+                        end
+                    end
                     ol=ol+1;
                 end
-                if isfield(I1,'PCV1SUM'), PCV1SUMflag=true; else, PCV1SUMflag = false; end
+                if isfield(I1,'PCV1SUM'), PCV1SUMflag=true; else PCV1SUMflag = false; end
 
         end
-        % Assemble observed and permuted model predictions of current CV2
-        % partition into overall prediction matrix
-        if any(permfl)
-            for h=1:nclass
-                 fprintf('\nCV2 [%g, %g]: Observed performance [ model #%g ]: %1.2f; P[CV2] = %1.3f', operm, ofold, h, I1.VCV1MORIG_EVALFUNC_CV2{h}, I.VCV2MPERM_CV2(h,ll) ); 
-                 if strcmp(MODEFL,'classification')
-                    TsInd2 = CV.TestInd{f,d}(CV.classnew{f,d}{h}.ind);
-                 else
-                    TsInd2 = CV.TestInd{f,d};
-                 end
-                 I.VCV2MORIG_S(TsInd2,h) = cellmat_mergecols(I.VCV2MORIG_S(TsInd2,h), num2cell(I1.DS{h},2));
-                 for perms = 1:nperms(1), I.VCV2MPERM_S(TsInd2,h,perms) = ...
-                         cellmat_mergecols(I.VCV2MPERM_S(TsInd2,h,perms), num2cell(I1.DS_perm{h}(:,:,perms),2)); end
-            end
-            % Perform multi-class permutation testing
-            if inp.multiflag
-                 if ~isfield(I1,'mDS'), fprintf('\n');error('You requested multi-class significance but the current VISDATAMAT contains only binary classifier data. Rerun visualization with multi-group optimization.'); end
-                 fprintf('\nComputing CV2 multi-class model significance\n\tMulti-class perfomance: '); 
-                 mDTs = []; mTTs = []; Classes = []; mcolend = 0;
-                 TsIndM = CV.TestInd{f,d};
-                 for h=1:nclass
-                     for il=1:size(I1.mDS{h},2)
-                        % Multi-group CV2 array construction for observed
-                        % model
-                        [mDTs, mTTs, Classes, ~, mcolend] = ...
-                            nk_MultiAssemblePredictions( I1.mDS{h}(:,il), I1.mTS{h}(:,il), mDTs, mTTs, Classes, 1, h, mcolend );
-                     end
-                 end
-                 % compute multi-group performance of observed model
-                 [ mCV2perf_obs, mCV2pred_obs ] = nk_MultiEnsPerf(mDTs, mTTs, inp.labels(TsIndM, inp.curlabel), Classes, ngroups);
-                 I.VCV2MORIG_S_MULTI(TsIndM,f) = mCV2pred_obs;
-                 
-                 % now assess observed model's significance
-                 mPx_perm = zeros(1,nperms(1));
-                 fprintf(' %1.2f | Permuting:\t', mCV2perf_obs);
-                 for perms = 1:nperms(1)
-                     mDTs_perm = []; mTTs_perm = []; Classes_perm = []; mcolend_perm = 0;
-                     for h=1:nclass
-                         % Multi-group CV2 array construction for permuted
-                         % model
-                         for il=1:size(I1.mDS{h},2)
-                            [mDTs_perm, mTTs_perm, Classes_perm, ~, mcolend_perm] = ...
-                                nk_MultiAssemblePredictions( I1.mDS_perm{h}(:,il,perms), I1.mTS_perm{h}(:,il,perms), mDTs_perm, mTTs_perm, Classes_perm, 1, h, mcolend_perm );
-                         end
-                     end
-                     % Compute multi-group performance of permuted
-                     % model
-                     [ mCV2perf_perm, mCV2pred_perm ] = nk_MultiEnsPerf(mDTs_perm, mTTs_perm, inp.labels(TsIndM, inp.curlabel), Classes_perm, ngroups);
-                     I.VCV2MPERM_S_MULTI(TsIndM,f,perms) = mCV2pred_perm;
-                     % Compare against original model performance
-                     if feval(compfun, mCV2perf_perm, mCV2perf_obs),
-                        fprintf('.'); 
-                        mPx_perm(perms) = mPx_perm(perms) + 1;
-                     end
-                 end
-                 I.VCV2MPERM_MULTI(ll) = (sum(mPx_perm) / nperms(1));
-                 fprintf('P[CV2] = %1.3f', I.VCV2MPERM_MULTI(ll));
-            else
-                if isfield(I1,'mDS'), fprintf('\nNot computing CV2 multi-class model significance'); end
-            end
-        end
         ll=ll+1; clear GDFEAT
-        clear I1
     end
 end
 
 
-%% PERFORM POST-PROCESSING VISUALIZATION PROCEDURES ON THE ENTIRE DATA 
+%%%%%%%%%%%%%%%%%%%%%%%% PERFORM IMAGING PROCEDURES %%%%%%%%%%%%%%%%%%%%%%%%%
 if ~batchflag
     
-    % visdata is a cell array of with nM dimensions, where nM is defined by
-    % the number of modalities used in the analysis
     visdata = cell(1,nM);
-    
     if any(permfl) 
-        
-        % mean and SD model significance of binary models at the CV1 level
         I.VCV2MODELP = nm_nanmedian(I.VCV2MPERM,2); 
         I.VCV2MODELP_STD = nm_nanstd(I.VCV2MPERM); 
-        
-        % Loop through classifiers / regressors and compute hold-out
-        % model significance 
         for h=1:nclass
             switch MODEFL
                 case 'classification'
@@ -812,86 +733,24 @@ if ~batchflag
                 case 'regression'
                     labelh = inp.labels;
             end
-            indempt     = cellfun(@isempty,I.VCV2MORIG_S);
-            Porig       = cellfun(@nm_nanmedian,I.VCV2MORIG_S(~indempt(:,h),h)); 
-            Lorig       = labelh(~indempt(:,h));
-            indnonnan   = ~isnan(Porig); 
+            indempt = cellfun(@isempty,I.VCV2MORIG_S);
+            Porig = cellfun(@nm_nanmedian,I.VCV2MORIG_S(~indempt(:,h),h)); 
+            Lorig = labelh(~indempt(:,h));
+            indnonnan = ~isnan(Porig); 
             if inp.targscale, IN.revertflag = true; IN.minY = inp.minLbCV; IN.maxY = inp.maxLbCV; Porig = nk_PerfScaleObj(Porig, IN); end
-            % Observed hold out performance
             I.VCV2MORIG_EVALFUNC_GLOBAL(h) = feval(EVALFUNC, Lorig(indnonnan), Porig(indnonnan));
-            fprintf('\nTesting observed %s model performance [ model #%g: %s = %1.2f ] in the hold-out data against %g permutations\n', ...
-                                        MODEFL, h, EVALFUNC,  I.VCV2MORIG_EVALFUNC_GLOBAL(h), nperms(1));
+            fprintf('\nTesting observed model performance against permuted models using entire data: %g permutations\n', nperms(1))
             for perms = 1 : nperms(1)
-                Pperm                                = cellfun(@nm_nanmedian, I.VCV2MPERM_S(~indempt(:,h),h,perms));
-                if inp.targscale, Pperm              = nk_PerfScaleObj(Pperm, IN); end
-                % Permuted hold-out performances
+                Pperm = cellfun(@nm_nanmedian, I.VCV2MPERM_S(~indempt(:,h),h,perms));
+                if inp.targscale, Pperm = nk_PerfScaleObj(Pperm, IN); end
                 I.VCV2MPERM_EVALFUNC_GLOBAL(h,perms) = feval(EVALFUNC, labelh(indnonnan), Pperm(indnonnan)); 
-                crt                                  = feval(compfun, I.VCV2MPERM_EVALFUNC_GLOBAL(h,perms), I.VCV2MORIG_EVALFUNC_GLOBAL(h));
-                if ~crt, fprintf('*'); else, fprintf('.'); end
-                % Store boolean measuring whether permuted hold-out
-                % performance was better than the observed performance
-                I.VCV2MPERM_GLOBAL(h,perms)          = crt;
+                crt = feval(compfun, I.VCV2MPERM_EVALFUNC_GLOBAL(h,perms), I.VCV2MORIG_EVALFUNC_GLOBAL(h));
+                if ~crt, fprintf('*'); else fprintf('.'); end
+                I.VCV2MPERM_GLOBAL(h,perms) = crt;
             end
         end
-        
-        % Test additional binary labels
         if ~isempty(inp.extraL)
             I = nk_VisModels_ExtraLabels(I, inp, nperms, compfun);
-        end
-        
-        % [ Eventually in an updated version test subgroup performance
-        % here]
-        
-        % Perform multi-class significance test including entire model and
-        % binary dichotomizers (one vs. REST models, irrespective of 
-        % one-vs-one or one-vs-all decomposition schemes)
-        if inp.multiflag
-            
-            % mean and SD model significance of multi-class models at the CV1 level
-            I.VCV2MODELP = nm_nanmedian(I.VCV2MPERM_MULTI); 
-            I.VCV2MODELP_STD = nm_nanstd(I.VCV2MPERM_MULTI); 
-            
-            I.VCV2MPERM_GLOBAL_MULTI = zeros(1,nperms(1));
-            fprintf('\nTesting observed multi-class model performance against permuted models using entire data: %g permutations\n', nperms(1))
-            % Convert predictions to class-membership probabilities of
-            % observed model
-            MultiCV2Prob_orig           = nk_ConvProbabilities(I.VCV2MORIG_S_MULTI, ngroups);
-            ind                         = isnan(MultiCV2Prob_orig(:,1)) | isnan(inp.labels); 
-            [~, MultiCV2Pred_orig]      = max(MultiCV2Prob_orig,[],2);
-            MultiCV2Pred_orig(ind)      = NaN;
-            MultiCV2Errs_orig           = nan(size(ind,1),1);
-            MultiCV2Errs_orig(ind)      = inp.labels(ind)~= MultiCV2Pred_orig(ind);
-            % Compute multi-class confusion matrix of observed model
-            MultiCV2ConfMatrix_orig     = nk_ComputeConfMatrix(inp.labels, MultiCV2Pred_orig, ngroups);
-            % Observed multi-class performance and one vs. REST
-            % dichotomizers are stored in a structure:
-            I.VCV2MORIG_GLOBAL_MULTI    = nk_MultiClassAssessConfMatrix(MultiCV2ConfMatrix_orig, inp.labels, MultiCV2Pred_orig, MultiCV2Errs_orig, 'BAC');
-            fprintf('\nMulti-class performance: %1.2f | Permuting:\t', I.VCV2MORIG_GLOBAL_MULTI.BAC_Mean);
-            I.VCV2PERM_GLOBAL_MULTI     = zeros(1,nperms(1));
-            I.VCV2PERM_GLOBAL_MULTI_ONEvsREST = zeros(ngroups,nperms(1));
-            for perms = 1 : nperms(1)
-                % Convert predictions to class-membership probabilities
-                MultiCV2Prob_perm               = nk_ConvProbabilities(I.VCV2MPERM_S_MULTI(:,:,perms), ngroups);
-                [~, MultiCV2Pred_perm]          = max(MultiCV2Prob_perm,[],2);
-                MultiCV2Pred_perm(ind)          = NaN;
-                MultiCV2Errs_perm               = nan(size(ind,1),1);
-                MultiCV2Errs_perm(ind)          = inp.labels(ind)~= MultiCV2Pred_perm(ind);
-                % Compute multi-class confusion matrix of permuted model
-                MultiCV2ConfMatrix_perm         = nk_ComputeConfMatrix(inp.labels, MultiCV2Pred_perm, ngroups);
-                % Permuted hold-out performance of the multi-class models
-                % and its dichotomizers
-                multicv2perf_perm               = nk_MultiClassAssessConfMatrix(MultiCV2ConfMatrix_perm, inp.labels, MultiCV2Pred_perm, MultiCV2Errs_perm, 'BAC');
-                I.VCV2PERM_GLOBAL_MULTI(perms)  = multicv2perf_perm.BAC_Mean;
-                I.VCV2PERM_GLOBAL_MULTI_ONEvsREST(:, perms) = multicv2perf_perm.BAC;
-                % Evaluate permutation test criterion in multi-class model
-                % and its dichotomizers
-                crt_multi = feval(compfun, I.VCV2PERM_GLOBAL_MULTI(perms), I.VCV2MORIG_GLOBAL_MULTI.BAC_Mean);
-                crt_onevsrest = feval(compfun, I.VCV2PERM_GLOBAL_MULTI_ONEvsREST(:,perms), I.VCV2MORIG_GLOBAL_MULTI.BAC');
-                if ~crt_multi, fprintf('*'); else, fprintf('.'); end
-                % Store test results
-                I.VCV2MPERM_GLOBAL_MULTI(perms) = crt_multi;
-                I.VCV2MPERM_GLOBAL_MULTI_ONEvsREST(:,perms) = crt_onevsrest;
-            end
         end
     end
     
@@ -909,9 +768,6 @@ if ~batchflag
                 if PCV1SUMflag && h==1, I.PCV2 = zeros(D,nclass); end
                 I.PCV2(:,h) = I.PCV2SUM{h, n}' ./ NumPredDiv; 
                 if size(I.VCV2PEARSON{h, n},2)>1
-                    % Compute mean and SD univariate association measures
-                    % (currently Pearson and Spearman), and their uncorrected
-                    % and FDR-corrected statistical significance
                     I.VCV2PEARSON_STD{h,n} = nm_nanstd(I.VCV2PEARSON{h, n},2);
                     I.VCV2PEARSON{h,n} = nm_nanmedian(I.VCV2PEARSON{h, n},2);
                     I.VCV2SPEARMAN_STD{h,n} = nm_nanstd(I.VCV2SPEARMAN{h, n},2);
@@ -922,16 +778,13 @@ if ~batchflag
                     I.VCV2SPEARMAN_UNCORR_PVAL{h,n} = nm_nanmedian(I.VCV2SPEARMAN_UNCORR_PVAL{h, n},2);
                     I.VCV2PEARSON_FDR_PVAL{h,n} = nm_nanmedian(I.VCV2PEARSON_FDR_PVAL{h, n},2);
                     I.VCV2SPEARMAN_FDR_PVAL{h,n} = nm_nanmedian(I.VCV2SPEARMAN_FDR_PVAL{h, n},2);
-                    % Compute analytical p values using the method of
-                    % Gaonkar et al. if linear SVM was the base learner
                     if linsvmfl
                         I.VCV2PVAL_ANALYTICAL{h,n} = nm_nanmedian(I.VCV2PVAL_ANALYTICAL{h, n},2);
                         I.VCV2PVAL_ANALYTICAL_FDR{h,n} = nm_nanmedian(I.VCV2PVAL_ANALYTICAL_FDR{h, n},2);
                     end
                 end
             end
-            % Compute empirical multivariate p values (corrected and
-            % uncorrected as well as Z scores
+
             if any(permfl),
                 I.VCV2ZSCORE{h,n}   = nm_nansum(I.VCV2ZSCORE{h,n},2) ./ I.VCV2SEL{h,n};
                 % Uncorrected p values
@@ -945,16 +798,17 @@ if ~batchflag
                 I.VCV2PERM_FDR_PVAL{h,n} = -log10(Pvals);
             end
             
-            % Mean relevance/weight vector across all CV2 * CV1 partitions
+            % Mean image across all CV2 * CV1 partitions
             I.VCV2{h,n} = nm_nansum(I.VCV2SUM{h,n},2) ./ I.VCV2SEL{h,n};
             
-            % Compute standard error of relevance and weight vector 
+            % Compute Standard error 
+            I.VCV2SUM2{h,n} = nm_nansum((I.VCV2SUM{h,n}.^2),2) ./ I.VCV2SEL{h,n};
             if size(I.VCV2SQ{h, n},2)>1
-                I.VCV2SE{h,n}       = nm_nanmedian(sqrt(abs(I.VCV2SQ{h, n} - I.VCV2SUM2{h,n})./(I.VCV2SEL{h,n})),2);
+                I.VCV2SE{h,n}  = sqrt(abs(nm_nanmedian(I.VCV2SQ{h, n},2) - I.VCV2SUM2{h,n})./(I.VCV2SEL{h,n}-1));
                 I.VCV2MEAN_CV1{h,n} = nm_nanmedian(I.VCV2MEAN{h,n},2);
                 I.VCV2SE_CV1{h,n}   = nm_nanmedian(I.VCV2STD{h,n},2);
             else
-                I.VCV2SE{h,n}  =     sqrt(abs(I.VCV2SQ{h, n} - I.VCV2SUM2{h,n})./(I.VCV2SEL{h,n}));
+                I.VCV2SE{h,n}  = sqrt(abs(I.VCV2SQ{h, n} - I.VCV2SUM2{h,n})./(I.VCV2SEL{h,n}-1));
                 I.VCV2MEAN_CV1{h,n} = I.VCV2MEAN{h,n};
                 I.VCV2SE_CV1{h,n}   = I.VCV2STD{h,n};
             end
@@ -1165,14 +1019,6 @@ if ~batchflag
             visdata{n}.PermModel_Eval_Global    = I.VCV2MPERM_GLOBAL;
             visdata{n}.PermModel_Crit_Global    = I.VCV2MPERM_EVALFUNC_GLOBAL;
             visdata{n}.ObsModel_Eval_Global     = I.VCV2MORIG_EVALFUNC_GLOBAL;
-            if inp.multiflag
-                visdata{n}.PermModel_Eval_Global_Multi_Bin  = I.VCV2MPERM_GLOBAL_MULTI_ONEvsREST;
-                visdata{n}.PermModel_Crit_Global_Multi_Bin  = I.VCV2PERM_GLOBAL_MULTI_ONEvsREST;
-                visdata{n}.ObsModel_Eval_Global_Multi_Bin   = I.VCV2MORIG_GLOBAL_MULTI.BAC;
-                visdata{n}.PermModel_Eval_Global_Multi      = I.VCV2MPERM_GLOBAL_MULTI;
-                visdata{n}.PermModel_Crit_Global_Multi      = I.VCV2PERM_GLOBAL_MULTI;
-                visdata{n}.ObsModel_Eval_Global_Multi       = I.VCV2MORIG_GLOBAL_MULTI.BAC_Mean;
-            end
         end
         if ~isempty(inp.extraL)
             visdata{n}.ExtraL = I.EXTRA_L;

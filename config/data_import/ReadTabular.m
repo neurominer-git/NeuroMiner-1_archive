@@ -28,11 +28,7 @@ switch fileflg
         IO.s_featnames = IO.Y.Properties.VariableNames;
         col_cases = strcmp(IO.s_featnames,IO.case_edit);
         col_label = RetCellInCellsIndex(IO.s_featnames, IO.label_edit);
-        if isnumeric(IO.Y{:,col_cases})
-            IO.s_ID = cellstr(num2str(IO.Y{:,col_cases}));
-        else
-            IO.s_ID = table2cell(IO.Y(:,col_cases));
-        end
+        IO.s_ID = table2cell(IO.Y(:,col_cases));
         if ~isfield(IO,'oocvflag') || ~IO.oocvflag || IO.labels_known
             IO.s_label = table2array(IO.Y(:,col_label));
         end

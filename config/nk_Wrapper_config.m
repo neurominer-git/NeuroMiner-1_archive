@@ -1,4 +1,4 @@
-function [act, param] = nk_Wrapper_config(act, param, SVM, MODEFL, GRD, MULTI, defaultsfl, parentstr)
+function [act, param] = nk_Wrapper_config(act, param, SVM, MODEFL, GRD, defaultsfl, parentstr)
 %
 % Defaults
 % --------
@@ -8,7 +8,7 @@ Wrapper.optflag             = 2;    % Perform wrapper-based feature selection at
 Wrapper.type                = 1;
 Wrapper.datamode            = 2;
 Wrapper.CostFun             = 2;   % currently static
-[ ~, Wrapper ]              = nk_GreedySearch_config(Wrapper,SVM, MULTI, 1);
+[ ~, Wrapper ]               = nk_GreedySearch_config(Wrapper,SVM,1);
 Wrapper                     = nk_SA_config(Wrapper,1); % Define SA defaults
 % Subspace strategy
 Wrapper.SubSpaceFlag        = 0;
@@ -89,14 +89,14 @@ if ~isempty(act) || ~defaultsfl
                 end
             end
         case 3
-            if isfield(Wrapper,'optflag'), optflag = Wrapper.optflag; else, optflag = 1; end 
+            if isfield(Wrapper,'optflag'), optflag = Wrapper.optflag; else optflag = 1; end 
             Wrapper.optflag = nk_input('Learn Wrapper only at optimum',0,'yes|no',[1,2], optflag);
             
         case 4
             Wrapper.type = nk_input('Feature search mode',0,'m','Greedy feature selection|Simulated Annealing',1:2, Wrapper.type);
             switch Wrapper.type
                 case 1
-                    t_act = 1; while t_act>0, [ t_act , Wrapper ] = nk_GreedySearch_config(Wrapper, SVM, MULTI, 0, navistr); end
+                    t_act = 1; while t_act>0, [ t_act , Wrapper ] = nk_GreedySearch_config(Wrapper, SVM, 0, navistr); end
                 case 2
                     Wrapper = nk_SA_config(Wrapper); 
             end

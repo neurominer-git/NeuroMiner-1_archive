@@ -125,11 +125,7 @@ try
                            curr_iID = curr_iID(II); 
                        case {3,4}
                            IDcol = strcmp(t_Y.Properties.VariableNames, IO.case_edit);
-                           if isnumeric(t_Y{II,IDcol})
-                               curr_iID = cellstr(num2str(t_Y{II,IDcol}));
-                           else
-                               curr_iID = cellstr(t_Y{II,IDcol}) ;
-                           end
+                           curr_iID = t_Y{II,IDcol} ;
                    end
                    if numel(IO.ID) == size(t_label,1),
                        prev_iID = IO.ID(IO.label==find(strcmp(jdesc_groups,desc_groups{i})));

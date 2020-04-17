@@ -20,7 +20,8 @@ nCVSubj         = zeros(IN.nclass,1);
 strout          = 'Multi-group classification performance';
 Tr              = cell(IN.nclass,1);
 CV              = cell(IN.nclass,1);
-ngroups         = IN.ngroups; 
+
+Classes = 1:IN.nclass; 
 
 if exist('LoopParam','var') && ~isempty(LoopParam)
     PermVec = LoopParam.PermVec;
@@ -61,7 +62,7 @@ for ii=1:PermNum % Loop through CV1 permutations
         CVL = IN.Y.mCVL{i,j}(:,MULTILABEL.curdim); TrL = IN.Y.mTrL{i,j}(:,MULTILABEL.curdim);
         CVdecsCat = zeros(nCVSubj(1), IN.nclass);
         TrdecsCat = zeros(nTrSubj(1), IN.nclass);
-        Classes = [];
+        
         for k=1:mxNFea % Loop through feature subspaces
             
             indMx = k <= nDicho;
@@ -71,13 +72,12 @@ for ii=1:PermNum % Loop through CV1 permutations
                 if ~indMx(curclass), indFea = nDicho(curclass); else indFea = k; end
                 TrdecsCat(:,curclass)   = Tr{curclass}(:,indFea);
                 CVdecsCat(:,curclass)   = CV{curclass}(:,indFea);
-                Classes = [Classes repmat(curclass,numel(indFea))];
             end
             
             % Evaluate multi-group performace for current feature subspace 
             % using specified method
-            [OUT.mts{i,j}(k), OUT.mCVPred{i,j}(:,k)] = nk_MultiEnsPerf(CVdecsCat, sign(CVdecsCat), CVL, Classes, ngroups);
-            [OUT.mtr{i,j}(k), OUT.mTrPred{i,j}(:,k)] = nk_MultiEnsPerf(TrdecsCat, sign(TrdecsCat), TrL, Classes, ngroups);
+            [OUT.mts{i,j}(k), OUT.mCVPred{i,j}(:,k)] = nk_MultiEnsPerf(CVdecsCat, sign(CVdecsCat), CVL, Classes);
+            [OUT.mtr{i,j}(k), OUT.mTrPred{i,j}(:,k)] = nk_MultiEnsPerf(TrdecsCat, sign(TrdecsCat), TrL, Classes);
             
             if VERBOSE, fprintf('\n%s => CV1 [%g, %g, %g/%g subspaces]: %1.2f', strout, i, j, k, mxNFea, OUT.mts{i,j}(k)), end
         end

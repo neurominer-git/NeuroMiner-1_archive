@@ -40,8 +40,6 @@ inparams.ovrwrtRes =        inp.ovrwrtRes;
 inparams.updRes =           inp.updRes;
 inparams.label =            inp.labels;
 inparams.l =                size(inp.labels,1);
-if strcmp(MODEFL,'classification')
-    inparams.ngroups =      numel(unique(inp.labels(~isnan(inp.labels))));           
 inparams.covars =           inp.covars;
 inparams.covars_oocv =      [];
 inparams.varstr =           inp.varstr;
@@ -194,9 +192,11 @@ for i=1:inparams.nclass
             inparams.Params_desc{i}{1} = 'Sequence';
             inparams.Params{i}{2} = GRD.CutOffparams;
             inparams.Params_desc{i}{2} = '%Step';
-            inparams.Params{i}{3} = GRD.LimsLparams;
-            inparams.Params_desc{i}{3} = '%L-Population';
-            inparams.Params{i}{4} = GRD.LimsUparams;
+            switch SVM.SEQOPT.AnchorType
+                case 1
+                   inparams.Params{i}{3} = GRD.LimsLparams;
+                   inparams.Params_desc{i}{3} = '%L-Population';
+                   inparams.Params{i}{4} = GRD.LimsUparams;
             inparams.Params_desc{i}{4} = '%U-Population';
     end
 

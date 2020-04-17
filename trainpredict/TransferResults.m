@@ -89,33 +89,18 @@ if isfield(O,'detrend') && O.detrend.flag
 end
 
 if isfield(O,'critgain')
-    td = cell2mat(reshape(O.examfreq(:,:,1),ix*jx,1));
-    o.MeanCritGain = zeros(I.nclass,1);
-    o.SDCritGain = zeros(I.nclass,1);
-    o.MeanExamFreq = zeros(I.nclass, size(td,2));
-    o.SDExamFreq = zeros(I.nclass, size(td,2));
-    o.MeanAbsThreshU = zeros(I.nclass, size(td,2)-1);
-    o.SDAbsThreshU = zeros(I.nclass, size(td,2)-1);
-    o.MeanAbsThreshL = zeros(I.nclass, size(td,2)-1);
-    o.SDAbsThreshL = zeros(I.nclass, size(td,2)-1);
-    o.MeanPercThreshU =  zeros(I.nclass, size(td,2)-1);
-    o.SDPercThreshU =  zeros(I.nclass, size(td,2)-1);
-    o.MeanPercThreshL =  zeros(I.nclass, size(td,2)-1);
-    o.SDPercThreshL =  zeros(I.nclass, size(td,2)-1);
-    for curclass = 1 : I.nclass
-       o.CritGain = O.critgain;
-       o.MeanCritGain(curclass) = nm_nanmean(reshape(O.critgain(:,:,curclass),ix*jx,1));
-       o.SDCritGain(curclass) = nm_nanstd(reshape(O.critgain(:,:,curclass),ix*jx,1));
-       o.MeanExamFreq(curclass,:) = nm_nanmean(cell2mat(reshape(O.examfreq(:,:,curclass),ix*jx,1)));
-       o.SDExamFreq(curclass,:) = nm_nanstd(cell2mat(reshape(O.examfreq(:,:,curclass),ix*jx,1)));
-       o.MeanAbsThreshU(curclass,:) = nm_nanmean(cell2mat(reshape(O.absthreshU(:,:,curclass),ix*jx,1)));
-       o.SDAbsThreshU(curclass,:) = nm_nanstd(cell2mat(reshape(O.absthreshU(:,:,curclass),ix*jx,1)));
-       o.MeanAbsThreshL(curclass,:) = nm_nanmean(cell2mat(reshape(O.absthreshL(:,:,curclass),ix*jx,1)));
-       o.SDAbsThreshL(curclass,:) = nm_nanstd(cell2mat(reshape(O.absthreshL(:,:,curclass),ix*jx,1)));
-       o.MeanPercThreshU(curclass,:) = nm_nanmean(cell2mat(reshape(O.percthreshU(:,:,curclass),ix*jx,1)));
-       o.SDPercThreshU(curclass,:) = nm_nanstd(cell2mat(reshape(O.percthreshU(:,:,curclass),ix*jx,1)));
-       o.MeanPercThreshL(curclass,:) = nm_nanmean(cell2mat(reshape(O.percthreshL(:,:,curclass),ix*jx,1)));
-       o.SDPercThreshL(curclass,:) = nm_nanstd(cell2mat(reshape(O.percthreshL(:,:,curclass),ix*jx,1)));
-    end
+   o.CritGain = O.critgain;
+   o.MeanCritGain = nm_nanmean(reshape(O.critgain,ix*jx,1));
+   o.SDCritGain = nm_nanstd(reshape(O.critgain,ix*jx,1));
+   o.MeanExamFreq = nm_nanmean(cell2mat(reshape(O.examfreq(:,:,curclass),ix*jx,1)));
+   o.SDExamFreq = nm_nanstd(cell2mat(reshape(O.examfreq(:,:,curclass),ix*jx,1)));
+   o.MeanAbsThreshU = nm_nanmean(cell2mat(reshape(O.absthreshU(:,:,curclass),ix*jx,1)));
+   o.SDAbsThreshU = nm_nanstd(cell2mat(reshape(O.absthreshU(:,:,curclass),ix*jx,1)));
+   o.MeanAbsThreshL = nm_nanmean(cell2mat(reshape(O.absthreshL(:,:,curclass),ix*jx,1)));
+   o.SDAbsThreshL = nm_nanstd(cell2mat(reshape(O.absthreshL(:,:,curclass),ix*jx,1)));
+   o.MeanPercThreshU = nm_nanmean(cell2mat(reshape(O.percthreshU(:,:,curclass),ix*jx,1)));
+   o.SDPercThreshU = nm_nanstd(cell2mat(reshape(O.percthreshU(:,:,curclass),ix*jx,1)));
+   o.MeanPercThreshL = nm_nanmean(cell2mat(reshape(O.percthreshL(:,:,curclass),ix*jx,1)));
+   o.SDPercThreshL = nm_nanstd(cell2mat(reshape(O.percthreshL(:,:,curclass),ix*jx,1)));
 end
 

@@ -9,11 +9,11 @@ function nk_Initialize(action)
 global NMinfo NM CALIBAVAIL OOCVAVAIL SPMAVAIL FSAVAIL
 
 NMinfo.info.name    = 'NeuroMiner';
-NMinfo.info.ver     = 'Development version 1.05 | ELESSAR ';
+NMinfo.info.ver     = 'version 1.0 | ELESSAR ';
 NMinfo.info.author  = 'Nikolaos Koutsouleris & the PRONIA-WP2 team';
 NMinfo.info.affil   = 'Department of Psychiatry and Psychotherapy';
 NMinfo.info.inst    = 'Ludwig-Maximilian-University';
-NMinfo.info.datever = '01/2019';
+NMinfo.info.datever = '11/2018';
 NMinfo.info.timestamp = date;
 NMinfo.info.email   = 'nm@pronia.eu';
 try

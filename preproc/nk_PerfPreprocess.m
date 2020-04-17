@@ -25,8 +25,8 @@ function [tY, Pnt, paramfl, tYocv] = nk_PerfPreprocess(Y, inp, labels, paramfl, 
 global PREPROC MODEFL MULTI CV RAND VERBOSE TEMPL SAV
 
 % Initialize runtime variables
-i       = inp.f; % Curration permutation
-j       = inp.d; % Current fold
+i       = inp.f; 
+j       = inp.d; 
 kbin    = inp.nclass;
 [iy,jy] = size(CV(1).cvin{i,j}.TrainInd); 
 TrInd   = CV(1).TrainInd{i,j}; 
@@ -130,12 +130,6 @@ for k=1:iy % Inner permutation loop
         
         for u=1:ukbin % Binary comparison loop depending on PREPROC.BINMOD & FBINMOD
             
-            if ischar(Pnt(k,l,u).TrainedParam) && exist(Pnt(k,l,u).TrainedParam,'file')
-                load( Pnt(k,l,u).TrainedParam );
-            else
-                oTrainedParam = Pnt(k,l,u).TrainedParam;
-            end
-            
             %Check whether optimised parameter space exists
             PREPROC = nk_SetParamChain(paramfl, u, PREPROC);
 
@@ -143,12 +137,10 @@ for k=1:iy % Inner permutation loop
                 usY = sY{u}; 
                 if ~isempty(Yocv), usYocv = sYocv{u}; end
                 if ~isempty(Cocv), usCocv = sCocv{u}; end
-                if isfield(inp,'Yw'), InputParam.Yw = inp.Yw{u}; end
             else
                 usY = sY;
                 if ~isempty(Yocv), usYocv = sYocv; end
                 if ~isempty(Cocv), usCocv = sCocv; end
-                if isfield(inp,'Yw'), InputParam.Yw = inp.Yw; end
             end
             paramfl.P{u} = nk_ReturnParamChain(PREPROC, 1); 
             
@@ -182,17 +174,11 @@ for k=1:iy % Inner permutation loop
                     if ~isempty(Yocv), vTs{pu,4} = usYocv{pu}; end
                     % Calibration data
                     if ~isempty(Cocv), InputParam.C{pu} = usCocv{pu}; end
-                    
-                    if pu == 1
-                        % Remove cases which are completely NaN
-                        [vTr{pu},~, SrcParam.iTrX] = nk_ManageNanCases(vTr{pu});
-                        [vTs{pu,1}, TrL, SrcParam.iTr] = nk_ManageNanCases(vTs{pu,1}, TrL);
-                        [vTs{pu,2}, CVL, SrcParam.iCV] = nk_ManageNanCases(vTs{pu,2}, CVL);
-                    else
-                        vTr{pu} = nk_ManageNanCases(vTr{pu});
-                        vTs{pu,1} = nk_ManageNanCases(vTs{pu,1});
-                        vTs{pu,2} = nk_ManageNanCases(vTs{pu,2});
-                    end
+                           
+                    % Remove cases which are completely NaN
+                    [vTr{pu},~, SrcParam.iTrX] = nk_ManageNanCases(vTr{pu}, TrL);
+                    [vTs{pu,1}, TrL, SrcParam.iTr] = nk_ManageNanCases(vTs{pu,1}, TrL);
+                    [vTs{pu,2}, CVL, SrcParam.iCV] = nk_ManageNanCases(vTs{pu,2}, CVL);
                     [vTs{pu,3}, ~, SrcParam.iTs] = nk_ManageNanCases(vTs{pu,3});
                 end
             else
@@ -210,7 +196,7 @@ for k=1:iy % Inner permutation loop
                 % Calibration data
                 if ~isempty(Cocv), InputParam.C = usCocv; end
             end
-                
+            if isfield(inp,'Yw'), InputParam.Yw = inp.Yw; end 
             InputParam.Tr = vTr; InputParam.Ts = vTs;
 
             if VERBOSE; fprintf('\n-----------------------------------------------------------------------------------'); 
@@ -247,8 +233,8 @@ for k=1:iy % Inner permutation loop
             switch MODEFL
                 case 'classification'
                     if RAND.Decompose ~=9
-                        SrcParam.BinaryTrainLabel   = [ones(sum(TrL == CV.class{i,j}{u}.groups(1)),1); -1*ones(sum(TrL == CV.class{i,j}{u}.groups(2)),1)];
-                        SrcParam.BinaryCVLabel      = [ones(sum(CVL == CV.class{i,j}{u}.groups(1)),1); -1*ones(sum(CVL == CV.class{i,j}{u}.groups(2)),1)];
+                        SrcParam.BinaryTrainLabel   = CV.class{i,j}{u}.TrainLabel{k,l};
+                        SrcParam.BinaryCVLabel      = CV.class{i,j}{u}.TestLabel{k,l};
                     end
                     SrcParam.MultiTrainLabel    = TrL;
                     SrcParam.MultiCVLabel       = CVL;
@@ -259,7 +245,10 @@ for k=1:iy % Inner permutation loop
 
             %% Generate and execute for given CV1 partition preprocessing sequence
 
-            [InputParam, oTrainedParam, SrcParam] = nk_GenPreprocSequence(InputParam, PREPROC, SrcParam, oTrainedParam);
+            [InputParam, oTrainedParam, SrcParam] = nk_GenPreprocSequence(InputParam, PREPROC, SrcParam, Pnt(k, l, u).TrainedParam);
+            
+            % Check whether we have imputed labels
+            if isfield(SrcParam,'TrL_imputed'), TrL = SrcParam.TrL_imputed; end
             
             %% Write preprocessed data to mapY structure
             if isfield(paramfl,'PREPROC') && isfield(paramfl,'PXfull') && ~isempty(paramfl.PXopt{u})
@@ -280,19 +269,9 @@ for k=1:iy % Inner permutation loop
             if  any(cellfun(@isempty,trd)) ||  any(cellfun(@isempty,cvd)) ||  any(cellfun(@isempty,tsd)),
                 error('Empty training/test/validation data matrices return by preprocessing pipeline. Check your settings')
             end
-            
-            % Check whether we have imputed labels
-            if isfield(SrcParam,'TrL_imputed'), 
-                TrL = SrcParam.TrL_imputed; 
-                [~,TrL] = nk_ManageNanCases(vTs{1}, TrL, SrcParam.iTr); 
-                tTrL = labels(TrI,:);
-                TrL(~isnan(tTrL)) = tTrL(~isnan(tTrL));
-            else
-                % Overwrite labels adjusted to NaN cases
-                TrL = labels(TrI,:); CVL = labels(CVI,:);
-            end
-            
             clear InputParam
+            
+            TrL = labels(TrI,:); CVL = labels(CVI,:);
             switch BINMOD
 
                 case 0 % Multi-group mode both in FBINMOD and PREPROC.BINMOD
@@ -370,18 +349,7 @@ for k=1:iy % Inner permutation loop
             if ~isempty(MULTI) && MULTI.flag, tY.mTrL{k,l} = TrL; tY.mCVL{k,l} = CVL; end
             
             % save parameters
-            if paramfl.write || cv2flag, 
-                if isfield(paramfl,'writeCV1') && paramfl.writeCV1 == 1
-                    filename = sprintf('Preproc_CV2-R%gF%g_CV1-R%gF%gC%g.mat',i,j,k,l,u);
-                    if ~exist(inp.procdir,'dir'), mkdir(inp.procdir); end
-                    filepath = fullfile(inp.procdir,filename);
-                    fprintf('\tSaving to file.')
-                    save(filepath,'oTrainedParam','-v7.3');
-                    Pnt(k,l,u).TrainedParam = filename;
-                else
-                    Pnt(k,l,u).TrainedParam = oTrainedParam; 
-                end
-            end
+            if paramfl.write || cv2flag, Pnt(k,l,u).TrainedParam = oTrainedParam; end
             clear TrainedParam SrcParam
         end
     end

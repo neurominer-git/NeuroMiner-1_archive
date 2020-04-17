@@ -5,7 +5,6 @@ if isfield(handles,'ExportPredictionsM')
     delete(handles.ExportPredictionsM);
     delete(handles.ExportPerformanceM);
 end
-
 for i=1:numel(handles.NM.analysis)
     if handles.NM.analysis{i}.status
         flg1 = flg1+1;
@@ -26,7 +25,6 @@ for i=1:numel(handles.NM.analysis)
     else
         popupstr{i} = sprintf('Analysis %g - NOT computed',i);
     end
-    handles.n_analyses = flg1;
 end
 
 set(handles.selAnalysis, 'String', popupstr);
@@ -39,10 +37,4 @@ end
 if flg2>1
     handles.ExportFeaturesM(flg2+1) = uimenu(handles.ExportFeaturesMenu, 'Separator', 'on', 'Label','Export feature visualization data of all analyses','Tag','All');
 end
-
-if ~isfield(handles,'ExportPredictionsDlg')
-    handles.ExportPredictionsDlg = uimenu(handles.ExportMenuItem,'Label','Performance Tabulator', 'Tag', 'PerfTab');
-end
-
-
 

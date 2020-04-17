@@ -62,7 +62,7 @@ for curclass=1:IN.nclass
 end
 
 % Retrain predictors using new feature masks
-[IN, OUT] = FoldPerm(IN, OUT, 'Retrain for PFC across CV1 partitions', OptMode, 0, 0, Param.SubSpaceStepping); 
+[IN, OUT] = FoldPerm2(IN, OUT, 'Retrain for PFC across CV1 partitions', OptMode, 0, 0, Param.SubSpaceStepping); 
 for curclass=1:IN.nclass
 
     % Overwrite existing feature masks with probabilistic mask

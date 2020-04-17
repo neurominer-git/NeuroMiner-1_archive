@@ -33,12 +33,7 @@ switch handles.modeflag
                 labelh = handles.BinClass{h_class}.labelh;
             end
             cl1 = handles.colptin(handles.BinClass{h_class}.groupind(1),:);
-           
-            if ~handles.BinClass{h_class}.one_vs_all
-                cl2 = handles.colptin(handles.BinClass{h_class}.groupind(2),:);
-            else
-                cl2= rgb('DarkGrey');
-            end
+            cl2 = handles.colptin(handles.BinClass{h_class}.groupind(2),:);
         end
     case 'regression'
         set(handles.txtPretestProb,'visible','on');

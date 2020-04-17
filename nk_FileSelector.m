@@ -64,7 +64,7 @@ for i=1:size(imgfile,1)
         iimgfile = deblank(imgfile(i,:));
         switch imgtype
             case {'nifti','spm'}
-                timgvol = spm_vol(iimgfile); 
+                timgvol = spm_vol(imgfile); 
             case 'surf'     
                 timgvol = SurfaceReader(iimgfile);
         end

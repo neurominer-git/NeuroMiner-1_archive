@@ -241,9 +241,6 @@ if eIN || ~isfield(IN,'mpp') || isempty(IN.mpp)
                 end
             end
             pY = pY'; IN.mpp.r_err = fitRes;
-        case 'optNMF'
-            [IN.mpp.W, IN.mpp.H] = opnmf_mem(Y', IN.DR.dims);
-            pY = AUtoPhysicalUnits(Y',IN.mpp.W); pY=pY';
         case 'FastMVU'
             k = nk_ReturnParam('K',Params_desc, opt);
             [pY,IN.mpp] = compute_mapping(Y,IN.DR.RedMode, IN.DR.dims, k, IN.DR.finetune, IN.DR.Modus);
@@ -305,8 +302,6 @@ else
             pY = bsxfun(@minus, Y, IN.mpp.sampleMean) * IN.mpp.vec;
         case 'NNMF'
             pY = featureExtrationTest(IN.TrX',Y',IN.mpp); pY = pY';
-        case 'optNMF'
-            pY = AUtoPhysicalUnits(Y',IN.mpp.W); pY=pY';
         case 'SPCA'
             pY = nk_PerfSPCA(Y, IN.mpp);
         case 'LMNN2.5'

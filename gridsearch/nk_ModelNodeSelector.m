@@ -211,11 +211,9 @@ for curlabel=1:MULTILABEL.dim
                             Regul, MD(:,curlabel), GD.FEAT(:,curlabel), GD.Weights(:,curlabel), ...
                             GD.MultiCV2Pred(:,curlabel), GD.MultiCV1CVPred(:,curlabel), ...
                             Ps, Pdesc, combcell, act, PercVec(PercStep));
-                
-               MultiGroupGridSelection.bestprob    = GD.MultiCV2Prob(MultiGroupGridSelection.Npos,curlabel);         
+              
                MultiGroupGridSelection.bestCV2pred = GD.MultiCV1Pred(MultiGroupGridSelection.Npos,curlabel);
-               MultiGroupGridSelection.bestCV2prob = GD.MultiCV1Prob(MultiGroupGridSelection.Npos,:,curlabel);
-    
+
                if nPerc > 1
                    % Concatenate prediction array 
                     TransNodeArray = nk_CatNodes(GD.MultiCV1CVPred(MultiGroupGridSelection.Npos));

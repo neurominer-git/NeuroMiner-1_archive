@@ -181,13 +181,8 @@ for j=1:numel(R.vecneg{I})
     % Performance of new model in given sample defined by fI(ind)
     switch SVM.SEQOPT.Mode
         case 1
-            % Here the benchmark will be done using the performance in the 
-            % actual set of cases selected based on the current ambiguity 
-            % threshold
             prevOPT = ALLPARAM(L(fI(ind)),jD(fI(ind)));
         case 2
-            % Alternatively the benchmark is done on the entire population
-            % (at the various levels of classifier propagation)
             prevOPT = rOPT;
     end
     jD(fI(ind)) = R.D(fI(ind),I+1);

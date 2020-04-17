@@ -22,7 +22,7 @@
 %
 % %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % (c) Nikolaos Koutsouleris, 06/2011
-function [opt_hE, opt_E, opt_F, opt_Fcat, opt_D, opt_Pred] = nk_MultiCVMax(E, L, EnsStrat, C, G)
+function [opt_hE, opt_E, opt_F, opt_Fcat, opt_D, opt_Pred] = nk_MultiCVMax(E, L, EnsStrat, C)
 global BATCH VERBOSE
 
 %% Preparations
@@ -34,7 +34,7 @@ nclass  = max(C);
 if EnsStrat.Metric == 2, T = sign(E); else T = E; end  
 
 %% Compute initial ensemble performance
-[opt_hE, opt_Pred] = nk_MultiEnsPerf(E, T, L, C, G); 
+[opt_hE, opt_Pred] = nk_MultiEnsPerf(E, T, L, C); 
 orig_hE = opt_hE;
 
 %% Compute initial ensemble entropy
@@ -87,7 +87,7 @@ switch EnsStrat.ConstructMode
                     lE = E(:,kI); lT = T(:,kI); lC = C(:,kI);
                     pos = k(curclass)-l+1;
                     % Compute current multi-group ensemble performance
-                    [lhE(pos), leE(:,pos)] = nk_MultiEnsPerf(lE, lT, L, lC, G);
+                    [lhE(pos), leE(:,pos)] = nk_MultiEnsPerf(lE, lT, L, lC);
                     % Compute current dichotomizer ensemble ambiguity (entropy)
                     lD(pos) = nk_Entropy(T(:,kI),[1 -1], m);
                     l=l-1;
@@ -155,7 +155,7 @@ switch EnsStrat.ConstructMode
                     lE = E(:,kI); lT = T(:,kI); lC = C(:,kI);
                     
                     % Compute current ensemble performance
-                    lhE(l) = nk_MultiEnsPerf(lE, lT, L, lC, G);
+                    lhE(l) = nk_MultiEnsPerf(lE, lT, L, lC);
 
                     % Compute current ensemble ambiguity (entropy)
                     lD(l) = nk_Entropy(lT(:,lC==curclass),[-1 1], m);
@@ -200,7 +200,7 @@ if feval(EnsStrat.OptInlineFunc2, orig_hE, MaxParam, orig_D, MaxAbParam)
     opt_I = orig_F; opt_hE = orig_hE; opt_D = orig_D;
 else
     opt_D = MaxAbParam; 
-    [opt_hE, opt_Pred] = nk_MultiEnsPerf(E(:,opt_I), T(:,opt_I), L, C(:,opt_I), G); 
+    [opt_hE, opt_Pred] = nk_MultiEnsPerf(E(:,opt_I), T(:,opt_I), L, C(:,opt_I)); 
 end
 
 % Generate outputs of function

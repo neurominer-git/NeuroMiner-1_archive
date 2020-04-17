@@ -87,19 +87,22 @@ for n=1:nM
     elseif isfield(paramfl,'Param')
         paramfl = rmfield(paramfl,'Param');
     end
-
+    
     if inp.stacking
-        [mapY{n}, Param{n}, P{n}, mapYocv{n}] = nk_PerfPreprocessMeta(inp, inp.label, paramfl);
+        [mapYn, Paramn, paramfln, mapYocvn] = nk_PerfPreprocessMeta(inp, inp.label, paramfl);
     else
-        [mapY{n}, Param{n}, P{n}, mapYocv{n}] = nk_PerfPreprocess(Y, inp, inp.label, paramfl, Yocv);
+        [mapYn, Paramn, paramfln, mapYocvn] = nk_PerfPreprocess(Y, inp, inp.label, paramfl, Yocv);
     end
     
+    mapY{n} = mapYn; P{n} = paramfln; if ~isempty(mapYocvn), mapYocv{n} = mapYocvn; end
+    Param{n} = Paramn; 
+    clear mapYn Paramn mapYocvn
 end
 
 % Save parameters to disk
 if isfield(inp,'saveparam') && inp.saveparam
-    operm = inp.f; ofold = inp.d; 
-    OptPreprocParamFilename = nk_GenerateNMFilePath( inp.procdir, ...
+    operm = inp.f; ofold = inp.d;
+    OptPreprocParamFilename = nk_GenerateNMFilePath( inp.rootdir, ...
                                                             SAV.matname, ...
                                                             'OptPreprocParam', ...
                                                             [], ...

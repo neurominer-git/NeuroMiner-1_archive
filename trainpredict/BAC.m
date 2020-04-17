@@ -8,8 +8,8 @@
 function param = BAC(expected, predicted)
 global VERBOSE
 
-if isempty(expected), param = NaN; return; end
-ind0 = expected ~=0 & ~isnan(expected) & ~isnan(predicted) & predicted~=0;
+if isempty(expected), param = []; return; end
+ind0 = expected ~=0 & ~isnan(expected);
 expected = expected(ind0); 
 predicted = predicted(ind0);
 

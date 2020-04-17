@@ -73,7 +73,7 @@ if isfield(TemplParam,'ACTPARAM')
                     
                     if ~isempty(SrcParam.iTr), 
                         InputParam.P{ac}.TrCovars(SrcParam.iTrX,:)   = []; 
-                        InputParam.P{ac}.TsCovars{1}(SrcParam.iTr,:) = []; 
+                        InputParam.P{ac}.TsCovars{1}(SrcParam.iTr,:)= []; 
                     end
                     if ~isempty(SrcParam.iCV), InputParam.P{ac}.TsCovars{2}(SrcParam.iCV,:)=[]; end
                     if ~isempty(SrcParam.iTs), InputParam.P{ac}.TsCovars{3}(SrcParam.iTs,:)=[]; end
@@ -123,9 +123,9 @@ if isfield(TemplParam,'ACTPARAM')
                     if isfield(SrcParam,'TrX'),         
                         InputParam.P{ac}.sTrInd        = SrcParam.covars( SrcParam.TrX, TemplParam.ACTPARAM{ac}.sIND );
                         InputParam.P{ac}.dTrInd        = SrcParam.covars( SrcParam.TrX, TemplParam.ACTPARAM{ac}.dIND );
-                        if ~isempty(SrcParam.iTrX), 
-                            InputParam.P{ac}.sTrInd( SrcParam.iTrX,:) = []; 
-                            InputParam.P{ac}.dTrInd( SrcParam.iTrX,:) = []; 
+                        if ~isempty(SrcParam.iTr), 
+                            InputParam.P{ac}.sTrInd( SrcParam.iTr,:) = []; 
+                            InputParam.P{ac}.dTrInd( SrcParam.iTr,:) = []; 
                         end
                     end
                     if isfield(SrcParam,'TrI'),         
@@ -177,7 +177,7 @@ if isfield(TemplParam,'ACTPARAM')
                     end
                     if isfield(SrcParam,'TrX'),  
                         InputParam.P{ac}.sTrInd        = SrcParam.covars( SrcParam.TrX, TemplParam.ACTPARAM{ac}.sIND );
-                        if ~isempty(SrcParam.iTrX), InputParam.P{ac}.sTrInd(SrcParam.iTrX,:)=[]; end
+                        if ~isempty(SrcParam.iTr), InputParam.P{ac}.sTrInd(SrcParam.iTr,:)=[]; end
                         denom = numel(InputParam.P{ac}.sTrInd);
                     elseif isfield(SrcParam,'TrI')
                         InputParam.P{ac}.sTsInd{1}     = SrcParam.covars( SrcParam.TrI, TemplParam.ACTPARAM{ac}.sIND );
@@ -193,7 +193,7 @@ if isfield(TemplParam,'ACTPARAM')
                 if isfield(TemplParam.ACTPARAM{ac},'dIND') && ~isempty(TemplParam.ACTPARAM{ac}.dIND)  
                     if isfield(SrcParam,'TrX'),         
                         InputParam.P{ac}.dTrInd    = SrcParam.covars( SrcParam.TrX, TemplParam.ACTPARAM{ac}.dIND );
-                        if ~isempty(SrcParam.iTrX), InputParam.P{ac}.dTrInd(SrcParam.iTrX,:)=[]; end
+                        if ~isempty(SrcParam.iTr), InputParam.P{ac}.dTrInd(SrcParam.iTr,:)=[]; end
                     end
                     if isfield(SrcParam,'TrI'),         
                         InputParam.P{ac}.dTsInd{1} = SrcParam.covars( SrcParam.TrI, TemplParam.ACTPARAM{ac}.dIND );
@@ -258,6 +258,7 @@ if isfield(TemplParam,'ACTPARAM')
                         case 'regression'
                             InputParam.P{ac}.DR.labels = SrcParam.TrainLabel;
                     end
+                    if sum(SrcParam.iTr), InputParam.P{ac}.DR.labels(SrcParam.iTr,:)=[]; end
                     if strcmp(TemplParam.ACTPARAM{ac}.DR.RedMode,'PLS')
                         InputParam.P{ac}.DR.PLS.behav_mat = TemplParam.ACTPARAM{ac}.DR.PLS.behav_mat(SrcParam.TrX,:);
                         if sum(SrcParam.iTr), InputParam.P{ac}.DR.PLS.behav_mat(SrcParam.iTr,:)=[]; end
@@ -296,11 +297,11 @@ if isfield(TemplParam,'ACTPARAM')
                 if VERBOSE, fprintf('\n* FEATURE WEIGHTING'); end
                 InputParam.P{ac}.RANK = TemplParam.ACTPARAM{ac}.RANK;
                 InputParam.P{ac}.RANK.curlabel = TemplParam.ACTPARAM{ac}.RANK.label(SrcParam.TrX);
-                if ~isempty(SrcParam.iTrX), InputParam.P{ac}.RANK.curlabel(SrcParam.iTrX,:)=[]; end
+                if ~isempty(SrcParam.iTr), InputParam.P{ac}.RANK.curlabel(SrcParam.iTr,:)=[]; end
                 if isfield( TemplParam.ACTPARAM{ac}.RANK,'glabel' )
                     % glabel is a logical vector
                     InputParam.P{ac}.RANK.curglabel = TemplParam.ACTPARAM{ac}.RANK.glabel(SrcParam.TrX);
-                    if ~isempty(SrcParam.iTrX), InputParam.P{ac}.RANK.curglabel(SrcParam.iTrX,:)=[]; end
+                    if ~isempty(SrcParam.iTr), InputParam.P{ac}.RANK.curglabel(SrcParam.iTr,:)=[]; end
                 end
                 if isfield(TemplParam.ACTPARAM{ac},'PX') && ~isempty(TemplParam.ACTPARAM{ac}.PX)
                     InputParam.P{ac}.opt = TemplParam.ACTPARAM{ac}.PX.opt;
@@ -344,8 +345,8 @@ if isfield(TemplParam,'ACTPARAM')
                 if VERBOSE, fprintf('\n* EXTRACT VARIANCE COMPONENTS'); end
                 InputParam.P{ac}.REMVARCOMP = TemplParam.ACTPARAM{ac}.REMVARCOMP;
                 InputParam.P{ac}.REMVARCOMP.G = TemplParam.ACTPARAM{ac}.REMVARCOMP.G(SrcParam.TrX,:);
-                if ~isempty(SrcParam.iTrX), 
-                    InputParam.P{ac}.REMVARCOMP.G(SrcParam.iTrX,:)=[]; 
+                if ~isempty(SrcParam.iTr), 
+                    InputParam.P{ac}.REMVARCOMP.G(SrcParam.iTr,:)=[]; 
                 end
                 if isfield(TemplParam.ACTPARAM{ac}.REMVARCOMP,'SUBGROUP') 
                     switch TemplParam.ACTPARAM{ac}.REMVARCOMP.SUBGROUP.flag
@@ -366,7 +367,7 @@ if isfield(TemplParam,'ACTPARAM')
                             ind = true(size(InputParam.C,1),1); randind = randperm(numel(ind),n);
                             InputParam.P{ac}.REMVARCOMP.indX = ind(randind);
                     end
-                    if ~isempty(SrcParam.iTrX), InputParam.P{ac}.REMVARCOMP.indX(SrcParam.iTrX)=[]; end
+                    if ~isempty(SrcParam.iTr), InputParam.P{ac}.REMVARCOMP.indX(SrcParam.iTr)=[]; end
                 end
                 if isfield(TemplParam.ACTPARAM{ac},'PX') && ~isempty(TemplParam.ACTPARAM{ac}.PX)
                     InputParam.P{ac}.opt = TemplParam.ACTPARAM{ac}.PX.opt;
@@ -381,7 +382,7 @@ if isfield(TemplParam,'ACTPARAM')
               
                 if isfield(SrcParam,'TrX'),         
                     InputParam.P{ac}.TrInd    = SrcParam.TrX;
-                    if ~isempty(SrcParam.iTrX), InputParam.P{ac}.TrInd(SrcParam.iTrX,:)=[]; end
+                    if ~isempty(SrcParam.iTr), InputParam.P{ac}.TrInd(SrcParam.iTr,:)=[]; end
                 end
                 if isfield(SrcParam,'TrI'),     
                     InputParam.P{ac}.TsInd{1} = SrcParam.TrI ;

@@ -70,9 +70,9 @@ if stk_flag == 1
     if ~isempty(sel_anal)
         if numel(sel_anal)>1
             a_str = num2str(sel_anal,'%g, '); a_str=a_str(1:end-1);
-            sel_anal_str = sprintf('Analyses %s', a_str);
+            sel_anal_str = sprintf('selected: Analyses %s', a_str);
         else
-            sel_anal_str = sprintf('Analysis %g',sel_anal);
+            sel_anal_str = sprintf('selected: Analysis %g',sel_anal);
         end
     else
         sel_anal_str = na_str;
@@ -146,7 +146,7 @@ switch act
             end
             fprintf('\n'); cprintf('black*','[ Analysis %g ] ID: %s', f_ind(i), idstr);  
         end
-        STACKING.sel_anal = nk_input('Select analyses to provide input features to stacker',0,'i',sel_anal);
+        STACKING.sel_anal = nk_input('Select analysis to provide input features to stacker',0,'i',sel_anal);
     case 3
         STACKING.featname_mode = nk_input('Extract feature names',0,'m','Automatically (Using IDs of selected analyses)|Manually from a variable in the MATLAB workspace',[1 2], featname_mode);
         if STACKING.featname_mode == 2

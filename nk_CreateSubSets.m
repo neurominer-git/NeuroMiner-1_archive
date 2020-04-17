@@ -1,5 +1,5 @@
 function SubSets = nk_CreateSubSets(Y)
-global CV RFE MULTI MODEFL MULTILABEL VERBOSE PREPROC 
+global CV RFE MULTI MODEFL MULTILABEL VERBOSE PREPROC STACKING
 
 if VERBOSE && RFE.Filter.flag, fprintf('\n\nCreate feature subsets'); end
 
@@ -379,11 +379,6 @@ switch RFE.Filter.type
         weights = nk_FScoreFeatRank(Y, label);
         [~, ind] = sort(weights,'descend');
         if VERBOSE, fprintf(' FScore'); end
-        
-    case 14
-        weights = nk_BhattacharyaFeatRank(Y, label);
-         [~, ind] = sort(weights,'descend');
-        if VERBOSE, fprintf(' Bhattacharya'); end
 
     
 end

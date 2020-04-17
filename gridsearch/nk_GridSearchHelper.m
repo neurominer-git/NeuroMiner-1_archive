@@ -1,4 +1,4 @@
-function [GD, MD, DISP] = nk_GridSearchHelper(GD, MD, DISP, i, nclass, ngroups, CV1PerfData, CV2PerfData, models)
+function [GD, MD, DISP] = nk_GridSearchHelper(GD, MD, DISP, i, nclass, CV1PerfData, CV2PerfData, models)
 
 global VERBOSE MULTI CV BATCH SVM MODEFL W2AVAIL RAND MULTILABEL RFE SAV
 
@@ -82,12 +82,7 @@ for curlabel=1:MULTILABEL.dim
         GD.MultiCV2Div(i,curlabel) = CV2Perf.MultiCV2Diversity_Targets;
         GD.MultiCV2DivDec(i,:,curlabel) = CV2Perf.MultiCV2Diversity_DecValues;
         GD.MultiCV2Pred{i,curlabel}   = CV2Perf.MultiCV2Predictions;
-        GD.MultiCV2Prob{i,curlabel}   = CV2Perf.MultiCV2Probabilities;
-        GD.MultiCV1Pred{i,curlabel}   = nk_cellcat(CV2Perf.MultiCV1Predictions,[],2);
-        for g=1:ngroups
-            F = repmat({g}, size(CV2Perf.MultiCV1Probabilities));
-            GD.MultiCV1Prob{i,g,curlabel} = nk_cellcat(CV2Perf.MultiCV1Probabilities, [], 2, F);
-        end
+        GD.MultiCV1Pred{i,curlabel}   = cell2mat(CV2Perf.MultiCV1Predictions);
         GD.MultiERR(i,curlabel)    = GD.MultiTR(i) - GD.MultiTS(i);
         
        if flg
@@ -140,16 +135,14 @@ for curlabel=1:MULTILABEL.dim
     GD.ERR(i,:,curlabel)       = GD.TR(i,:,curlabel) - GD.TS(i,:,curlabel);
 
     if strcmp(SVM.prog,'SEQOPT')
-        for curclass = 1:nclass
-           GD.mSEQI(i, curclass, curlabel)    = Perf.MeanCritGain(curclass);
-           GD.sdSEQI(i, curclass, curlabel)   = Perf.SDCritGain(curclass);
-           GD.mSEQE{i, curclass, curlabel}    = Perf.MeanExamFreq(curclass,:);  
-           GD.sdSEQE{i, curclass, curlabel}   = Perf.SDExamFreq(curclass,:); 
-           GD.mSEQPercThrU{i, curclass, curlabel}= Perf.MeanPercThreshU(curclass,:);
-           GD.sdSEQPercThrU{i, curclass, curlabel}= Perf.SDPercThreshU(curclass,:);
-           GD.mSEQPercThrL{i, curclass, curlabel}= Perf.MeanPercThreshL(curclass,:);
-           GD.sdSEQPercThrL{i, curclass, curlabel}= Perf.SDPercThreshL(curclass,:);
-        end
+       GD.mSEQI(i, curlabel)    = Perf.MeanCritGain;
+       GD.sdSEQI(i, curlabel)   = Perf.SDCritGain;
+       GD.mSEQE{i, curlabel}    = Perf.MeanExamFreq;  
+       GD.sdSEQE{i, curlabel}   = Perf.SDExamFreq; 
+       GD.mSEQPercThrU{i, curlabel}= Perf.MeanPercThreshU;
+       GD.sdSEQPercThrU{i, curlabel}= Perf.SDPercThreshU;
+       GD.mSEQPercThrL{i, curlabel}= Perf.MeanPercThreshL;
+       GD.sdSEQPercThrL{i, curlabel}= Perf.SDPercThreshL;
     end
     
     %%%%% OPTIONALLY, PRINT INFO TO FIGURE:

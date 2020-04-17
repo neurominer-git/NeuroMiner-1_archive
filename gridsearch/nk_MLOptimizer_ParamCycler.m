@@ -1,4 +1,4 @@
-function [ GD, MD ] = nk_MLOptimizer_ParamCycler(GD, MD, DISP, Ps, Params_desc, mapY, algostr, f, d, npreml, nclass, ngroups, batchflag, PsSel, combcell)
+function [ GD, MD ] = nk_MLOptimizer_ParamCycler(GD, MD, DISP, Ps, Params_desc, mapY, algostr, f, d, npreml, nclass, batchflag, PsSel, combcell)
 % =========================================================================
 % FORMAT [ GD, MD ] = nk_MLOptimizer_ParamCycler(GD, MD, DISP, Ps, ...
 %                           Params_desc, mapY, algostr, f, d, npreml, ...
@@ -127,11 +127,11 @@ for i = 1:nPs
     % ... Pn] using the CV1 data partitions. Apply single or ensemble model
     % to CV2 test sample in order to estimate the generalization 
     % capacity of the classification / prediction rule    
-    [CV1perf, CV2perf, models] = nk_CVPermFold(mapYi, nclass, ngroups, cPs, FilterSubSets, batchflag);      
+    [CV1perf, CV2perf, models] = nk_CVPermFold2(mapYi, nclass, cPs, FilterSubSets, batchflag);      
     
     % Transfer results from CV1perf and CV2perf to GD
     % structure using nk_GridSearchHelper2 function
-    [GD, MD, DISP] = nk_GridSearchHelper(GD, MD, DISP, i, nclass, ngroups, CV1perf, CV2perf, models);
+    [GD, MD, DISP] = nk_GridSearchHelper(GD, MD, DISP, i, nclass, CV1perf, CV2perf, models);
     
     if isfield(CV1perf,'detrend'), GD.Detrend{i} = CV1perf.detrend; end
 

@@ -40,11 +40,6 @@ inparams.ovrwrtRes =        inp.ovrwrtRes;
 inparams.updRes =           inp.updRes;
 inparams.label =            inp.labels;
 inparams.l =                size(inp.labels,1);
-if strcmp(MODEFL,'classification')
-    inparams.ngroups =      numel(unique(inp.labels(~isnan(inp.labels))));           
-else
-    inparams.ngroups =      1;
-end
 inparams.covars =           inp.covars;
 inparams.covars_oocv =      [];
 inparams.varstr =           inp.varstr;

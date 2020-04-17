@@ -5,9 +5,9 @@ function [act, dat, inp] = nk_VisModelsPrep(act, dat, inp, parentstr)
 % Wrapper function of the NM visualization module, which allows the user to
 % interactively chose run-time options for the analysis of model patterns.
 % %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% (c) Nikolaos Koutsouleris, 12/2018
+% (c) Nikolaos Koutsouleris, 04/2018
 
-global MULTI CV NM
+global MULTI CV NM 
 
 %% Setup defaults
 complvec = []; for z=1:numel(dat.analysis), if dat.analysis{z}.status, complvec = [ complvec z ]; end; end
@@ -19,15 +19,14 @@ if ~exist('inp','var') || isempty(inp)
                     'ovrwrt', 2, ...
                     'multiflag', 2, ...
                     'saveparam', 2, ...
-                    'saveCV1', 2, ...
                     'loadparam', 2, ...
                     'batchflag', 2);
 end
 na_str = '?'; inp.datatype = 'VISdatamat'; 
 % Resolves bug when running in batch mode
 if ~isfield(inp,'extraL') , inp.extraL=[]; end
-OverWriteStr = []; GridSelectStr = []; LoadModelsStr = []; LoadParamsStr = []; LoadStr = []; SaveStr = []; MultiStr = []; ExtraLStr = []; SaveCV1Str = [];
-OverWriteAct = []; GridSelectAct = []; LoadModelsAct = []; LoadParamsAct = []; LoadAct = []; SaveAct = []; MultiAct = []; ExtraLAct = []; SaveCV1Act = [];
+OverWriteStr = []; GridSelectStr = []; LoadModelsStr = []; LoadParamsStr = []; LoadStr = []; SaveStr = []; MultiStr = []; ExtraLStr = [];
+OverWriteAct = []; GridSelectAct = []; LoadModelsAct = []; LoadParamsAct = []; LoadAct = []; SaveAct = []; MultiAct = []; ExtraLAct = [];
 
 %% Configure menu
 if isfield(inp,'analind'), AnalSelStr = sprintf('Analysis %g', inp.analind); else, AnalSelStr = na_str;  end
@@ -40,7 +39,6 @@ if ~isempty(analysis)
     
     % Initialize global parameters for the selected analysis
     nk_SetupGlobVars2(analysis.params, 'setup_main', 0); 
-    MULTI = analysis.params.TrainParam.MULTI;
     
     % Compute from scratch or use pre-computed datamats ?
     LFL_opts        = {'Compute from scratch',sprintf('Use precomputed %s',inp.datatype)};                                      
@@ -65,7 +63,7 @@ if ~isempty(analysis)
     GridSelectStr = sprintf('Select CV2 partitions to operate on [ %g selected ]|',  sum(inp.GridAct(:)));                  GridSelectAct = 4;
         
     % Check multi-group settings
-    if ~isempty(MULTI) && MULTI.flag && ~MULTI.BinBind  
+    if ~isempty(MULTI) && MULTI.flag && ~MULTI.BinBind && inp.saveparam && inp.lfl==1
         MULTI_opts      = {'Compute at multi-group optimum','Compute at binary optima'};                                        
         MultiStr = sprintf('Visualize patters in the multi-group setting [ %s ]|',MULTI_opts{inp.multiflag});               MultiAct = 5;
     end
@@ -74,7 +72,7 @@ if ~isempty(analysis)
     if inp.permfl
         if ~isempty(inp.extraL)
             m = size(inp.extraL.L,2); 
-            ExtraLStr = sprintf('Deactivate assessment of prognostic generalization [ %g extra label(s) defined ]|', m);     ExtraLAct = 11;
+            ExtraLStr = sprintf('Deactivate assessment of prognostic generalization [ %g extra label(s) defined ]|', m);                   ExtraLAct = 11;
         else
             ExtraLStr = sprintf('Add extra labels for the assessment of prognostic generalization|');                        ExtraLAct = 10;
         end
@@ -107,9 +105,6 @@ if ~isempty(analysis)
     if inp.loadparam == 2 && inp.lfl == 1
         SAVE_opts       = {'yes', 'no'};   
         SaveStr = sprintf('Save pre-processing params and models to disk [ %s ]|', SAVE_opts{inp.saveparam});               SaveAct = 6;
-        if inp.saveparam == 1
-            SaveCV1Str = sprintf('Save pre-processing params at CV1 level [ %s ]|', SAVE_opts{inp.saveCV1});                SaveCV1Act = 12;
-        end
     end
 
 end
@@ -122,7 +117,6 @@ menustr = [ AnalSelectStr ...
            GridSelectStr ...
            MultiStr ...
            SaveStr ...
-           SaveCV1Str ...
            LoadStr ...
            LoadParamsStr ... 
            LoadModelsStr ];
@@ -134,7 +128,6 @@ menuact = [ AnalSelectAct ...
             GridSelectAct ...
             MultiAct ...
             SaveAct ...
-            SaveCV1Act ...
             LoadAct ...
             LoadParamsAct ...
             LoadModelsAct ];       
@@ -212,8 +205,6 @@ switch act
     case 11
         del_extraL = nk_input('Do you really want to delete the extra labels?',0,'yes|no',[1,0]);
         if del_extraL, inp.extraL = []; end
-    case 12
-        if inp.saveCV1 == 1, inp.saveCV1 = 2; elseif inp.saveCV1 == 2,  inp.saveCV1 = 1; end
     case 99
         NM.runtime.curanal = inp.analind;
         dat.analysis{inp.analind} = VisModelsPrep(dat, inp, analysis);
@@ -282,7 +273,6 @@ if isfield(analysis,'rootdir') && exist(analysis.rootdir,'dir')
 else
     inp1.rootdir = fullfile(pwd,analysis.params.TrainParam.SVM.prog,permstr);
 end
-inp1.procdir = fullfile( analysis.rootdir, 'proc');
 if ~exist(inp1.rootdir,'dir'), mkdir(inp1.rootdir); end
 
 %%%%%%%%%%%%%%%%%%%%%%% RUN VISUALIZATION ANALYSIS  %%%%%%%%%%%%%%%%%%%%%%%
@@ -291,9 +281,7 @@ for i = 1:nF
     inp             = catstruct(inp1,inp2); clear inp2;
     inp.curlabel    = 1;
     VIS = analysis.params.TrainParam.VIS{analysis.params.TrainParam.FUSION.M(i)};
-    % Per default do not activate normalization of the weight vector
-    % (30.12.2018)
-    if isfield(VIS,'norm'), inp.norm = VIS.norm; else, inp.norm = false; end
+    if isfield(VIS,'norm'), inp.norm = VIS.norm; else, inp.norm = true; end
 
     for j = 1:MULTILABEL.dim
         if MULTILABEL.flag && MULTILABEL.dim>1, 

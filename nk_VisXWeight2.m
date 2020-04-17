@@ -1,37 +1,30 @@
-function [ mW, mP, mR, mSR, W, mPA ]= nk_VisXWeight2(inp, MD, Y, L, varind, P, F, VI, decompfl, procfl, Fadd)
-% ================================================================================
-% [mW, mP, W] = nk_VisXWeight2(MD, Y, L, varind, P, F, VI, decompfl, procfl, Fadd)
-% ================================================================================
+function [ mW, mP, mR, mSR, W, mPA ]= nk_VisXWeight2(inp, MD, Y, L, varind, P, F, VI, decompfl, pnt, procfl, Fadd)
+% ==========================================================================================
+% FORMAT [mW, mP, W] = nk_VisXWeight2(MD, Y, L, varind, P, F, VI, decompfl, pnt, procfl, Fadd)
+% ==========================================================================================
 % Core visualization module that retrieves a weight vector and maps it back
-% to the input space of features by reversing processing steps as much as
-% possible and meaningful
+% to the input space of features
 %
-% Inputs:
+% Input:
 % ------
-% inp :
 % MD :          Model
 % Y :           Features training data
 % L :           Labels training data
 % varind :      Selected modality
 % P :           Preprocessing parameters for given training data partition
 % F :           Mask of selected features across modality
-% VI :        
+% Find :        Modality specififc feature mask
 % decompfl :    Presence of dimensionality reduction method
-% procfl :
-% Fadd :
+% pnt :         Pointer to preprocessing parameter shelf
 %
 % Outputs:
 % --------
 % mW :          (Back-projected) weight map
-% mP :
-% mR :
-% mSR :
 % W :           weight vector in processed feature space
-% mPA :
 % %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% (c) Nikolaos Koutsouleris, 01/2019
+% (c) Nikolaos Koutsouleris, 03/2017
 
-global SVM %TEMPL
+global SVM TEMPL
 
 if ~exist('procfl','var') || isempty(procfl), procfl = true; end
 if ~exist('Fadd','var') || isempty(Fadd), Fadd = true(size(F)); end
@@ -92,8 +85,6 @@ mM = numel(inp.tF);
 if inp.norm == 1 && any(strcmp({'LIBSVM','LIBLIN'},SVM.prog))
     % The criterion for pattern significance in SVM is the weight vector normalized to
     % the margin width as described in Gaonkar et al. 2015, Medical Image Analysis
-    % This however may result in overconservative P value estimation
-    % because it flattens the null distribution
     W = W/(norm(W,2));
 end
 
@@ -146,20 +137,18 @@ for n=1:nM
         % Find Dimensionality reduction parameters
         reducedimfl = false; flg = false; 
         
-        for a = nA:-1:1
+        for zu = nA:-1:1
             
-            % Adjust pnt according to parameter combination in current
-            % preprocessing step
-            
-            switch nPREPROC.ACTPARAM{a}.cmd
+            if iscell(nPX{zu}), PX = nPX{zu}{pnt}; else PX = nPX{zu}(pnt); end
+            switch nPREPROC.ACTPARAM{zu}.cmd
 
                 case 'scale'
                     % Very frequently users opt to scale features after
                     % factorization/dimensionality reduction. In these cases
                     % scaling has to be reverted prior to back-projection
                     if ~reducedimfl && decompfl(n),
-                        IN = nPREPROC.ACTPARAM{a}.SCALE;
-                        IN.minY = nPX{a}.minY; IN.maxY = nPX{a}.maxY; IN.revertflag = true;
+                        IN = nPREPROC.ACTPARAM{zu}.SCALE;
+                        IN.minY = PX.minY; IN.maxY = PX.maxY; IN.revertflag = true;
                         try
                             nmW(nmW==0)=NaN; nmW = nk_PerfScaleObj(nmW', IN)'; nmW(isnan(nmW))=0;
                         catch
@@ -169,18 +158,18 @@ for n=1:nM
 
                 case {'reducedim','remvarcomp',}
                     
-                    if isfield(nPX{a}.mpp,'vec')
-                       redvec = nPX{a}.mpp.vec;
-                    elseif isfield(nPX{a}.mpp,'factors')
-                       redvec = nPX{a}.mpp.factors{1};
+                    if isfield(PX.mpp,'vec')
+                       redvec = PX.mpp.vec;
+                    elseif isfield(PX.mpp,'factors')
+                       redvec = PX.mpp.factors{1};
                     end
                     
-                    if isfield(nPX{a},'ind0')
-                        ind0 = nPX{a}.ind0;
-                        DR = nPX{a}.DR;
+                    if isfield(PX,'ind0')
+                        ind0 = PX.ind0;
+                        DR = PX.DR;
                     else
                         ind0 = 1:size(redvec,2);
-                        DR = nPREPROC.ACTPARAM{a}.DR;
+                        DR = nPREPROC.ACTPARAM{zu}.DR;
                     end
                     
                     mpp.vec = redvec(:,ind0);
@@ -205,34 +194,34 @@ for n=1:nM
                              nmW = mpp.vec * nmW;
                              nmP = logical(mpp.vec * nmP);
                         otherwise
-                             nmW = reconstruct_data(nmW, nPX{a}.mpp);
-                             nmP = logical(reconstruct_data(nmP, nPX{a}.mpp));
+                             nmW = reconstruct_data(nmW, PX.mpp);
+                             nmP = logical(reconstruct_data(nmP, PX.mpp));
                     end
 
                     % If features had been removed prior to dimensionality
                     % reduction take care that you recover the original space
-                    if isfield(nPX{a},'indNonRem') && ~isempty(nPX{a}.indNonRem) && sum(~nPX{a}.indNonRem) > 0
-                        tmW = zeros(size(nPX{a}.indNonRem')); tmP = zeros(size(nPX{a}.indNonRem'));
-                        tmW(nPX{a}.indNonRem) = nmW; nmW = tmW; tmP(nPX{a}.indNonRem) = nmP; nmP = tmP;  
+                    if isfield(PX,'indNonRem') && ~isempty(PX.indNonRem) && sum(~PX.indNonRem) > 0
+                        tmW = zeros(size(PX.indNonRem')); tmP = zeros(size(PX.indNonRem'));
+                        tmW(PX.indNonRem) = nmW; nmW = tmW; tmP(PX.indNonRem) = nmP; nmP = tmP;  
                         clear tmW tmP;
                     end
                     reducedimfl = true;
 
                 case {'elimzero','extfeat','extdim'}
                     %flg = true;
-                    if isfield(nPX{a},'NonPruneVec')
+                    if isfield(PX,'NonPruneVec')
                         IND = 'NonPruneVec';
-                    elseif isfield(nPX{a},'indNonRem')
+                    elseif isfield(PX,'indNonRem')
                         IND = 'indNonRem';
                     else
                         IND = 'ind';
                     end
                     try
-                        tmW = zeros(numel(nPX{a}.(IND)),1); tmW(nPX{a}.(IND)) = nmW; nmW = tmW;   
-                        tmP = false(numel(nPX{a}.(IND)),1); tmP(nPX{a}.(IND)) = nmP; nmP = tmP;
+                        tmW = zeros(numel(PX.(IND)),1); tmW(PX.(IND)) = nmW; nmW = tmW;   
+                        tmP = false(numel(PX.(IND)),1); tmP(PX.(IND)) = nmP; nmP = tmP;
                         if ~isempty(PA)
-                            tmPA = zeros(numel(nPX{a}.(IND)),1);
-                            tmPA(nPX{a}.(IND)) = nmPA; nmPA = tmPA;
+                            tmPA = zeros(numel(PX.(IND)),1);
+                            tmPA(PX.(IND)) = nmPA; nmPA = tmPA;
                         end
                     catch
                         fprintf('problem')

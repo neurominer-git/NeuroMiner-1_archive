@@ -27,18 +27,10 @@ if ~exist('inp','var') || isempty(inp),
 end
 
 %% Configure menu
-if isfield(inp,'analind'), 
-    if numel(inp.analind)<2,
-        AnalSelStr = sprintf('Analysis %g', inp.analind);   
-    else
-        AnalSelStr = sprintf('%g Analyses: %s',numel(inp.analind), strjoin(cellstr(num2str(inp.analind'))',', '));
-    end
-else, 
-    AnalSelStr = na_str;
-end
+if isfield(inp,'analind'), AnalSelStr = sprintf('Analysis %g', inp.analind); else, AnalSelStr = na_str;  end
   
 if numel(NM.analysis)>1
-    AnalSelectStr = sprintf('Choose analyses to work on [ %s ]|', AnalSelStr);  
+    AnalSelectStr = sprintf('Choose analysis to work on [ %s ]|', AnalSelStr);  
     AnalSelectAct = 1;
 else
     AnalSelectStr = []; AnalSelectAct = [];
@@ -249,15 +241,7 @@ if ~isempty(analysis)
 			% To this end create an inp structure based on 
             NM.runtime.curanal = inp.analind;
             %nk_NMLogFileManager('add_entry', NM, NM.analysis{NM.runtime.curanal}, 'nm', messsage_str);
-            nA = 1; if numel(inp.analind)>1, nA = numel(inp.analind); end
-            analind = inp.analind;
-            for i=1:nA
-                taa = analind(i);
-                inp.analind = taa;
-                tA = dat.analysis{taa};
-                inp = nk_GetAnalModalInfo_config(NM, inp); 
-                dat.analysis{taa} = MLOptimizerPrep(dat, tA, inp);
-            end
+            dat.analysis{inp.analind} = MLOptimizerPrep(dat, analysis, inp);
             h = findobj('Name','NM Optimization Status Viewer'); if ~isempty(h), delete(h); end
     end
 end

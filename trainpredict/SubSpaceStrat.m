@@ -29,7 +29,7 @@ ns = size(IN.F,3);
 EnsType = 0;
 Metric = 2;
 DivFunc = 'nk_Entropy';
-ngroups = IN.ngroups;
+
 if isfield(Param,'EnsembleStrategy') && Param.SubSpaceFlag 
     if ~isempty(Param.EnsembleStrategy) && isfield(Param.EnsembleStrategy,'type')
         EnsType = Param.EnsembleStrategy.type;
@@ -64,6 +64,8 @@ if W2AVAIL
     tMd         = cell( IN.nperms, IN.nfolds, IN.nclass );
     tMm         = cell( IN.nperms, IN.nfolds, IN.nclass );
 end
+
+
 
 %%%% APPLY SUBSPACE STRATEGY %%%%
 
@@ -111,7 +113,7 @@ for i=1:IN.nperms % loop through CV1 permutations
                     end    
                     % Retrain using new feature subspace mask
                     LoopParam.PermVec = i; LoopParam.FoldVec = j; LoopParam.ClassVec = curclass;
-                    [IN, OUT] = FoldPerm(IN, OUT, 'Retrain for PFC', OptMode, 0, 0, Param.SubSpaceStepping, LoopParam); 
+                    [IN, OUT] = FoldPerm2(IN, OUT, 'Retrain for PFC', OptMode, 0, 0, Param.SubSpaceStepping, LoopParam); 
 
                     OUT.TrHDperf(i,j,curclass) = mean(OUT.tr{i,j,curclass});
                     OUT.TrHTperf(i,j,curclass) = mean(OUT.tr{i,j,curclass});       
@@ -279,14 +281,14 @@ for i=1:IN.nperms % loop through CV1 permutations
                                                 case 1 % Targets
                                                     
                                                     Px = OUT.TrHT{i,j,curclass};
-                                                    [tkInd, Hx_perf, Hx, Hx_div ] = nk_BuildEnsemble(Px, Lx, Param.EnsembleStrategy,[], ngroups);
+                                                    [tkInd, Hx_perf, Hx, Hx_div ] = nk_BuildEnsemble(Px, Lx, Param.EnsembleStrategy);
                                                     OUT.TrHTperf(i,j,curclass) = Hx_perf; OUT.TrHT{i,j,curclass} = Hx;
                                                     OUT.TrHD{i,j,curclass} = OUT.TrHD{i,j,curclass}(:,tkInd);
                                                     
                                                 case 2 % Decision values
                                                     
                                                     Px = OUT.TrHD{i,j,curclass};  
-                                                    [tkInd, Hx_perf, Hx, Hx_div ] = nk_BuildEnsemble(Px, Lx, Param.EnsembleStrategy,[], ngroups);
+                                                    [tkInd, Hx_perf, Hx, Hx_div ] = nk_BuildEnsemble(Px, Lx, Param.EnsembleStrategy);
                                                     OUT.TrHDperf(i,j,curclass) = Hx_perf; OUT.TrHD{i,j,curclass} = Hx;
                                                     OUT.TrHT{i,j,curclass} = OUT.TrHT{i,j,curclass}(:,tkInd);
                                             end
@@ -310,14 +312,14 @@ for i=1:IN.nperms % loop through CV1 permutations
                                                 case 1
                                             
                                                     Px = OUT.CVHT{i,j,curclass}; 
-                                                    [tkInd, Hx_perf, Hx, Hx_div ] = nk_BuildEnsemble(Px, Lx, Param.EnsembleStrategy,[], ngroups);
+                                                    [tkInd, Hx_perf, Hx, Hx_div ] = nk_BuildEnsemble(Px, Lx, Param.EnsembleStrategy);
                                                     OUT.CVHTperf(i,j,curclass) = Hx_perf; OUT.CVHT{i,j,curclass} = Hx;
                                                     OUT.CVHD{i,j,curclass} = OUT.CVHD{i,j,curclass}(:,tkInd);
                                                     
                                                 case 2
                                                     
                                                     Px = OUT.CVHD{i,j,curclass}; 
-                                                    [ tkInd, Hx_perf, Hx, Hx_div ] = nk_BuildEnsemble(Px, Lx, Param.EnsembleStrategy,[],ngroups);
+                                                    [ tkInd, Hx_perf, Hx, Hx_div ] = nk_BuildEnsemble(Px, Lx, Param.EnsembleStrategy);
                                                     OUT.CVHDperf(i,j,curclass)  = Hx_perf; OUT.CVHD{i,j,curclass}      = Hx;  
                                                     OUT.CVHT{i,j,curclass} = OUT.CVHT{i,j,curclass}(:,tkInd);
                                             end
@@ -341,11 +343,11 @@ for i=1:IN.nperms % loop through CV1 permutations
                                             switch Metric
                                                 case 1 
                                                     Px = [ OUT.TrHT{i,j,curclass}; OUT.CVHT{i,j,curclass} ]; 
-                                                    tkInd = nk_BuildEnsemble(Px, Lx, Param.EnsembleStrategy, [], ngroups);
+                                                    tkInd = nk_BuildEnsemble(Px, Lx, Param.EnsembleStrategy);
                                                     
                                                 case 2
                                                     Px = [ OUT.TrHD{i,j,curclass}; OUT.CVHD{i,j,curclass} ]; 
-                                                    tkInd = nk_BuildEnsemble(Px, Lx, Param.EnsembleStrategy,[],ngroups);
+                                                    tkInd = nk_BuildEnsemble(Px, Lx, Param.EnsembleStrategy);
                                             end
                                            
                                             OUT.TrHT{i,j,curclass}      = OUT.TrHT{i,j,curclass}(:,tkInd);
@@ -396,8 +398,8 @@ for i=1:IN.nperms % loop through CV1 permutations
                             % Compute CV1-training and test data
                             % performance using simply the aggregated
                             % multi-group ensembles:
-                            [OUT.mTrPerf(i,j), OUT.mTrPred{i,j}] = nk_MultiEnsPerf(mTr, sign(mTr), IN.Y.mTrL{i,j}(:,MULTILABEL.curdim), mC, ngroups);
-                            [OUT.mCVPerf(i,j), OUT.mCVPred{i,j}] = nk_MultiEnsPerf(mCV, sign(mCV), IN.Y.mCVL{i,j}(:,MULTILABEL.curdim), mC, ngroups);
+                            [OUT.mTrPerf(i,j), OUT.mTrPred{i,j}] = nk_MultiEnsPerf(mTr, sign(mTr), IN.Y.mTrL{i,j}(:,MULTILABEL.curdim), mC);
+                            [OUT.mCVPerf(i,j), OUT.mCVPred{i,j}] = nk_MultiEnsPerf(mCV, sign(mCV), IN.Y.mCVL{i,j}(:,MULTILABEL.curdim), mC);
                             % Compute CV1-training and test data
                             % ensemble entropy as the mean of
                             % dichotomizers' entropies
@@ -428,10 +430,10 @@ for i=1:IN.nperms % loop through CV1 permutations
                                             OUT.mTrDiv(i,j), ...
                                             tkIndCat, ...
                                             OUT.mTrPred{i,j}] = ...
-                                                        nk_BuildEnsemble(mTr, IN.Y.mTrL{i,j}(:,MULTILABEL.curdim), Param.EnsembleStrategy, mC, ngroups);
+                                                        nk_BuildEnsemble(mTr, IN.Y.mTrL{i,j}(:,MULTILABEL.curdim), Param.EnsembleStrategy, mC);
 
                                         % Compute CV1-test data multi-group performance:
-                                        [OUT.mCVPerf(i,j), OUT.mCVPred{i,j}] = nk_MultiEnsPerf(mCV(:,tkIndCat), sign(mCV(:,tkIndCat)), IN.Y.mCVL{i,j}(:,MULTILABEL.curdim), mC(tkIndCat), ngroups);
+                                        [OUT.mCVPerf(i,j), OUT.mCVPred{i,j}] = nk_MultiEnsPerf(mCV(:,tkIndCat), sign(mCV(:,tkIndCat)), IN.Y.mCVL{i,j}(:,MULTILABEL.curdim), mC(tkIndCat));
                                         % Compute CV1-test data ensemble entropy:
                                         tDiv = zeros(IN.nclass,1);
                                         for qcurclass = 1 : IN.nclass, 
@@ -445,10 +447,10 @@ for i=1:IN.nperms % loop through CV1 permutations
                                             OUT.mCVDiv(i,j), ...
                                             tkIndCat,...
                                             OUT.mCVPred{i,j}] = ...
-                                                        nk_BuildEnsemble(mCV, IN.Y.mCVL{i,j}(:,MULTILABEL.curdim), Param.EnsembleStrategy, mC, ngroups);
+                                                        nk_BuildEnsemble(mCV, IN.Y.mCVL{i,j}(:,MULTILABEL.curdim), Param.EnsembleStrategy, mC);
                                         % Compute CV1-training data multi-group performance:
                                         [OUT.mTrPerf(i,j), OUT.mTrPred{i,j}] = ...
-                                            nk_MultiEnsPerf(mTr(:,tkIndCat), sign(mTr(:,tkIndCat)), IN.Y.mTrL{i,j}(:,MULTILABEL.curdim), mC(tkIndCat), ngroups);
+                                            nk_MultiEnsPerf(mTr(:,tkIndCat), sign(mTr(:,tkIndCat)), IN.Y.mTrL{i,j}(:,MULTILABEL.curdim), mC(tkIndCat));
                                         % Compute CV1-training data ensemble entropy:
                                         tDiv = zeros(IN.nclass,1);
                                         for qcurclass = 1 : IN.nclass, 
@@ -502,10 +504,10 @@ for i=1:IN.nperms % loop through CV1 permutations
                                 mTr = mTr(:,tkIndCat); mCV = mCV(:,tkIndCat); mC = mC(tkIndCat);
                                 % CV1-training data ensemble
                                 % performance and entropy
-                                [OUT.mTrPerf(i,j), OUT.mTrPred{i,j}] = nk_MultiEnsPerf( mTr, mTr, IN.Y.mTrL{i,j}, mC , ngroups);
+                                [OUT.mTrPerf(i,j), OUT.mTrPred{i,j}] = nk_MultiEnsPerf( mTr, mTr, IN.Y.mTrL{i,j}, mC );
                                 OUT.mTrDiv(i,j) = feval( DivFunc, mTr, TrL{curclass} );
                                 % ... the same with CV1-test data:
-                                [OUT.mCVPerf(i,j), OUT.mCVPred{i,j}] = nk_MultiEnsPerf( mCV, mCV, IN.Y.mCVL{i,j}, mC, ngroups );
+                                [OUT.mCVPerf(i,j), OUT.mCVPred{i,j}] = nk_MultiEnsPerf( mCV, mCV, IN.Y.mCVL{i,j}, mC );
                                 OUT.mCVDiv(i,j) = feval( DivFunc, mCV, CVL{curclass} );
                             end
 

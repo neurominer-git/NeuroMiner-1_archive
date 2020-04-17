@@ -22,7 +22,7 @@ function varargout = nk_PrintResults2(varargin)
 
 % Edit the above text to modify the response to help nk_PrintResults2
 
-% Last Modified by GUIDE v2.5 25-Dec-2018 13:43:17
+% Last Modified by GUIDE v2.5 14-Oct-2018 22:35:06
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -171,18 +171,27 @@ guidata(handles.figure1,handles);
 handles.pnStartup.Visible='off';
 
 if isfield(handles,'ExportPredictionsM')
-   for i=1:numel(handles.ExportPredictionsM)
+    for i=1:numel(handles.ExportPredictionsM)
         handles.ExportPredictionsM(i).Callback = {@MenuItemPredictions_Callback, handles};
         handles.ExportPerformanceM(i).Callback = {@MenuItemPerformance_Callback, handles};
-   end
-   handles.ExportPredictionsDlg.Callback = {@MenuItemPerfTabulatur_Callback, handles};
+    end
 end
 
-if handles.n_analyses>1
-    handles.CompModels.Enable = 'on';
-else
-    handles.CompModels.Enable = 'off';
-end
+% switch handles.NM.modeflag
+%     case 'classification'
+%         L=NM.label; L(isnan(L))=[];
+%         nclass = 2;
+%     case 'reression'
+%         nclass = 1;
+% end
+% heightp = 10;
+% for i=1:nclass
+%     x = 2;
+%     y = 2+ (i-1)*heightp;
+%     w = 10;
+%     p = heightp;
+%     handles.colorbuttons(i) = uibotton(handles.pnColors,'Position',[x, y, w, p], 'Text', sprintf('G%g',i));
+% end
 
 if isfield(handles,'ExportFeaturesM')
     for i=1:numel(handles.ExportFeaturesM)
@@ -1052,10 +1061,6 @@ function ExportPerformanceMenu_Callback(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
-function MenuItemPerfTabulatur_Callback(hObject, eventdata, handles)
-
-display_tablegenerator(handles);
-
 function MenuItemPerformance_Callback(hObject, eventdata, handles)
 
 PrintFromMenuClick(hObject, handles, 'export_performance')
@@ -1095,25 +1100,3 @@ else
     handles.curranal = curranal;  handles = switch_analysis(handles);
     guidata(handles.figure1,handles);
 end   
-
-
-% --------------------------------------------------------------------
-function CompModels_Callback(hObject, eventdata, handles)
-% hObject    handle to CompModels (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-% --------------------------------------------------------------------
-function CompModelsCorr_Callback(hObject, eventdata, handles)
-% hObject    handle to CompModelsCorr (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-
-% --------------------------------------------------------------------
-function CompModelsStats_Callback(hObject, eventdata, handles)
-% hObject    handle to CompModelsStats (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-display_comparator(handles);

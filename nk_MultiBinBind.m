@@ -2,7 +2,7 @@ function [MultiGroupSelection, MultiBinBind] = nk_MultiBinBind(GD, label, f, d, 
 global CV RFE
 
 %%%% PREPARATIONS %%%%
-ngroups                 = numel(unique(label(~isnan(label))));
+
 nclass                  = length(CV.class{1,1});
 [CV1perms, CV1folds]    = size(CV.cvin{f,d}.TrainInd);
 TsXdims                 = size(CV.TestInd{f,d},1);
@@ -73,12 +73,12 @@ for k=1:CV1perms
         % Compute multi-group performance on CV1 training data for CV1
         % partition [k,l]
         [MultiBinBind.TrPerf(k,l), MultiBinBind.TrPred{k,l}] = ...
-            nk_MultiEnsPerf(mTr, sign(mTr), mTrLabel, Classes(:,mcolX:mcolend), ngroups);
+            nk_MultiEnsPerf(mTr, sign(mTr), mTrLabel, Classes(:,mcolX:mcolend));
                         
         % Compute multi-group performance on CV1 test data for CV1
         % partition [k,l]
         [MultiBinBind.CVPerf(k,l), MultiBinBind.CVPred{k,l}] = ...
-            nk_MultiEnsPerf(mCV, sign(mCV), mCVLabel, Classes(:,mcolX:mcolend),ngroups);
+            nk_MultiEnsPerf(mCV, sign(mCV), mCVLabel, Classes(:,mcolX:mcolend));
                         
         % Compute multi-group performance on CV2 test data for CV1
         % partition [k,l]                        
@@ -86,7 +86,7 @@ for k=1:CV1perms
             nk_MultiEnsPerf(mTs(:,mcolX:mcolend), ...
                             sign(mTs(:,mcolX:mcolend)), ...
                             mTsLabel, ...
-                            Classes(:,mcolX:mcolend), Groups);
+                            Classes(:,mcolX:mcolend));
     end
 end
 
@@ -99,7 +99,7 @@ MultiBinBind.SD_Ts1Perf     = std(MultiBinBind.Ts1Perf(:));
 
 % Compute multi-group performance on CV2 test data by using entire CV1
 % prediction data on CV2 instances (ensemble of ensembles decision)
-[MultiBinBind.Ts2Perf, MultiBinBind.Ts2Pred] = nk_MultiEnsPerf(mTs, sign(mTs), mTsLabel, Classes, ngroups);
+[MultiBinBind.Ts2Perf, MultiBinBind.Ts2Pred] = nk_MultiEnsPerf(mTs, sign(mTs), mTsLabel, Classes);
 
 MultiGroupSelection.bestacc = MultiBinBind.Mean_CVPerf;
 switch RFE.CV2Class.type

@@ -14,12 +14,6 @@ if isfield(GDdims,'grid')
     handles.grid     = GDdims.grid;    
 end
 
-if strcmp(handles.selYaxis.String{handles.selYaxis.Value},'Multi-group probabilities derived from similarity averaging')
-    fld = 'MultiClassProb';
-else
-    fld = 'MultiClass';
-end
-
 if isfield(handles,'SubIndex'), I = handles.SubIndex; else, I = true(size(handles.NM.label,1),1); end
 
 % Check type of analysis
@@ -65,16 +59,13 @@ if isfield(GDdims,'BinClass') || isfield(GDdims,'MultiClass')
             handles.BinClass{j}.ind2 = handles.BinClass{j}.labels == handles.BinClass{j}.groupind(2);
             handles.BinClass{j}.labelh(handles.BinClass{j}.ind1,1) = 1; 
             handles.BinClass{j}.labelh(handles.BinClass{j}.ind2,1) = -1;
-            handles.BinClass{j}.one_vs_all = false;
         else
             handles.BinClass{j}.ind1 = handles.BinClass{j}.labels == handles.BinClass{j}.groupind(1); 
             handles.BinClass{j}.ind2 = handles.BinClass{j}.labels ~= handles.BinClass{j}.groupind(1);
             handles.BinClass{j}.groupind(2) = handles.nclass;
             handles.BinClass{j}.labelh(handles.BinClass{j}.ind1,1) = 1; 
             handles.BinClass{j}.labelh(~handles.BinClass{j}.ind1,1) = -1;
-            handles.BinClass{j}.one_vs_all = true;
         end
-     
         if isfield(GDdims,'CV2grid'),
             handles.BinClass{j}.CV2grid.mean_predictions    = GDdims.CV2grid.mean_predictions( handles.BinClass{j}.ind, j, handles.curlabel );
             handles.BinClass{j}.CV2grid.std_predictions     = GDdims.CV2grid.std_predictions( handles.BinClass{j}.ind, j, handles.curlabel  );
@@ -111,11 +102,6 @@ if isfield(GDdims,'BinClass') || isfield(GDdims,'MultiClass')
                 handles.BinClass{j}.best_Complexity     = GDdims.bestComplexity{j};
                 handles.BinClass{j}.best_Error          = GDdims.bestError{j};
         end
-        
-        % For ROC analysis
-        [handles.BinClass{j}.X , ...
-         handles.BinClass{j}.Y ] = perfcurve2(handles.BinClass{j}.labelh, handles.BinClass{j}.mean_predictions, 1);
-        
         % Prepare table for export
         handles.BinClass{j}.tbl.colnames        = {'Cases', 'EXP_LABEL', 'PRED_LABEL', 'Errors', 'Mean_Score', 'Std_Score', 'Ens_ProbPred'};
         handles.BinClass{j}.tbl.rownames        = handles.BinClass{j}.cases;
@@ -136,35 +122,28 @@ if isfield(GDdims,'BinClass') || isfield(GDdims,'MultiClass')
     % Add multi-class data to handles
     if isfield(GDdims,'MultiClass')
         handles.ngroups                             = numel(handles.NM.groupnames);
-        handles.MultiClass                          = GDdims.(fld);
-        indn                                        = ~isnan(GDdims.(fld).multi_probabilitiesCV2(:,1,handles.curlabel)) & I;
+        handles.MultiClass                          = GDdims.MultiClass;
+        indn                                        = ~isnan(GDdims.multi_probabilitiesCV2(:,1,handles.curlabel)) & I;
         [~, handles.MultiClass.sortind]             = sort(Label(:,handles.curlabel),'ascend');
         indn                                        = indn(handles.MultiClass.sortind);
         handles.MultiClass.cases                    = handles.subjects(indn);
         handles.MultiClass.labels                   = Label(handles.MultiClass.sortind(indn), handles.curlabel);    
-        handles.MultiClass.probabilities            = GDdims.(fld).multi_probabilitiesCV2(handles.MultiClass.sortind(indn),: , handles.curlabel);
+        handles.MultiClass.probabilities            = GDdims.multi_probabilitiesCV2(handles.MultiClass.sortind(indn),: , handles.curlabel);
         handles.MultiClass.onevsall_labels          = zeros(numel(handles.subjects(indn)),handles.ngroups);
         handles.MultiClass.onevsall_scores          = zeros(numel(handles.subjects(indn)),handles.ngroups);
         for j = 1:handles.ngroups
             ind = true(1,handles.ngroups); ind(j) = false;
-            probrest = nanmean(handles.MultiClass.probabilities(:,ind),2);
-            %probone  = handles.MultiClass.probabilities(:,j);
+            probrest = sum(handles.MultiClass.probabilities(:,ind),2);
+            probone  = handles.MultiClass.probabilities(:,j);
             handles.MultiClass.onevsall_labels(:,j) = handles.MultiClass.labels == j;     
-            handles.MultiClass.onevsall_scores(:,j) = 1-probrest;
+            handles.MultiClass.onevsall_scores(:,j) = probone-probrest;
         end
         handles.MultiClass.onevsall_labels(handles.MultiClass.onevsall_labels == 0) = -1;
-        for j = 1:handles.ngroups
-            [handles.MultiClass.X{j}, ...
-                handles.MultiClass.Y{j}, ...
-                handles.MultiClass.T{j}, ...
-                handles.MultiClass.class{j}.AUC] = ...
-                            perfcurve2(handles.MultiClass.onevsall_labels(:,j), handles.MultiClass.onevsall_scores(:,j), 1);
-        end
         handles.MultiClass.errors                   = handles.MultiClass.errors(handles.MultiClass.sortind(indn));
-        handles.MultiClass.multi_predictionsCV2     = GDdims.(fld).multi_predictionsCV2(handles.MultiClass.sortind(indn), handles.curlabel);
-        handles.MultiClass.std_multi_predictionsCV2 = GDdims.(fld).multi_predictionsCV2_std(handles.MultiClass.sortind(indn), handles.curlabel);
-        handles.MultiClass.CI1_multi_predictionsCV2 = GDdims.(fld).multi_predictionsCV2_ci1(handles.MultiClass.sortind(indn), handles.curlabel);
-        handles.MultiClass.CI2_multi_predictionsCV2 = GDdims.(fld).multi_predictionsCV2_ci2(handles.MultiClass.sortind(indn), handles.curlabel);
+        handles.MultiClass.multi_predictionsCV2     = GDdims.multi_predictionsCV2(handles.MultiClass.sortind(indn), handles.curlabel);
+        handles.MultiClass.std_multi_predictionsCV2 = GDdims.multi_predictionsCV2_std(handles.MultiClass.sortind(indn), handles.curlabel);
+        handles.MultiClass.CI1_multi_predictionsCV2 = GDdims.multi_predictionsCV2_ci1(handles.MultiClass.sortind(indn), handles.curlabel);
+        handles.MultiClass.CI2_multi_predictionsCV2 = GDdims.multi_predictionsCV2_ci2(handles.MultiClass.sortind(indn), handles.curlabel);
          switch handles.METAstr
             case 'none'
                 handles.MultiClass.best_TR                  = GDdims.multi_bestTR;
@@ -194,28 +173,21 @@ if isfield(GDdims,'BinClass') || isfield(GDdims,'MultiClass')
         
         for j = 1:handles.ngroups
             handles.MultiClass.tbl.colnames    = [ handles.MultiClass.tbl.colnames ...
-                                                    sprintf('EXP_%s_vs_REST',handles.NM.groupnames{j}) ...
-                                                    sprintf('PRED_%s_vs_REST',handles.NM.groupnames{j}) ...
-                                                    sprintf('Score_%s_vs_REST',handles.NM.groupnames{j})];  
+                                                    sprintf('EXP_LABEL_%g_vs_REST',j) ...
+                                                    sprintf('PRED_LABEL_%g_vs_REST',j) ...
+                                                    sprintf('Score_%g_vs_REST',j)];  
             handles.MultiClass.tbl.array       = [ handles.MultiClass.tbl.array  ...
                                                     handles.MultiClass.onevsall_labels(:,j) ...
                                                     sign(handles.MultiClass.onevsall_scores(:,j)) ...
                                                     handles.MultiClass.onevsall_scores(:,j) ];  
         end
-        handles.MultiClass.tbl_cont.rownames   = fieldnames(handles.MultiClass.class{1});
-        handles.MultiClass.tbl_cont.colnames   = {'Metric'};
-        handles.MultiClass.tbl_cont.array      = [];
-        remind = find(  strcmp('FPRvec',handles.MultiClass.tbl_cont.rownames) | ...
-                        strcmp('TPRvec',handles.MultiClass.tbl_cont.rownames) | ...
-                        strcmp('X',handles.MultiClass.tbl_cont.rownames));
-        for j = 1:handles.ngroups, 
-            handles.MultiClass.tbl_cont.colnames{j+1} = sprintf('%s vs REST',handles.NM.groupnames{j});
-            arr = struct2cell( handles.MultiClass.class{j});
-            arr(remind)=[];
-            handles.MultiClass.tbl_cont.array = [handles.MultiClass.tbl_cont.array arr];
-        end
-        handles.MultiClass.tbl_cont.array = cell2mat(handles.MultiClass.tbl_cont.array);
-        handles.MultiClass.tbl_cont.rownames(remind) = [];
+%         handles.BinClass{j}.tbl_cont.rownames   = fieldnames(handles.BinClass{j}.contingency);
+%         handles.BinClass{j}.tbl_cont.colnames   = {'Metric', handles.BinClass{j}.description};
+%         handles.BinClass{j}.tbl_cont.array      = struct2cell( handles.BinClass{j}.contingency);
+%         remind = find(strcmp('FPRvec',handles.BinClass{j}.tbl_cont.rownames) | strcmp('TPRvec',handles.BinClass{j}.tbl_cont.rownames) | strcmp('X',handles.BinClass{j}.tbl_cont.rownames));
+%         handles.BinClass{j}.tbl_cont.array(remind) = [];
+%         handles.BinClass{j}.tbl_cont.array = cell2mat(handles.BinClass{j}.tbl_cont.array);
+%         handles.BinClass{j}.tbl_cont.rownames(remind) = [];
     end
 elseif isfield(GDdims,'Regr') % Regression Model 
     handles.labels                                  = Label(I,handles.curlabel);

@@ -1,9 +1,7 @@
 function Perf = nk_MultiPerfQuant(expected, predicted, modus)
 
 nsubj = numel(expected);
-ngroups = unique(expected(~isnan(expected)));
-inanp = isnan(predicted);
-inane = isnan(expected);
+ngroups = unique(expected);
 nG = numel(ngroups);
 
 switch modus
@@ -13,10 +11,9 @@ switch modus
     case 1
         Perfi = zeros(nG,1); 
         for i = 1:nG
-            expi=-1*ones(size(expected)); predi=-1*ones(size(expected));
-            indp = predicted == ngroups(i); inde = expected == ngroups(i);
-            expi(inde)=1; predi(indp)=1;
-            expi(inane)=NaN; predi(inanp)=NaN;
+            expi=ones(size(expected)); predi=ones(size(expected));
+            indp = predicted ~= i; inde = expected ~= i;
+            expi(inde)=-1; predi(indp)=-1;
             Perfi(i) = BAC(expi,predi);
         end
         Perf = mean(Perfi);

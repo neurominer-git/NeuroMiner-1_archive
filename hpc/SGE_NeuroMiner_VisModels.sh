@@ -1,14 +1,19 @@
 #!/bin/bash 
 echo
 echo '****************************************'
-echo '*** NeuroMiner 0.998 (aragorn)       ***'
+echo '*** NeuroMiner Elessar	           ***'
 echo '*** SGE joblist manager:             ***'
 echo '*** Visualize models                 ***'
 echo '*** (c) 2017 N. Koutsouleris         ***'
+echo '*** Updated Mar2020: Dom             ***'
 echo '****************************************'
 echo   
+
+# compiled with matlab R2018b so MCR main is v95. Needs to change if different MCR is used.
+export LD_LIBRARY_PATH=/opt/matlab/v95/runtime/glnxa64:/opt/matlab/v95/bin/glnxa64:/opt/matlab/v95/sys/os/glnxa64:/opt/matlab/v95/sys/opengl/lib/glnxa64
+
 export JOB_DIR=$PWD
-export NEUROMINER=/opt/NM/NeuroMinerMCCMain/for_testing 
+export NEUROMINER=/opt/NM/NeuroMinerMCCMain_HeadNode_v95/for_testing 
 export ACTION=visualize
 
 read -e -p 'Path to NM structure: ' datpath
@@ -79,6 +84,19 @@ read -p 'CV2 grid end row: ' CV2x2
 read -p 'CV2 grid start column: ' CV2y1
 read -p 'CV2 grid end column: ' CV2y2
 read -p 'No. of SGE jobs: ' numCPU
+read -p 'Server to use [any=1, psy0cf20=2, mitnvp1=3]: ' sind
+if [ "$sind" = '1' ]; then
+        SERVER_ID='all.q'
+        echo "WARNING: if it is a high RAM job then please use psy0cf20"
+elif [ "$sind" = '2' ]; then
+        SERVER_ID='psy0cf20'
+        echo "Please estimate RAM accurately"
+elif [ "$sind" = '3' ]; then
+        SERVER_ID='mitnvp1'
+        echo "WARNING: if it is a high RAM job then please use psy0cf20"
+else
+        echo "Enter a number between 1-3"
+fi
 read -p 'xxxx MB RAM / SGE job: ' MB
 MB=$MB'M'
 # read -p 'Matlab version [1 = default (R2009B) | 2 = matlab/R2007B | 3 = matlab/R2008A | 4 = matlab/R2009A]: ' matl
@@ -132,7 +150,9 @@ cat > $SGEFile <<EOF
 #\$-M $EMAIL
 #\$-m ae
 #\$-l mem_total=$MB
+#\$-q $SERVER_ID
 $PMODE
+export LD_LIBRARY_PATH=$LD_LIBRARY_PATH
 export OMP_NUM_THREADS=$pnum
 cd $NEUROMINER 
 ./NeuroMinerMCCMain $ACTION $ParamFile

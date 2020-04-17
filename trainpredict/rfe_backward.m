@@ -150,9 +150,6 @@ end
 %% CHECK IF OPTIMIZED FEATURE SPACE PERFORMS BETTER THAN ORIGINAL SPACE
 if ~feval(r.evaldir, optparam, r.FullParam)
     optparam = r.FullParam; optind = r.FullInd; optfound = 0; optmodel = r.FullModel;
-elseif isnan(param) && ~optfound 
-    optind = r.FullInd; optmodel = r.FullModel; optparam = r.FullParam;
-    fprintf('\n');warning('Greedy backward search did not return any feature mask for given parameter setting. Return original feature space.')
 else
     optfound = 1;
     if r.KneePoint,

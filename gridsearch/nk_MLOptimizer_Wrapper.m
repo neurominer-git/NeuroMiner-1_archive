@@ -1,19 +1,11 @@
-function [R, optmodel] = nk_MLOptimizer_Wrapper(Y, label, Ynew, labelnew, Ps, FullParam, SubFeat)
+function [SVMfeat, optmodel] = nk_MLOptimizer_Wrapper(Y, label, Ynew, labelnew, Ps, FullParam, SubFeat)
 
-global RFE SVM
-
+global RFE
 if nargin < 8, SubFeat = true(1,size(Y,2)); end
 ActStr = {'Tr', 'CV', 'TrCV'};
-
 % Remove cases which are completely NaN
 [Y, label] = nk_ManageNanCases(Y, label);
 [Ynew, labelnew] = nk_ManageNanCases(Ynew, labelnew);
-
-% Run ADASYN if needed
-if isfield(SVM,'ADASYN') && SVM.ADASYN.flag == 1
-    [Y, label] = nk_PerfADASYN(Y, label , SVM.ADASYN);
-end
-
 switch RFE.Wrapper.type
     %% GREEDY FORWARD/BACKWARD FEATURE SEARCH
     case 1 
@@ -33,12 +25,12 @@ switch RFE.Wrapper.type
             nk_SimAnneal(Y, label, Ynew, labelnew, Ps, SubFeat, FullParam, ActStr{RFE.Wrapper.datamode});
 end
 % Transfer params to output structure
-R.found                   = optfound;
-R.FeatureIndex            = optind;
+SVMfeat.found                   = optfound;
+SVMfeat.FeatureIndex            = optind;
 if nargin == 8,
-    R.SubFeatIndex        = false(size(SubFeat));
-    R.SubFeatIndex(optind)= SubFeat(optind); 
+    SVMfeat.SubFeatIndex        = false(size(SubFeat));
+    SVMfeat.SubFeatIndex(optind)= SubFeat(optind); 
 end
-R.OptimParam              = optparam;
+SVMfeat.OptimParam              = optparam;
 
 

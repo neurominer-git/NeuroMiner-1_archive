@@ -30,11 +30,7 @@ for i=1:handles.nclass
                 TBL.rownames = [TBL.rownames; tbl_cont.rownames ];
             end
     end
-    ERR = tbl2file(TBL, filename, sheetname);
 end
-if isfield(handles,'MultiClass')
-    sheetname = sprintf('MultiClass');
-    ERR = tbl2file(handles.MultiClass.tbl_cont, filename, sheetname);
-end
+ERR = tbl2file(TBL, filename, sheetname);
 
 warning on

@@ -26,22 +26,21 @@
 % ---------
 % This function performs One-Vs-One-Max-Wins multi-group classification
 % %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% (c) Nikolaos Koutsouleris, 01/2019
+% (c) Nikolaos Koutsouleris, 02/2011
 
-function [P, Perf, d, sim, crit] = nk_MultiDecideMaxWins(H, Y, Classes, ngroups, maxfunc, weightflag)
+function [P, Perf, d, crit] = nk_MultiDecideMaxWins(H, Y, Classes, maxfunc, weightflag)
 
 global RAND SVM
 
 if ~isempty(SVM) && SVM.GridParam == 14
-    multimode = 1;
-else
-    multimode = 0;
+        multimode = 1;
+    else
+        multimode = 0;
 end
 
 if iscell(H)
     [iy,jy,nclass]  = size(H);
     d               = cell(iy,jy);
-    sim             = cell(iy,jy);
     P               = cell(iy,jy);
     crit            = cell(iy,jy);
     Perf            = zeros(iy,jy);
@@ -49,16 +48,33 @@ else
     iy = 1; jy=1;
     nclass          = numel(unique(Classes));
 end
-
-maxfuncs = {'sum','meannonzero','prodnonzero','majvote','mediannonzero'};
-maxfnc = maxfuncs{maxfunc};
+ngroups = numel(unique(Classes));
+switch maxfunc
+    case 1
+        maxfnc= 'sum';
+    case 2
+        maxfnc= 'meannonzero';
+    case 3
+        maxfnc= 'prodnonzero';
+    case 4
+        maxfnc= 'majvote';
+    case 5
+        maxfnc= 'mediannonzero';
+end
 
 % Define processing mode:
 % Decompose = 1 => One-vs-One
 % Decompose = 2 => One-vs-All
-codefxname = @nk_OneVsOne; assgnfxname = @AssignOneVsOne;
-if isfield(RAND,'Decompose') && RAND.Decompose == 2
-    codefxname = @nk_OneVsAll; assgnfxname = @AssignOneVsAll;
+if ~isfield(RAND,'Decompose'), 
+    codefxname = 'nk_OneVsOne'; assgnfxname = 'AssignOneVsOne';
+else
+    switch RAND.Decompose
+        case 1
+             codefxname = 'nk_OneVsOne'; assgnfxname = 'AssignOneVsOne';
+        case 2
+             codefxname = 'nk_OneVsAll'; assgnfxname = 'AssignOneVsAll';
+    end
+   
 end
 
 for k=1:iy % Loop through partitions (in case iscell(H) = true)
@@ -74,8 +90,10 @@ for k=1:iy % Loop through partitions (in case iscell(H) = true)
         end
         
         % Construct coding matrix
-        M = codefxname(Ckl,ngroups);
+        M = feval(codefxname,Ckl,ngroups);
         nsubj       = size(Hkl,1);
+        %ngroups     = size(M,1);
+        d           = zeros(nsubj,ngroups);
         
         Weights = zeros(1,ngroups);
         if iscell(H), tH= []; for curclass=1:nclass, tH = [tH H{k,l,curclass}]; end; else tH = H; end
@@ -84,7 +102,7 @@ for k=1:iy % Loop through partitions (in case iscell(H) = true)
         
         for j=1:nclass
             % Perform either one-vs-one or one-vs-all preprocessing
-            [td, Weights] = assgnfxname (td, j, M, Classes, Weights, tH, maxfnc);
+            [td, Weights] = feval(assgnfxname, td, j, M, Classes, Weights, tH, maxfnc);
         end
         
         % Weight decision structure according to number of dichotomizers in
@@ -99,23 +117,23 @@ for k=1:iy % Loop through partitions (in case iscell(H) = true)
         % in future versions
         if iscell(H)
             d{k,l} = td; 
-            sim{k,l} = 1 - d{k,l}./max(d{k,l},[],2);
             [crit{k,l},P{k,l}] = max(td,[],2);
-            inan = isnan(crit{k,l});
-            P{k,l}(inan)=NaN;
             if isempty(Y), Y = ones(numel(P{k,l}),1); end
             Perf(k,l) = nk_MultiPerfQuant(Y, P{k,l}, multimode);
         else
-            d = td;
-            sim = 1 - d./max(d,[],2);
+            d =td;
             [crit,P] = max(td,[],2);
-            inan = isnan(crit);
-            P(inan)=NaN;
             if isempty(Y), Y = ones(numel(P),1); end
             Perf(k,l) = nk_MultiPerfQuant(Y, P, multimode);
         end
+        
+        % Compute multi-group performance as accuracy (this is problematic
+        % in cases with unbalanced group sizes)
+        
     end
 end
+
+return
 
 % =========================================================================
 %%%% ASSIGNMENT FUNCTION : ONE-VS-ONE %%%%
@@ -156,10 +174,11 @@ else
         td(:, indG(2)) = td(:, indG(2)) + feval(maxfunc, tHX2, 2); % Some other function for score evaluation of -1 group
     end
 end
+return
 
 % =========================================================================
 %%%% ASSIGNMENT FUNCTION : ONE-VS-ALL %%%%
-function [td, Weights] = AssignOneVsAll(td, j, ~, Classes, Weights, tH, maxfunc)
+function [td, Weights] = AssignOneVsAll(td, j, M, Classes, Weights, tH, maxfunc)
 
 % Get binary classifiers for current dichotomizer
 indC        = Classes==j;    % Index to current dichotomizers
@@ -177,17 +196,25 @@ else
     td(:, j) = feval(maxfunc, tHX, 2); % Some other function for score evaluation of +1 group
 end
 
+return
+
 % _________________________________________________________________________
 function M = meannonzero(X, dim)
 
 M = sum(X, dim)./sum(X~=0, dim);
 
+return
+% _________________________________________________________________________
 function M = prodnonzero(X, dim)
 
 M = sum(X, dim)./sum(X~=0, dim);
 
+return
+% _________________________________________________________________________
 function M = mediannonzero(X, dim)
 
 X(X==0) = NaN;
 M = nm_nanmedian(X,dim);
+
+return
 

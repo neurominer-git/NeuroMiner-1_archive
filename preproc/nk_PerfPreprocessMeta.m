@@ -10,57 +10,54 @@ function [tY, Pnt, paramfl, tYocv] = nk_PerfPreprocessMeta(inp, labels, paramfl)
 % 
 % OUTPUTS:
 % --------
-% inp       = input data and some parameters
-% labels    = the targets for prediction
-% paramfl   = preprocessing parameters
+% tY        = the preprocessed data
+% Param     = computed preprocessing parameters
+% paramfl   = modified running parameters
+% tYocv     = the preprocessed independent test data
 % %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% (c) Nikolaos Koutsouleris, 01/2019
+% (c) Nikolaos Koutsouleris, 01/2016
 
 global MODEFL MULTI CV RAND VERBOSE PREPROC STACKING
 
 i = inp.f; j = inp.d; kbin = inp.nclass;
 
 if ~exist('paramfl','var'), paramfl.use_exist = false; end
-cv2flag = false; 
-if isfield(PREPROC,'CV2flag') && (PREPROC.CV2flag - 1) == 1; cv2flag = true; end
+cv2flag = false; if isfield(PREPROC,'CV2flag') && (PREPROC.CV2flag - 1) == 1; cv2flag = true; end
 
-% Binary/regression or multi-group processing mode
-% if iscell(PREPROC)
-%     BINMOD = PREPROC{1}.BINMOD;
-% else
-%     BINMOD = PREPROC.BINMOD;
-% end
-BINMOD = 1;
+% Set binary/regression or multi-group processing mode
+if iscell(PREPROC)
+    BINMOD = PREPROC{1}.BINMOD;
+else
+    BINMOD = PREPROC.BINMOD;
+end
 
-% Pointers
-[iy,jy]     = size(CV.cvin{1,1}.TrainInd); 
-TrInd       = CV.TrainInd{i,j}; 
-TsInd       = CV.TestInd{i,j}; 
+% Out-of-crossvalidation has to be activated in a later release
+[iy,jy] = size(CV.cvin{1,1}.TrainInd); 
+TrInd = CV.TrainInd{i,j}; 
+TsInd = CV.TestInd{i,j}; 
+
+% Check for multivariate processing
 
 % Data containers
-tY.Tr       = cell(iy,jy);
-tY.CV       = cell(iy,jy);
-tY.Ts       = cell(iy,jy);
+tY.Tr = cell(iy,jy);
+tY.CV = cell(iy,jy);
+tY.Ts = cell(iy,jy);
 
 % Labels & Indices
-tY.TrL      = cell(iy,jy);
-tY.CVL      = cell(iy,jy);
-tY.TrInd    = cell(iy,jy);
-tY.CVInd    = cell(iy,jy);
+tY.TrL = cell(iy,jy);
+tY.CVL = cell(iy,jy);
+tY.TrInd = cell(iy,jy);
+tY.CVInd = cell(iy,jy);
 
 % The order of statements here is critical: TsI should receive the original
 % TsInd before it is modified below!
-%
-% We have to ignore BINMOD for multi-class stacking operating on
-% dichotomization-based input channels
-inp.multiflag=0;
 if ~isempty(MULTI) && MULTI.flag, tY.mTsL = labels(TsInd,:); end
-
+inp.multiflag=0;
 for u=1:kbin
     switch MODEFL
         case 'regression'
-            TsL         = labels(TsInd,:);
-            TsInd       = true(size(TsL,1),1);
+            TsL     = labels(TsInd,:);
+            TsInd   = true(size(TsL,1),1);
         case 'classification'
             if RAND.Decompose == 9
                 TsL     = labels(TsInd,:);
@@ -80,8 +77,6 @@ if VERBOSE; fprintf('\nProcessing Mode: only binary / regression preprocessing a
 TsI = cell(kbin,1);
 for u=1:ukbin, TsI{u} = TsInd; end
 
-% Create preprocessing parameter structure if it has not been provided to
-% the function
 if ~exist('paramfl','var') || ~paramfl.found || ~paramfl.use_exist
     Pnts = struct('data_ind', [], ...
                   'train_ind', [], ...
@@ -94,17 +89,11 @@ else
     paramfl.Param = [];
 end
 
-% Number of input channels / analyses
-nA = numel(inp.analyses); cnt=1; flfnd=false; 
-
+nA = numel(inp.analyses); cnt=1;flfnd=false; 
 % Model count per modality
 tY.nM_cnt = zeros(1,nA);
 
-% Input data container gathering CVdatamats across analyses
 GDD = struct('RootPath',[],'CVfilename',[],'GD',[]);
-
-% Check whether the function is running in OOCV mode and determine whether
-% the OOCV module has been for each and every input channel of the stacker
 if isfield(inp,'oocvind') && ~isempty(inp.oocvind)
     oocvflag = true;
     oocvind = inp.oocvind;
@@ -124,7 +113,6 @@ if isfield(inp,'oocvind') && ~isempty(inp.oocvind)
        end
        error('Aborting stacker prepocessing module due to missing input features')
     else
-        % Container for OOCV data
         OOCVDD = struct('RootPath',[],'FileNames',[], 'GD', [], 'CNT', []);
     end
 else
@@ -133,15 +121,10 @@ end
 
 if oocvflag, tYocv.Ts = cell(iy,jy); else, tYocv = []; end
 
-% Get analysis IDs
-analid = cell(1, nA); for am = 1:nA, analid{am} = inp.analyses{am}.id; end
-analid=char(analid);
-
 % Here we collect the filepaths to the CVdatamats [and OOCVdatamats, if OOCV mode is used]
 for am = 1:nA
     
     nM = numel(inp.analyses{am}.GDdims);
-    % Loop through modalities (for fusion settings)
     for jm=1:nM
         if nM>1, bgstr = 'bagged '; else, bgstr=''; end
          if ~exist(inp.analyses{am}.GDdims{jm}.RootPath,'dir')
@@ -160,26 +143,25 @@ for am = 1:nA
              if exist(CVpath,'file'), flfnd = true; end
          end
          if ~flfnd || exist(CVpath,'dir'),
-             error('CVdatamat is missing for:\tAnalysis %g (%s),\n\tModality %g,\n\tCV2 [%g, %g].\nMake sure you have computed it before running the stacked analysis.', am, inp.analyses{am}.id, jm, inp.f, inp.d);
+             error('CVdatamat is missing for Analysis %g, Modality %g, CV2 [%g, %g].\nMake sure you have computed it before running the stacked analysis.', am, jm, inp.f, inp.d);
          end
-         cprintf('blue*','\n%s: ', analid(am,:)); [~,nam]= fileparts(CVpath); fprintf('Loading %s', nam); load(CVpath,'GD'); 
-         GDD(cnt).GD = GD; clear GD;
+         fprintf('\nLoading %s', CVpath); load(CVpath,'GD'); 
+         GDD(cnt).GD=GD; clear GD;
          
          if oocvflag
-            OOCVDD(cnt).RootPath    = inp.analyses{am}.OOCV{oocvind}.RootPath{jm};
-            OOCVDD(cnt).FileNames   = inp.analyses{am}.OOCV{oocvind}.FileNames{jm}{inp.f,inp.d};
-            OOCVpath                = fullfile(OOCVDD(cnt).RootPath,[OOCVDD(cnt).FileNames, '.mat']);
-            if ~exist(OOCVpath,'file')
+            OOCVDD(cnt).RootPath = inp.analyses{am}.OOCV{oocvind}.RootPath{jm};
+            OOCVDD(cnt).FileNames = inp.analyses{am}.OOCV{oocvind}.FileNames{jm}{inp.f,inp.d};
+            OOCVpath = fullfile(OOCVDD(cnt).RootPath,[OOCVDD(cnt).FileNames, '.mat']);
+            if ~exist(OOCVpath,'file'),
                 error('OOCVdatamat is missing for Analysis %g, Modality %g, CV2 [%g, %g].\nMake sure you have computed it before running the stacked analysis.',  am, jm, inp.f, inp.d);
             end
             load(OOCVpath,'binOOCVDh','cntOOCVDh'); 
-            OOCVDD(cnt).GD          = binOOCVDh; 
-            OOCVDD(cnt).CNT         = cntOOCVDh; 
+            OOCVDD(cnt).GD = binOOCVDh; 
+            OOCVDD(cnt).CNT = cntOOCVDh; 
          end
          cnt=cnt+1;
     end
 end
-fprintf('\nDone loading CVdatamats.')
 
 for k=1:iy % Inner permutation loop
 
@@ -221,10 +203,10 @@ for k=1:iy % Inner permutation loop
                     CVfilename = inp.analyses{am}.GDdims{jm}.GDfilenames{inp.f,inp.d}; 
                     tY.nM_cnt(am) = nP;
                     if VERBOSE, 
-                        fprintf('\nCV [ %g, %g ]: Concatenating predictions from modality #%g in analysis #%g (%s): %s',k, l,jm, am, inp.analyses{am}.id, CVfilename); 
+                        fprintf('\nCV [ %g, %g ]: Concatenating predictions from modality #%g in analysis #%g: %s',k, l,jm, am, CVfilename); 
                         if oocvflag
                             OOCVfilename = inp.analyses{am}.OOCV{oocvind}.FileNames{jm}{inp.f,inp.d};
-                            fprintf('\nOOCV [ %g, %g ]: Concatenating predictions from modality #%g in analysis #%g (%s): %s',k, l,jm, am, inp.analyses{am}.id, OOCVfilename); 
+                            fprintf('\nOOCV [ %g, %g ]: Concatenating predictions from modality #%g in analysis #%g: %s',k, l,jm, am, OOCVfilename); 
                         end
                     else
                         fprintf('.');
@@ -277,11 +259,7 @@ for k=1:iy % Inner permutation loop
                                 ocv = [ ocv nm_nanmedian(double(OOCVDD(cnt).GD{u}(:,Is:Ie)),2)]; 
                             end
                         else
-                            try
-                                cvd = [cvd double(GDD(cnt).GD.DV{Pspos(n)}{k,l,u})];
-                            catch
-                                fprintf('problem')
-                            end
+                            cvd = [cvd double(GDD(cnt).GD.DV{Pspos(n)}{k,l,u})];
                             tsd = [tsd double(GDD(cnt).GD.DS{Pspos(n)}{k,l,u})];
                             if oocvflag, 
                                 Is = OOCVDD(cnt).CNT{u}{n}(k,l,1);
@@ -356,7 +334,6 @@ for k=1:iy % Inner permutation loop
                 error('Empty training/test/validation data matrices return by preprocessing pipeline. Check your settings')
             end
             
-            TrL = labels(TrI,:); CVL = labels(CVI,:);
             switch BINMOD
 
                 case 0 % Multi-group mode both in FBINMOD and PREPROC.BINMOD
@@ -366,8 +343,8 @@ for k=1:iy % Inner permutation loop
                         tY.Ts{k,l}{u} = nk_ManageNanCases(tsd, [], SrcParam.iTs);
                         if oocvflag, tYocv.Ts{k,l}{u} = ocv; end
                     else
-                        [tY.Tr{k,l},TrL] = nk_ManageNanCases(trd, TrL, SrcParam.iTr);
-                        [tY.CV{k,l},CVL] = nk_ManageNanCases(cvd, CVL, SrcParam.iCV);
+                        tY.Tr{k,l} = nk_ManageNanCases(trd, [], SrcParam.iTr);
+                        tY.CV{k,l} = nk_ManageNanCases(cvd, [], SrcParam.iCV);
                         tY.Ts{k,l} = nk_ManageNanCases(tsd, [], SrcParam.iTs);
                         if oocvflag, tYocv.Ts{k,l} = ocv; end
                     end
@@ -397,9 +374,9 @@ for k=1:iy % Inner permutation loop
                         end
                     end
                 case 1
-                    % Write data to CV1 partition
-                    tY.Tr{k,l}{u} = nk_ManageNanCases(trd, TrL, SrcParam.iTr); 
-                    tY.CV{k,l}{u} = nk_ManageNanCases(cvd, CVL, SrcParam.iCV); 
+                     % Write data to CV1 partition
+                    tY.Tr{k,l}{u} = nk_ManageNanCases(trd, [], SrcParam.iTr); 
+                    tY.CV{k,l}{u} = nk_ManageNanCases(cvd, [], SrcParam.iCV); 
                     tY.Ts{k,l}{u} = nk_ManageNanCases(tsd, [], SrcParam.iTs);
                     if oocvflag, tYocv.Ts{k,l}{u} = ocv; end
                     

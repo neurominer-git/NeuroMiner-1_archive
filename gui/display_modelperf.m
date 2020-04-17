@@ -37,10 +37,9 @@ if strcmpi(predstr{predind},'Multi-group classifier')
             pardesc = 'Average model complexity' ;
             P = grd.MultiComplexity; SEM = grd.seMultiComplexity;
             ylb = 'Average model complexity [%]';
-            
         case 'Multi-class model selection frequency'
             pardesc = 'Average parameter selection frequency' ;
-            P = grd.MultiSelNodeFreq*100; SEM = [];
+            P = grd.MultiSelNodeFreq; SEM = [];
             ylb = 'Multi-class parameter selection frequency [%]';
           
     end
@@ -329,5 +328,4 @@ if exist('lgstr','var') && ~isempty(lgstr),
     handles.legend_modelperf = legend(hi,lgstr,'Location','Best','FontSize',handles.LegendFontSize,'LineWidth',1); 
 else
     legend('hide')
-    handles.legend_modelperf = [];
 end

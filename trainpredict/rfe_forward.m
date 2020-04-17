@@ -164,6 +164,7 @@ switch r.WeightSort
         
 end
 
+%% CHECK IF OPTIMIZED FEATURE SPACE PERFORMS BETTER THAN ORIGINAL SPACE
 if r.KneePoint,
     kneepoint = knee_pt(Opt.Param,[],true);
     if VERBOSE,
@@ -175,14 +176,9 @@ if r.KneePoint,
     end
     if isnan(kneepoint), kneepoint = numel(Opt.S); end
     optind = r.FullInd(Opt.S{kneepoint});
-    
-elseif isnan(param) && ~optfound 
-    % Optimization returned non-finite performance at given parameter
-    % combination. Return original feature space
-    optind = r.FullInd;
-    fprintf('\n');warning('Greedy forward search did not return any feature mask for given parameter setting. Return original feature space.')
 else
     optind = r.FullInd(S);
 end
 if VERBOSE, fprintf('\nDone. '); end
 optfound = 1; [~,optmodel] = feval(TRAINFUNC, Y(:,optind), label, 1, Ps); 
+

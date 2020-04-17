@@ -169,109 +169,100 @@ end
 divx1 = sum(id1); xl1 = 1:divx1;
 divx2 = divx1 + sum(id2); xl2 = divx1+1:divx2;
 
-if size(handles.BinClass{h}.labelh,1) == 1, 
-    labelh = handles.BinClass{h}.labelh'; 
-else
-    labelh = handles.BinClass{h}.labelh;
-end
-if GraphType > 3, 
-    signpred = sign(predh-0.5);
-else
-    signpred = sign(predh);
-end
-err = signpred ~= labelh;
-idx1 = id1 & ~err; idx2 = id2 & ~err; b(1) = 0; b(2)= 0;
-
-if sum(idx1)
-    b(1) = plot(lxL(idx1),predh(idx1),handles.colpt,...
-        'MarkerSize',MS,...
-        'Color',handles.colptin(handles.BinClass{h}.groupind(1),:),...
-        'MarkerFaceColor',handles.colptin(handles.BinClass{h}.groupind(1),:),...
-        'LineWidth',handles.DataMarkerWidth,...
-        'LineStyle','none');    
-else
-    b(1) = plot(1,NaN,'LineStyle','none');
-end
-
-if sum(idx2)
-    if ~handles.BinClass{h}.one_vs_all
-        CLP = handles.colpt;
-        CLR = handles.colptin(handles.BinClass{h}.groupind(2),:);
+    
+    if size(handles.BinClass{h}.labelh,1) == 1, 
+        labelh = handles.BinClass{h}.labelh'; 
     else
-        CLP = 'o';
-        CLR = rgb('DarkGrey');
+        labelh = handles.BinClass{h}.labelh;
     end
-    b(2) = plot(lxL(idx2),predh(idx2),CLP,...
-        'MarkerSize',MS,...
-        'Color',CLR,...
-        'MarkerFaceColor', CLR,...
-        'LineWidth',handles.DataMarkerWidth,...
-        'LineStyle','none');
-else
-    b(2) = plot(1,NaN,'LineStyle','none');
-end
-
-if GraphType >3 
-    probfx = 0.5;
-    predhx = predh-0.5;
-    handles.BinClass{h}.predh = predhx;
-else
-    probfx = 0;
-    handles.BinClass{h}.predh = predh;
-end
-xLimits = get(handles.axes1,'XLim'); xLimitsVec = xLimits(1):xLimits(2);
-zeroline = ones(1,numel(xLimitsVec))*probfx;
-
-ide1 = id1 & err; ide2 = id2 & err;
-
-x1 = plot(lxL(ide1),predh(ide1), '*', 'Color', handles.colptin(handles.BinClass{h}.groupind(1),:),'MarkerSize',handles.DataMissMarkerSize,'LineWidth',handles.DataMissMarkerWidth);
-if handles.BinClass{h}.one_vs_all 
-    Color2 = rgb('DarkGrey');
-else
-    Color2 = handles.colptin(handles.BinClass{h}.groupind(2),:);
-end
-x2 = plot(lxL(ide2),predh(ide2), '*', 'Color', Color2,'MarkerSize',handles.DataMissMarkerSize,'LineWidth',handles.DataMissMarkerWidth);  
-handlevec = [b,x1,x2];
-legendvec = {handles.BinClass{h}.groupnames{:},'misclassified', 'misclassified'};
-
-if AltAx,
-    % Display regression lines for alternative X Axis
-    xl      = get(gca,'Xlim');
-    p       = polyfit(lxL(id1),predh(id1),1);     % p returns 2 coefficients fitting r = a_1 * x + a_2
-    rho(1)  = corr(lxL(id1),predh(id1));
-    r       = p(1) .* xl + p(2);                   % compute a new vector r that has matching datapoints in x
-    hl(1)   = plot(xl,r, handles.colpt, 'LineWidth', 3, 'Color', handles.colptin(handles.BinClass{h}.groupind(1),:));
-    p       = polyfit(lxL(id2),predh(id2),1);     % p returns 2 coefficients fitting r = a_1 * x + a_2
-    rho(2)  = corr(lxL(id2),predh(id2));
-    r       = p(1) .* xl + p(2);                   % compute a new vector r that has matching datapoints in x
-    hl(2)   = plot(xl,r, handles.colpt, 'LineWidth', 3, 'Color', handles.colptin(handles.BinClass{h}.groupind(2),:));
-    handlevec = [handlevec hl];
-    legendvec = [legendvec, {['r = ' num2str(rho(1),'%1.2f')]}, {['r = ' num2str(rho(2),'%1.2f')]} ];
-    % Display misclassification histogram analysis 
-    % Group 1 misclassification histogram
-    [err_hist1, Bins1] = hist3([lxL(id1) err(id1)],[10 2]); 
-    perr_hist1 = err_hist1(:,2) ./ sum(err_hist1,2);
-     % Group 2 misclassification histogram
-    [err_hist2, Bins2] = hist3([lxL(id2) err(id2)], Bins1); 
-    perr_hist2 = err_hist2(:,2) ./ sum(err_hist2,2);
-    axes(handles.axes38); 
-    bar(handles.axes38, Bins1{1}, perr_hist1,'BarWidth',1,'FaceColor', handles.colptin(handles.BinClass{h}.groupind(1),:),'FaceAlpha',0.5); 
-    xlim(handles.axes38, XLIMS);
-    ylim(handles.axes38, [0 1]);
-    set(handles.axes38, ...%'FontSize', handles.AxisTickSize, ...
-        'FontWeight', handles.AxisTickWeight, ...
-        'LineWidth', handles.AxisLineWidth);
-    ylabel(handles.axes38,'% Misclassified / Bin');
-    hold(handles.axes38,'on'); 
-    if handles.BinClass{h}.one_vs_all 
-        Color2 = rgb('DarkGrey');
+    if GraphType > 3, 
+        signpred = sign(predh-0.5);
     else
-        Color2 = handles.colptin(handles.BinClass{h}.groupind(2),:);
+        signpred = sign(predh);
     end
-    bar(handles.axes38, Bins1{1}, perr_hist2,'BarWidth',1,'FaceColor', Color2,'FaceAlpha',0.5); 
-    hold(handles.axes38,'off'); 
-    axes(handles.axes1);
-    % Kolomogorv-Smirnov-Tests if available
+    err = signpred ~= labelh;
+    idx1 = id1 & ~err; idx2 = id2 & ~err; b(1) = 0; b(2)= 0;
+    
+    if sum(idx1)
+        b(1) = plot(lxL(idx1),predh(idx1),handles.colpt,...
+            'MarkerSize',MS,...
+            'Color',handles.colptin(handles.BinClass{h}.groupind(1),:),...
+            'MarkerFaceColor',handles.colptin(handles.BinClass{h}.groupind(1),:),...
+            'LineWidth',handles.DataMarkerWidth,...
+            'LineStyle','none');    
+    else
+        b(1) = plot(1,NaN,'LineStyle','none');
+    end
+    
+    if sum(idx2)
+        if numel(handles.BinClass{h}.groupind) == 2
+            CLP = handles.colpt;
+            CLR = handles.colptin(handles.BinClass{h}.groupind(2),:);
+        else
+            CLP = 'o';
+            CLR = 'k';
+        end
+        b(2) = plot(lxL(idx2),predh(idx2),CLP,...
+            'MarkerSize',MS,...
+            'Color',CLR,...
+            'MarkerFaceColor', CLR,...
+            'LineWidth',handles.DataMarkerWidth,...
+            'LineStyle','none');
+    else
+        b(2) = plot(1,NaN,'LineStyle','none');
+    end
+    
+    if GraphType >3 
+        probfx = 0.5;
+        predhx = predh-0.5;
+        handles.BinClass{h}.predh = predhx;
+    else
+        probfx = 0;
+        handles.BinClass{h}.predh = predh;
+    end
+    xLimits = get(handles.axes1,'XLim'); xLimitsVec = xLimits(1):xLimits(2);
+    zeroline = ones(1,numel(xLimitsVec))*probfx;
+     
+    ide1 = id1 & err; ide2 = id2 & err;
+    
+    x1 = plot(lxL(ide1),predh(ide1), '*', 'Color', handles.colptin(handles.BinClass{h}.groupind(1),:),'MarkerSize',handles.DataMissMarkerSize,'LineWidth',handles.DataMissMarkerWidth);
+    x2 = plot(lxL(ide2),predh(ide2), '*', 'Color', handles.colptin(handles.BinClass{h}.groupind(2),:),'MarkerSize',handles.DataMissMarkerSize,'LineWidth',handles.DataMissMarkerWidth);  
+    handlevec = [b,x1,x2];
+    legendvec = {handles.BinClass{h}.groupnames{:},'misclassified', 'misclassified'};
+    
+    if AltAx,
+        % Display regression lines for alternative X Axis
+        xl      = get(gca,'Xlim');
+        p       = polyfit(lxL(id1),predh(id1),1);     % p returns 2 coefficients fitting r = a_1 * x + a_2
+        rho(1)  = corr(lxL(id1),predh(id1));
+        r       = p(1) .* xl + p(2);                   % compute a new vector r that has matching datapoints in x
+        hl(1)   = plot(xl,r, handles.colpt, 'LineWidth', 3, 'Color', handles.colptin(handles.BinClass{h}.groupind(1),:));
+        p       = polyfit(lxL(id2),predh(id2),1);     % p returns 2 coefficients fitting r = a_1 * x + a_2
+        rho(2)  = corr(lxL(id2),predh(id2));
+        r       = p(1) .* xl + p(2);                   % compute a new vector r that has matching datapoints in x
+        hl(2)   = plot(xl,r, handles.colpt, 'LineWidth', 3, 'Color', handles.colptin(handles.BinClass{h}.groupind(2),:));
+        handlevec = [handlevec hl];
+        legendvec = [legendvec, {['r = ' num2str(rho(1),'%1.2f')]}, {['r = ' num2str(rho(2),'%1.2f')]} ];
+        % Display misclassification histogram analysis 
+        % Group 1 misclassification histogram
+        [err_hist1, Bins1] = hist3([lxL(id1) err(id1)],[10 2]); 
+        perr_hist1 = err_hist1(:,2) ./ sum(err_hist1,2);
+         % Group 2 misclassification histogram
+        [err_hist2, Bins2] = hist3([lxL(id2) err(id2)], Bins1); 
+        perr_hist2 = err_hist2(:,2) ./ sum(err_hist2,2);
+        axes(handles.axes38); 
+        bar(handles.axes38, Bins1{1}, perr_hist1,'BarWidth',1,'FaceColor', handles.colptin(handles.BinClass{h}.groupind(1),:),'FaceAlpha',0.5); 
+        xlim(handles.axes38, XLIMS);
+        ylim(handles.axes38, [0 1]);
+        set(handles.axes38, ...%'FontSize', handles.AxisTickSize, ...
+            'FontWeight', handles.AxisTickWeight, ...
+            'LineWidth', handles.AxisLineWidth);
+        ylabel(handles.axes38,'% Misclassified / Bin');
+        hold(handles.axes38,'on'); 
+        bar(handles.axes38, Bins1{1}, perr_hist2,'BarWidth',1,'FaceColor', handles.colptin(handles.BinClass{h}.groupind(2),:),'FaceAlpha',0.5); 
+        hold(handles.axes38,'off'); 
+        axes(handles.axes1);
+        % Kolomogorv-Smirnov-Tests if available
 %         if exist('kstest2','file')
 %             pnull_hist1 = repmat(sum(err_hist1(:,2))/10,10,1)./sum(err(id1));
 %             alt_hist1   = err_hist1(:,2)/sum(err(id1));
@@ -288,79 +279,80 @@ if AltAx,
 %             fprintf('\n'); cprintf('*black','========================================================');
 %             fprintf('\n')
 %         end
-end
+    end
+    
+    plot(xLimitsVec,zeroline,'k--','LineWidth',handles.ZeroLineWidth)
+    
+    switch GraphType
 
-plot(xLimitsVec,zeroline,'k--','LineWidth',handles.ZeroLineWidth)
+        case {1,2,3}
+            switch handles.params.TrainParam.SVM.prog
+                case {'MikSVM','MKLRVM'}
+                    algostr = 'RVM probability';
+                case 'LIBSVM'
+                    algostr = 'SVM score';
+                case 'MVTRVR'
+                    algostr = 'RVR score';
+                case 'MEXELM';
+                    algostr = 'ELM score';
+                case 'LIBLIN'
+                    switch handles.params.TrainParam.SVM.LIBLIN.classifier
+                        case {0,6}
+                            algostr = 'LR';
+                        otherwise
+                            algostr = 'SVM';
+                    end
+                    switch handles.params.TrainParam.SVM.LIBLIN.b
+                        case 0
+                            algostr = [algostr ' Score'];
+                        case 1
+                            algostr = [algostr ' Probability'];
+                    end
+                case 'matLRN'
+                    algostr = sprintf('matLearn [ %s ]',char(handles.params.TrainParam.SVM.matLRN.algo));
+                otherwise
+                    algostr = [handles.params.TrainParam.SVM.prog 'score'];
+            end
+        case 4
+            algostr = 'OOT-Probability';
+        case 5
+            algostr = 'Mean OOT-Probability (95%-CIs)';
+        case 6
+            algostr = 'Mean OOT-Probability (SD)';
+    end
+    hx(1) = xlabel(lxN); 
+    set(hx(1), ...%'FontSize',handles.AxisLabelSize-2,
+        'FontWeight',handles.AxisLabelWeight);
+    hx(2) = ylabel([SrtStr algostr]); 
+    set(hx(2), ...%'FontSize',handles.AxisLabelSize-2, ...
+        'FontWeight',handles.AxisLabelWeight);
+    handles.legend_classplot = legend(handlevec,legendvec, 'Location','Best', 'FontUnits','normalized', 'FontSize', 8,'LineWidth',1);%,'FontSize',handles.LegendFontSize); 
+    legend('boxon')
 
-switch GraphType
+    
+    %% Display Contigency data
+    %if isfield(handles,'txtPerf'); delete(handles.txtPerf); end
+    handles = display_contigmat(handles);
+    
+    %% Display ROC
+    if isfield(handles.BinClass{h}.contingency,'AUC')
+      flg='on';
+        [handles.hroc, handles.hroc_random] = display_roc(handles, ...
+            handles.BinClass{h}.labelh, handles.BinClass{h}.predh);
+    else
+      flg = 'off';
+    end     
+    handles.axes1.XTickLabelMode = 'auto';
+    handles.pnRocCmds.Visible = flg;
+    handles.pnPieCmds.Visible = flg;
+    handles.pnContigCmds.Visible = flg;
+    handles.axes20.Visible = flg;
+    %handles.cmdMetricExport.Visible = flg;
+    handles.cmdExportAxes20.Visible = flg;
 
-    case {1,2,3}
-        switch handles.params.TrainParam.SVM.prog
-            case {'MikSVM','MKLRVM'}
-                algostr = 'RVM probability';
-            case 'LIBSVM'
-                algostr = 'SVM score';
-            case 'MVTRVR'
-                algostr = 'RVR score';
-            case 'MEXELM';
-                algostr = 'ELM score';
-            case 'LIBLIN'
-                switch handles.params.TrainParam.SVM.LIBLIN.classifier
-                    case {0,6}
-                        algostr = 'LR';
-                    otherwise
-                        algostr = 'SVM';
-                end
-                switch handles.params.TrainParam.SVM.LIBLIN.b
-                    case 0
-                        algostr = [algostr ' Score'];
-                    case 1
-                        algostr = [algostr ' Probability'];
-                end
-            case 'matLRN'
-                algostr = sprintf('matLearn [ %s ]',char(handles.params.TrainParam.SVM.matLRN.algo));
-            otherwise
-                algostr = [handles.params.TrainParam.SVM.prog ' score'];
-        end
-    case 4
-        algostr = 'OOT-Probability';
-    case 5
-        algostr = 'Mean OOT-Probability (95%-CIs)';
-    case 6
-        algostr = 'Mean OOT-Probability (SD)';
-end
-hx(1) = xlabel(lxN); 
-set(hx(1), ...%'FontSize',handles.AxisLabelSize-2,
-    'FontWeight',handles.AxisLabelWeight);
-hx(2) = ylabel([SrtStr algostr]); 
-set(hx(2), ...%'FontSize',handles.AxisLabelSize-2, ...
-    'FontWeight',handles.AxisLabelWeight);
-handles.legend_classplot = legend(handlevec,legendvec, 'Location','Best', 'FontUnits','normalized', 'FontSize', 8,'LineWidth',1);%,'FontSize',handles.LegendFontSize); 
-legend('boxon')
-
-
-%% Display Contigency data
-%if isfield(handles,'txtPerf'); delete(handles.txtPerf); end
-handles = display_contigmat(handles);
-
-%% Display ROC
-if isfield(handles.BinClass{h}.contingency,'AUC')
-  flg='on';
-    [handles.hroc, handles.hroc_random] = display_roc(handles);
-else
-  flg = 'off';
-end     
-handles.axes1.XTickLabelMode = 'auto';
-handles.pnRocCmds.Visible = flg;
-handles.pnPieCmds.Visible = flg;
-handles.pnContigCmds.Visible = flg;
-handles.axes20.Visible = flg;
-%handles.cmdMetricExport.Visible = flg;
-handles.cmdExportAxes20.Visible = flg;
-
-%% Display pie charts
-[handles.h1pie, handles.h2pie] = display_piecharts(handles);
-
-%% Display contingency plot
-handles.h_contig = display_contigplot(handles);
+    %% Display pie charts
+    [handles.h1pie, handles.h2pie] = display_piecharts(handles);
+    
+    %% Display contingency plot
+    handles.h_contig = display_contigplot(handles);
     

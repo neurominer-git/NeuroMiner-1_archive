@@ -21,20 +21,19 @@ function Predict = nk_PredictData(F, W, TR, TRInd, dTRLabel, ...
                                         CVD, CVDInd, dCVDLabel, ...
                                         TS, dTSInd, dTSLabel, ...
                                         mTSInd, mTSLabel, ...
-                                        MD, ngroups, detrend)
+                                        MD, detrend)
                                     
 global CV MULTI MODEFL VERBOSE RFE EVALFUNC RAND MULTILABEL
 
 % Initialize Variables
 [iy,jy]     = size(TR);
-dTRL    = dTRLabel{1,1}{1}(:,MULTILABEL.curdim);
-lgroups = unique(dTRL(~isnan(dTRL)));
-
 if strcmp(MODEFL,'classification')
     if RAND.Decompose ~= 9
         nclass = length(CV.class{1,1});
     else
         nclass = 1;
+        lgroups = unique(dTRLabel{1,1}{1}(:,MULTILABEL.curdim));
+        ngroups = numel(lgroups);
     end
 elseif strcmp(MODEFL,'regression')
     nclass = 1;
@@ -50,13 +49,12 @@ Predict.binCV1Performance_Mean   = zeros(1,nclass);
 Predict.binCV1Performance_SD     = zeros(1,nclass);
 if MULTI.flag, 
     Predict.MultiCV1Predictions  = cell(iy,jy);
-    Predict.MultiCV1Probabilities  = cell(iy,jy);
     Predict.MultiCV1Performance  = zeros(iy,jy); 
 end
 
 % Compute size of multi-group and binary arrays to avoid dynamic memory allocation
 % This significantly improves code execution performance
-Ydims = nk_GetCV2EnsembleDims(F); if nF ~= nclass, sYdims = Ydims*nclass; else, sYdims = sum(Ydims); end
+Ydims = nk_GetCV2EnsembleDims(F); if nF ~= nclass, sYdims = Ydims*nclass; else sYdims = sum(Ydims); end
 if iscell(TS{1,1})
     Xdims = size(TS{1,1}{1},1);
 else
@@ -64,6 +62,14 @@ else
 end
 mDTs = zeros(Xdims, sYdims); mTTs = mDTs; Classes = zeros(1,sYdims);
 mcolend = 0;
+
+% Check if models have been inputted to the function, if not retrain the
+% models using CV1 training (& eventually CV1 test data)
+if exist('MD','var') && isempty(MD);
+    mdfl = true;
+else
+    mdfl = false;
+end
 
 % Check if detrending should be applied after label prediction
 if exist('detrend','var') && ~isempty(detrend)
@@ -218,22 +224,32 @@ for k=1:iy % Loop through CV1 permutations
             end
             
             Predict.binCV1Performance(k,l,curclass) = mean(perf);
-
-            % Multi-group CV2 array construction
-            [mDTs, mTTs, Classes, mcolstart, mcolend] = ...
-                nk_MultiAssemblePredictions( tsD, tsT, mDTs, mTTs, Classes, ul, curclass, mcolend );
             
-            if curclass == 1, mcolX = mcolstart; end
+            % Code dichotomization word for CV2 test data multi-group performance
+            ClassVec = ones(1,size(tsD,2))*curclass;
             
+            % Compute column pointers for multi-group CV2 array construction
+            mcolstart = mcolend + 1; mcolend = mcolstart + (ul-1);
+            if curclass == 1, mcolX = mcolstart; end;
+            
+            % Enter decision values and predictions
+            % for multi-group classification into CV2 arrays
+            try
+                mDTs(:,mcolstart:mcolend) = tsD; 
+                mTTs(:,mcolstart:mcolend) = tsT;
+                Classes(1,mcolstart:mcolend) = ClassVec;
+            catch
+                fprintf('problem')
+            end
         end
         
         % Compute multi-group performance on CV2 test data for current CV1 partition
         if MULTI.flag
-            [Predict.MultiCV1Performance(k,l), Predict.MultiCV1Predictions{k,l}, Predict.MultiCV1Probabilities{k,l}] = ...
+            [Predict.MultiCV1Performance(k,l), Predict.MultiCV1Predictions{k,l}] = ...
                 nk_MultiEnsPerf(mDTs(:,mcolX:mcolend), ...
                 mTTs(:,mcolX:mcolend), ...
                 mTSLabel(:,MULTILABEL.curdim), ...
-                Classes(:,mcolX:mcolend), ngroups);
+                Classes(:,mcolX:mcolend));
         end
     end
 end
@@ -331,8 +347,8 @@ end
 
 % Compute CV2 ensemble multi-group performance and class membership
 if MULTI.flag  
-    [Predict.MultiCV2Performance, Predict.MultiCV2Predictions, Predict.MultiCV2Probabilities] = ...
-                nk_MultiEnsPerf(mDTs, mTTs, mTSLabel(:,MULTILABEL.curdim), Classes, ngroups );
+    [Predict.MultiCV2Performance, Predict.MultiCV2Predictions] = ...
+                nk_MultiEnsPerf(mDTs, mTTs, mTSLabel(:,MULTILABEL.curdim), Classes);
     Predict.MultiCV2Diversity_Targets = nm_nanmean(Predict.binCV2Diversity_Targets);
     Predict.MultiCV2Diversity_DecValues = nm_nanmean(Predict.binCV2Diversity_DecValues);
 end

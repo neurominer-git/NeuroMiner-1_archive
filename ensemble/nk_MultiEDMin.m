@@ -23,7 +23,7 @@
 % %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % (c) Nikolaos Koutsouleris, 06/2011
 
-function [opt_hE, opt_E, opt_F, opt_Fcat, opt_D, opt_Pred] = nk_MultiEDMin(E, L, EnsStrat, C, G)
+function [opt_hE, opt_E, opt_F, opt_Fcat, opt_D, opt_Pred] = nk_MultiEDMin(E, L, EnsStrat, C)
 global BATCH
 
 ind0    = L~=0; 
@@ -34,11 +34,11 @@ uC      = unique(C);
 if EnsStrat.Metric == 2, T = sign(E); else T = E; end
 
 % Compute initial ensemble performance
-[opt_hE, opt_Pred]  = nk_MultiEnsPerf(E, T, L, C, G); 
+[opt_hE, opt_Pred]  = nk_MultiEnsPerf(E, T, L, C); 
 orig_hE = opt_hE;
 
 % Compute initial ensemble ambiguity
-opt_D = nk_LobagMulti(E, T, L, C, uC, nclass, G);
+opt_D = nk_LobagMulti(E, T, L, C, uC, nclass);
 
 [m, d]  = size(E);
 orig_D  = opt_D;
@@ -87,7 +87,7 @@ switch EnsStrat.ConstructMode
                     kI = I; kI(indCur(l)) = []; 
                     %kX = indCur; kX(l) = []; kX = [kX indNonCur]; 
                     
-                    lD( k(curclass)-l+1 ) = nk_LobagMulti(E(:,kI),T(:,kI), L, C(kI), uC, nclass, G);
+                    lD( k(curclass)-l+1 ) = nk_LobagMulti(E(:,kI),T(:,kI), L, C(kI), uC, nclass);
                     l=l-1;
                 end
 
@@ -131,7 +131,7 @@ switch EnsStrat.ConstructMode
                 while l > 0
                     
                     kI = [I origI(indCur(l))];
-                    lD(l) = nk_LobagMulti(E(:,kI), T(:,kI), L, C(kI), uC, nclass, G);
+                    lD(l) = nk_LobagMulti(E(:,kI), T(:,kI), L, C(kI), uC, nclass);
                     l=l-1;
                 end
 
@@ -156,7 +156,7 @@ if orig_D < MaxParam
     opt_I = orig_F; 
 else
     opt_D = MaxParam;
-    [opt_hE, opt_Pred] = nk_MultiEnsPerf(E(:,opt_I), T(:,opt_I), L, C(:,opt_I), G); 
+    [opt_hE, opt_Pred] = nk_MultiEnsPerf(E(:,opt_I), T(:,opt_I), L, C(:,opt_I)); 
 end
 
 % Generate outputs

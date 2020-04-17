@@ -20,13 +20,12 @@ if ~exist('inp','var') || isempty(inp)
                     'lfl', 1, ...
                     'ovrwrt', 2, ...
                     'saveparam', 2, ...
-                    'saveCV1', 2, ...
                     'loadparam', 2, ...
                     'batchflag', 0);
 end
 na_str = '?'; inp.datatype = 'OOCVdatamat'; 
-OverWriteStr = []; GridSelectStr = []; LoadModelsStr = []; LoadParamsStr = []; LoadStr = []; SaveStr = []; SaveCV1Str = [];
-OverWriteAct = []; GridSelectAct = []; LoadModelsAct = []; LoadParamsAct = []; LoadAct = []; SaveAct = []; SaveCV1Act = [];
+OverWriteStr = []; GridSelectStr = []; LoadModelsStr = []; LoadParamsStr = []; LoadStr = []; SaveStr = []; 
+OverWriteAct = []; GridSelectAct = []; LoadModelsAct = []; LoadParamsAct = []; LoadAct = []; SaveAct = []; 
 DATASCRAM = false; if isfield(NM.defs,'data_scrambled') && ~isempty(NM.defs.data_scrambled), DATASCRAM = NM.defs.data_scrambled;end
     
 %% Configure menu
@@ -94,9 +93,6 @@ if ~isempty(analysis)
     if inp.loadparam == 2 && inp.lfl == 1
         SAVE_opts       = {'yes', 'no'};   
         SaveStr = sprintf('Save pre-processing params and models to disk [ %s ]|', SAVE_opts{inp.saveparam});               SaveAct = 6;
-        if inp.saveparam == 1
-            SaveCV1Str = sprintf('Save pre-processing params at CV1 level [ %s ]|', SAVE_opts{inp.saveCV1});                SaveCV1Act = 12;
-        end
     end
 end
  
@@ -107,7 +103,6 @@ menustr = [ AnalSelectStr ...
             OverWriteStr ...
             GridSelectStr ...
             SaveStr ...
-            SaveCV1Str ...
             LoadStr ...
             LoadParamsStr ... 
             LoadModelsStr ];
@@ -118,7 +113,6 @@ menuact = [ AnalSelectAct ...
             OverWriteAct ...
             GridSelectAct ...
             SaveAct ...
-            SaveCV1Act ...
             LoadAct ...
             LoadParamsAct ...
             LoadModelsAct ];       
@@ -189,15 +183,13 @@ switch act
          NM.runtime.curanal = inp.analind;
          inp.oocvname = sprintf('OOCV_%g',inp.oocvind);
          dat.analysis{inp.analind}.OOCV{inp.oocvind} = OOCVPrep(dat, inp, analysis);
-    case 12
-        if inp.saveCV1 == 1, inp.saveCV1 = 2; elseif inp.saveCV1 == 2,  inp.saveCV1 = 1; end
 end
 
 function tdir = create_defpath(analysis, oocvind)
  
 rootdir = analysis.rootdir;
 algostr = getAlgoStr(analysis);
-if isfield(analysis,'OOCV') && numel(analysis.OOCV) >= oocvind && isfield(analysis.OOCV{oocvind},'RootPath')
+if isfield(analysis,'OOCV') && isfield(analysis.OOCV{oocvind},'RootPath')
     if iscell(analysis.OOCV{oocvind}.RootPath)
         tdir = analysis.OOCV{oocvind}.RootPath{1};
     else
@@ -230,15 +222,15 @@ else
     inp1.nclass = 1;
 end
 
-% if isfield(inp1.OO,'groupvec_oocv')
-%     inp1.ngroups = numel(unique(inp1.OO.groupvec_oocv));
-%     inp1.groupind = inp1.OO.groupvec_oocv;
-%     if isfield(inp1.OO,'groupvecnames_oocv')
-%         inp1.groupnames = inp1.OO.groupvecnames_oocv;
-%     end
-% else
-%     inp1.ngroups = 1;
-% end
+if isfield(inp1.OO,'groupvec_oocv')
+    inp1.ngroups = numel(unique(inp1.OO.groupvec_oocv));
+    inp1.groupind = inp1.OO.groupvec_oocv;
+    if isfield(inp1.OO,'groupvecnames_oocv')
+        inp1.groupnames = inp1.OO.groupvecnames_oocv;
+    end
+else
+    inp1.ngroups = 1;
+end
 
 if isfield(inp1.OO,'label') && ~isempty(inp1.OO.label), 
     inp1.LabelCV     = dat.label; 
@@ -248,7 +240,8 @@ inp1.cases_oocv      = inp1.OO.cases;
 inp1.nOOCVsubj       = numel(inp1.OO.cases);
 inp1.id              = dat.id;
 stranalysis          = SAV.matname;
-inp1.ngroups         = numel(unique(dat.label(~isnan(dat.label))));
+inp1.ngroups         = unique(dat.label,'stable'); 
+inp1.ngroups = inp1.ngroups(~isnan(inp1.ngroups));
 
 switch MODEFL
     case 'classification'
@@ -316,7 +309,7 @@ for i = 1:inp1.nF
                     end
                     OOCVres.BinResults{j} = ijOOCV.BinResults;
                 end
-                if isfield(ijOOCV,'MultiResults') 
+                if isfield(ijOOCV,'MultiResults')
                     for curclass=1:inp.nclass
                         OOCVres.predictions{curclass, j} = [ OOCVres.predictions{curclass, j} ijOOCV.MultiResults.BinCV2Predictions_DecisionValues{curclass}];
                     end

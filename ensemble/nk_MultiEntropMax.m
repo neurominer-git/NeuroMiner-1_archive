@@ -1,15 +1,16 @@
-function [opt_hE, opt_E, opt_F, opt_Fcat, opt_D] = nk_MultiEntropMax(E, L, EnsStrat, C, G)
+function [opt_hE, opt_E, opt_F, opt_Fcat, opt_D] = nk_MultiEntropMax(E, L, EnsStrat, C)
 global BATCH
 
 ind0    = L~=0; 
 E       = E(ind0,:); 
 L       = L(ind0);
 nclass  = max(C); 
+uniC    = 1:nclass;
 
 if EnsStrat.Metric == 2, T = sign(E); else T = E; end
 
 % Compute initial ensemble performance
-opt_hE  = nk_MultiEnsPerf(E, T, L, C, G); 
+opt_hE  = nk_MultiEnsPerf(E, T, L, C); 
 orig_hE = opt_hE;
 
 % Compute initial ensemble ambiguity
@@ -141,7 +142,7 @@ if opt_D >= MaxParam
     opt_I = orig_F; 
 else
     opt_D = MaxParam;
-    opt_hE  = nk_MultiEnsPerf(E(:,opt_I), T(:,opt_I), L, C(:,opt_I), G); 
+    opt_hE  = nk_MultiEnsPerf(E(:,opt_I), T(:,opt_I), L, C(:,opt_I)); 
 end
 
 % Generate outputs

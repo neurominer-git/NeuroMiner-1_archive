@@ -1,4 +1,4 @@
-function [ act, param ] = nk_GreedySearch_config(param, SVM, MULTI, defaultsfl, parentstr)
+function [ act, param ] = nk_GreedySearch_config(param, SVM, defaultsfl, parentstr)
 
 % Minimum # of features
 GreedySearch.Direction           = 1;
@@ -7,41 +7,32 @@ GreedySearch.EarlyStop.Perc      = 1;    % Early stopping mode = percentage
 GreedySearch.WeightSort          = 1;
 
 % Wrapper feature evaluation mode at each optimization step
-GreedySearch.FeatStepPerc           = 0;
-GreedySearch.FeatRandPerc           = 0;
-GreedySearch.KneePointDetection     = 2;
-GreedySearch.MultiClassOptimization = 1;
-GreedySearch.PERM.flag              = 0;
-GreedySearch.PERM.nperms            = 100;
+GreedySearch.FeatStepPerc        = 0;
+GreedySearch.FeatRandPerc        = 0;
+GreedySearch.KneePointDetection  = 2;
 
 if ~exist('defaultsfl','var') || isempty(defaultsfl), defaultsfl = false; end
 if ~defaultsfl
     
     if isfield(param,'GreedySearch') 
         if isfield(param.GreedySearch,'Direction') && ~isempty( param.GreedySearch.Direction),
-            GreedySearch.Direction              = param.GreedySearch.Direction;
+            GreedySearch.Direction = param.GreedySearch.Direction;
         end
         if isfield(param.GreedySearch,'WeightSort') && ~isempty( param.GreedySearch.WeightSort),
-            GreedySearch.WeightSort             = param.GreedySearch.WeightSort;
+            GreedySearch.WeightSort = param.GreedySearch.WeightSort;
         end
         if isfield(param.GreedySearch.EarlyStop,'Thresh') && ~isempty( param.GreedySearch.EarlyStop ), 
-            GreedySearch.EarlyStop.Thresh       = param.GreedySearch.EarlyStop.Thresh; 
-            GreedySearch.EarlyStop.Perc         = param.GreedySearch.EarlyStop.Perc;
+            GreedySearch.EarlyStop.Thresh = param.GreedySearch.EarlyStop.Thresh; 
+            GreedySearch.EarlyStop.Perc = param.GreedySearch.EarlyStop.Perc;
         end
         if isfield(param.GreedySearch,'FeatStepPerc') && ~isempty( param.GreedySearch.FeatStepPerc),
-            GreedySearch.FeatStepPerc           = param.GreedySearch.FeatStepPerc;
+            GreedySearch.FeatStepPerc        = param.GreedySearch.FeatStepPerc;
         end
         if isfield(param.GreedySearch,'FeatRandPerc') && ~isempty( param.GreedySearch.FeatRandPerc),
-            GreedySearch.FeatRandPerc           = param.GreedySearch.FeatRandPerc;
+            GreedySearch.FeatRandPerc        = param.GreedySearch.FeatRandPerc;
         end
         if isfield(param.GreedySearch,'KneePointDetection') && ~isempty( param.GreedySearch.KneePointDetection),
-            GreedySearch.KneePointDetection     = param.GreedySearch.KneePointDetection;
-        end
-        if isfield(param.GreedySearch,'MultiClassOptimization') && ~isempty( param.GreedySearch.MultiClassOptimization),
-            GreedySearch.MultiClassOptimization = param.GreedySearch.MultiClassOptimization;
-        end
-        if isfield(param.GreedySearch,'PERM')
-            GreedySearch.PERM                   = param.GreedySearch.PERM;
+            GreedySearch.KneePointDetection  = param.GreedySearch.KneePointDetection;
         end
     end
     
@@ -110,28 +101,6 @@ if ~defaultsfl
         kneestr = [];
     end
     
-    multistr = []; multipermflagstr = []; multinpermsstr = [];
-    if MULTI.flag && MULTI.train
-        if GreedySearch.MultiClassOptimization,
-            multistrdef = 'Multi-class performance';
-        else
-            multistrdef = 'Binary/Regression performance';
-        end
-        multistr = sprintf('|Optimize criterion [ %s ]', multistrdef); actind = [ actind 7 ]; 
-        if GreedySearch.MultiClassOptimization
-            if GreedySearch.PERM.flag
-                multipermflagstrdef = 'activated';
-            else
-                multipermflagstrdef = 'not activated';
-            end
-            multipermflagstr = sprintf('|Permutation-based multi-class optimization [ %s ]',multipermflagstrdef ); actind = [actind 8 ];
-            if GreedySearch.PERM.flag
-                multinpermsstr = sprintf('|Number of permutations to be performed [ %g ]', GreedySearch.PERM.nperms); actind = [ actind 9 ];
-            end
-        end
-        
-    end
-    
     mestr = 'Greedy feature selection setup'; navistr = [parentstr ' >>> ' mestr]; cprintf('*blue','\nYou are here: %s >>>',parentstr);
     
     nk_PrintLogo
@@ -142,9 +111,7 @@ if ~defaultsfl
                      sprintf('|Feature stepping [ %s ]', stepstr) ...
                      randstr ...
                      kneestr ...
-                     multistr ...
-                     multipermflagstr ...
-                     multinpermsstr ], actind);
+                     ], actind);
     switch act
         case 1
             GreedySearch.Direction = nk_input('Feature search mode',0,'m', ...
@@ -166,12 +133,6 @@ if ~defaultsfl
             GreedySearch.FeatRandPerc = nk_input('Randomly select % of features in block of top-ranked features (0 = disables random selection)',0,'e',GreedySearch.FeatRandPerc);
         case 6
             if GreedySearch.KneePointDetection == 1, GreedySearch.KneePointDetection = 2; else, GreedySearch.KneePointDetection = 1; end
-        case 7
-            GreedySearch.MultiClassOptimization = ~GreedySearch.MultiClassOptimization;
-        case 8
-            GreedySearch.PERM.flag = ~GreedySearch.PERM.flag;
-        case 9
-            GreedySearch.PERM.nperms = nk_input('Define number of permutations for multi-class feature optimization',0,'i', GreedySearch.PERM.nperms);            
     end
 else
     act = 0;

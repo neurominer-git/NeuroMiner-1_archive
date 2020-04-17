@@ -1,39 +1,39 @@
-function [yl, ylb, yfun] = nk_GetScaleYAxisLabel(SVM)
+function [yl, ylb] = nk_GetScaleYAxisLabel(SVM)
 global PREPROC NM
 
 switch SVM.GridParam
     case 1
-        yl = [0 100];   ylb = 'Accuracy [%]'; yfun = @ACCURACY;
+        yl = [0 100];   ylb = 'Accuracy [%]';
     case 2
-        yl = [0 100];   ylb = 'Sensitivity [%]'; yfun = @SENSITIVITY;
+        yl = [0 100];   ylb = 'Sensitivity [%]';
     case 3
-        yl = [0 100];   ylb = 'Specificity [%]'; yfun = @SPECIFICITY;
+        yl = [0 100];   ylb = 'Specificity [%]';
     case 4
-        yl = [0 100];   ylb = 'False Positive Rate [%]'; yfun = @FPR;
+        yl = [0 100];   ylb = 'False Positive Rate [%]';
     case 5
-        yl = [0 100];   ylb = 'Positive Predictive Value [%]'; yfun = @PPV;
+        yl = [0 100];   ylb = 'Positive Predictive Value [%]';
     case 6
-        yl = [-1 1];    ylb = 'Matthews Correlation Coefficient'; yfun = @MCC;       
+        yl = [-1 1];    ylb = 'Matthews Correlation Coefficient';       
     case 7
-        yl = [0 1];     ylb = 'AUC'; yfun = @AUC;
+        yl = [0 1];     ylb = 'AUC';
     case 9
-        yl = [0 100];   ylb = 'Mean squared error'; yfun = @MSE;
+        yl = [0 100];   ylb = 'Mean squared error';
     case 10
-        yl = [0 100];   ylb = 'Squared correlation coefficient [% explained variance]'; yfun = @SCC;
+        yl = [0 100];   ylb = 'Squared correlation coefficient [% explained variance]';
     case 11
-        yl = [0 100];   ylb = 'Normalized root of mean squared deviation [%]'; yfun = @NRMSD;
+        yl = [0 100];   ylb = 'Normalized root of mean squared deviation [%]';
     case 12
-        yl = [0 1];     ylb = 'Root of mean squared deviation'; yfun = @RMSD;
+        yl = [0 1];     ylb = 'Root of mean squared deviation';
     case 13
-        yl = [0 1];     ylb = 'Gmean'; yfun = @GMEAN;
+        yl = [0 1];     ylb = 'Gmean';
     case 14
-        yl = [0 100];   ylb = 'Balanced Accuracy [%]'; yfun = @BAC;
+        yl = [0 100];   ylb = 'Balanced Accuracy [%]';
     case 15
-        yl = [0 100];   ylb = 'F1-Score'; yfun = @FSCORE;
+        yl = [0 100];   ylb = 'F1-Score';
     case 16
-        yl = [-1 1];    ylb = 'correlation coefficient'; yfun = @CC;
+        yl = [-1 1];    ylb = 'correlation coefficient';
     case 17
-        yl = [0 100];   ylb = 'Enhanced Balanced Accuracy [%]'; yfun = @BAC2;
+        yl = [0 100];   ylb = 'Enhanced Balanced Accuracy [%]';
     case 18
         if iscell(PREPROC),
             iPREPROC = PREPROC{1}; else, iPREPROC = PREPROC;
@@ -47,10 +47,11 @@ switch SVM.GridParam
                  yl = [0 nk_Range(evalin('base','NM.label'))];
             end
         end
-        ylb = 'Mean Average Error [Label Range]'; yfun = @MAERR;
+        ylb = 'Mean Average Error [Label Range]';
     case 19
-         yl = [-100 100];   ylb = 'Prognostic Summary Index [%]'; yfun = @PSI;
+         yl = [-100 100];   ylb = 'Prognostic Summary Index [%]';
     case 20
-         yl = [0 10]; ylb = 'Number Needed to Predict';  yfun = @NNP;
+         yl = [0 10]; ylb = 'Number Needed to Predict'; 
 end
 
+return
