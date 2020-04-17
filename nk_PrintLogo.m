@@ -5,7 +5,7 @@ clc
 if ~SPMAVAIL
     cl = [0.1,0.5,0]; mode = 'non-imaging mode';
 else
-    cl = 'blue'; mode = [];
+    cl = NMinfo.cllogo; mode = [];
 end
 if exist('maindlg','var') && maindlg
     cprintf(cl,'\n\t*******************************************')

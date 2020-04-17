@@ -34,7 +34,7 @@ else % Univariate case
     
     if size(label,1) ~= size(Y,1), label = label'; end
     if SVM.RVMflag, label(label==-1)=2; end
-    if isfield(SVM,'AdaBoost') && SVM.AdaBoost.flag &&        
+    if ~SVM.LIBSVM.Weighting && (isfield(SVM,'AdaBoost') && SVM.AdaBoost.flag)        
         N = length(label); % X training labels
         W = 1/N * ones(N,1); %Weights initialization
         for m=1:SVM.AdaBoost.BoostIter

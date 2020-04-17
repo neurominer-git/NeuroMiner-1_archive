@@ -53,7 +53,7 @@ end
 handles.selPager.Enable = fl;
 handles.tglSortFeat.Enable = fl;
 handles.cmdExportFeats.Enable = fl;
-
+vlineval = [];
 switch meas{measind}
     
     case {'Feature weights [Overall Mean (StErr)]','Feature weights [Grand Mean (StErr)]'}
@@ -161,7 +161,7 @@ switch meas{measind}
                     y = v.SignBased_CV2_p_uncorr;
                 end 
                 miny = 0; maxy = nanmax(y(:));
-                
+                vlineval = -log10(0.05);
             case 'Sign-based consistency -log10(P value, FDR)'
                 if iscell(v.SignBased_CV2_p_fdr)
                     y = v.SignBased_CV2_p_fdr{curclass};
@@ -169,7 +169,7 @@ switch meas{measind}
                     y = v.SignBased_CV2_p_fdr;
                 end
                 miny = 0; maxy = nanmax(y(:));
-                
+                vlineval = -log10(0.05);
             case 'Spearman correlation [Grand Mean]'
                 if iscell(v.Spearman_CV2)
                     y = v.Spearman_CV2{curclass};
@@ -198,7 +198,7 @@ switch meas{measind}
                     end
                 end
                 miny = 0; maxy = nanmax(y(:));
-                
+                vlineval = -log10(0.05);
             case 'Pearson correlation -log10(P value) [Grand Mean]'
                 if iscell(v.Pearson_CV2_p_uncorr)
                     y = v.Pearson_CV2_p_uncorr{curclass};  
@@ -212,7 +212,7 @@ switch meas{measind}
                     end
                 end
                 miny = 0; maxy = nanmax(y(:));
-                
+                vlineval = -log10(0.05);
             case 'Spearman correlation -log10(P value, FDR) [Grand Mean]'
                 if iscell(v.Spearman_CV2_p_fdr)
                     y = v.Spearman_CV2_p_fdr{curclass}; 
@@ -220,7 +220,7 @@ switch meas{measind}
                     y = v.Spearman_CV2_p_fdr;
                 end
                 miny = 0; maxy = nanmax(y(:));
-                
+                vlineval = -log10(0.05);
             case 'Pearson correlation -log10(P value, FDR) [Grand Mean]'
                 if iscell(v.Pearson_CV2_p_fdr)
                     y = v.Pearson_CV2_p_fdr{curclass};  
@@ -228,7 +228,7 @@ switch meas{measind}
                     y = v.Pearson_CV2_p_fdr;
                 end
                 miny = 0; maxy = nanmax(y(:));
-                
+                vlineval = -log10(0.05);
             case 'Permutation-based Z Score [Grand Mean]'
                 if iscell(v.PermZ_CV2)
                     y = v.PermZ_CV2{curclass};  
@@ -244,6 +244,7 @@ switch meas{measind}
                     y = v.PermProb_CV2;
                 end
                 miny = 0; maxy = nanmax(y(:));
+                vlineval = -log10(0.05);
                 
             case 'Permutation-based -log10(P value, FDR) [Grand Mean]'
                 if iscell(v.PermProb_CV2_FDR)
@@ -252,6 +253,25 @@ switch meas{measind}
                     y = v.PermProb_CV2_FDR;
                 end
                 miny = 0; maxy = nanmax(y(:));
+                vlineval = -log10(0.05);
+                
+            case 'Analytical -log10(P Value) for Linear SVM [Grand Mean]'
+                if iscell(v.Analytical_p)
+                    y = v.Analytical_p{curclass};  
+                else
+                    y = v.Analytical_p;
+                end
+                miny = 0; maxy = nanmax(y(:));
+                vlineval = -log10(0.05);
+                
+            case 'Analytical -log10(P Value, FDR) for Linear SVM [Grand Mean]'
+                if iscell(v.Analyitcal_p_fdr)
+                    y = v.Analyitcal_p_fdr{curclass};  
+                else
+                    y = v.Analyitcal_p_fdr;
+                end
+                miny = 0; maxy = nanmax(y(:));
+                vlineval = -log10(0.05);
                 
             case 'Model P value histogram'
                 y = v.PermModel_Crit_Global(curclass,:); 
@@ -289,7 +309,7 @@ switch meas{measind}
             switch v.params.visflag
                 case {0, 3, 4, 5}
                     set(handles.pn3DView,'Visible','off'); set(handles.axes33,'Visible','on');
-                    barh(x, y,'FaceColor','b');
+                    barh(x, y,'FaceColor','b','BarWidth',0.9,'FaceColor',rgb('SkyBlue'),'EdgeColor','w','LineWidth',1)
                     if exist('se','var')
                         h = herrorbar(y, x , se, se,'ko');
                         set(h,'MarkerSize',0.001);
@@ -302,6 +322,7 @@ switch meas{measind}
                     else
                         ylim(handles.axes33,[0 nanmax(y)+ylimoff]);
                     end
+                    if ~isempty(vlineval), xline(vlineval,'LineWidth',1.5, 'Color', 'red'); end
                 case 1
                     st.fig = handles.pn3DView; 
                     st.NMaxes = [ handles.axes26 handles.axes27 handles.axes28];

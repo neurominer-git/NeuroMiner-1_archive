@@ -11,7 +11,7 @@ else
 end
 
 % Set current subgroup
-if isfield(handles,'SubIndex'), I = handles.SubIndex; else, I = true(size(handles.NM.label,1),1); end
+if isfield(handles,'SubIndex') && ~handles.oocvview, I = handles.SubIndex; else, I = true(size(handles.NM.label,1),1); end
 
 % Set current label
 if size(handles.NM.label,2)>1, handles.multilabel = true; else, handles.multilabel=false; end

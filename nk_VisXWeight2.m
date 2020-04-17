@@ -29,7 +29,7 @@ function [ mW, mP, mR, mSR, W, mPA ]= nk_VisXWeight2(inp, MD, Y, L, varind, P, F
 % W :           weight vector in processed feature space
 % mPA :
 % %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% (c) Nikolaos Koutsouleris, 01/2019
+% (c) Nikolaos Koutsouleris, 04/2020
 
 global SVM %TEMPL
 
@@ -109,7 +109,7 @@ for n=1:nM
 
         % Revert dimensionality reduction if previously used
         % Find Dimensionality reduction parameters
-        reducedimfl = false; flg = false; 
+        reducedimfl = false; 
         
         for a = nA:-1:1
             
@@ -124,27 +124,24 @@ for n=1:nM
                     % scaling has to be reverted prior to back-projection
                     if ~reducedimfl && decompfl(n),
                         IN = nPREPROC.ACTPARAM{a}.SCALE;
-                        IN.minY = nPX{a}.minY; IN.maxY = nPX{a}.maxY; IN.revertflag = true;
-                        try
-                            nmW(nmW==0)=NaN; nmW = nk_PerfScaleObj(nmW', IN)'; nmW(isnan(nmW))=0;
-                        catch
-                            fprintf('problem');
-                        end
+                        IN.minY = nPX{a}.minY; IN.maxY = nPX{a}.maxY; 
+                        IN.revertflag = true;
+                        nmW(nmW==0)=NaN; nmW = nk_PerfScaleObj(nmW', IN)'; nmW(isnan(nmW))=0;
                     end
 
-                case {'reducedim','remvarcomp',}
+                case {'reducedim','remvarcomp'}
                     
-                    if isfield(nPX{a}.mpp,'vec')
-                       redvec = nPX{a}.mpp.vec;
-                    elseif isfield(nPX{a}.mpp,'factors')
-                       redvec = nPX{a}.mpp.factors{1};
-                    elseif isfield(nPX{a}.mpp,'u')
-                       redvec = nPX{a}.mpp.u;
+                    if isfield(nPX{a}{1}.mpp,'vec')
+                       redvec = nPX{a}{1}.mpp.vec;
+                    elseif isfield(nPX{a}{1}.mpp,'factors')
+                       redvec = nPX{a}{1}.mpp.factors{1};
+                    elseif isfield(nPX{a}{1}.mpp,'u')
+                       redvec = nPX{a}{1}.mpp.u;
                     end
                     
-                    if isfield(nPX{a},'ind0')
-                        ind0 = nPX{a}.ind0;
-                        DR = nPX{a}.DR;
+                    if isfield(nPX{a}{1},'ind0')
+                        ind0 = nPX{a}{1}.ind0;
+                        DR = nPX{a}{1}.DR;
                     else
                         ind0 = 1:size(redvec,2);
                         DR = nPREPROC.ACTPARAM{a}.DR;
@@ -179,9 +176,9 @@ for n=1:nM
 
                     % If features had been removed prior to dimensionality
                     % reduction take care that you recover the original space
-                    if isfield(nPX{a},'indNonRem') && ~isempty(nPX{a}.indNonRem) && sum(~nPX{a}.indNonRem) > 0
-                        tmW = zeros(size(nPX{a}.indNonRem')); tmP = zeros(size(nPX{a}.indNonRem'));
-                        tmW(nPX{a}.indNonRem) = nmW; nmW = tmW; tmP(nPX{a}.indNonRem) = nmP; nmP = tmP;  
+                    if isfield(nPX{a}{1},'indNonRem') && ~isempty(nPX{a}{1}.indNonRem) && sum(~nPX{a}{1}.indNonRem) > 0
+                        tmW = zeros(size(nPX{a}{1}.indNonRem')); tmP = zeros(size(nPX{a}{1}.indNonRem'));
+                        tmW(nPX{a}{1}.indNonRem) = nmW; nmW = tmW; tmP(nPX{a}{1}.indNonRem) = nmP; nmP = tmP;  
                         clear tmW tmP;
                     end
                     reducedimfl = true;

@@ -57,6 +57,7 @@ end
 if strcmp(SVM.prog,'SEQOPT')
     Predict.binCV1CasePropagations = cell(iy,jy,nclass);
     Predict.binCV1PerformanceIncreases = cell(iy,jy,nclass);
+    Predict.binCV1DecValTraj = cell(iy,jy,nclass);
     Ydum = dTSLabel{1};
 else
     Ydum = zeros(size(dTSLabel{1},1),1);
@@ -203,6 +204,7 @@ for k=1:iy % Loop through CV1 permutations
                     Predict.binCV1CasePropagations{k,l,curclass} = [Predict.binCV1CasePropagations{k,l,curclass} Mkl{u}.Nremain_test];
                     Predict.binCV1PerformanceIncreases{k,l,curclass} = [Predict.binCV1PerformanceIncreases{k,l,curclass}; Mkl{u}.SeqPerfGain_test];
                 end
+                Predict.binCV1DecValTraj{k,l,curclass} = Mkl{u}.optDh;
             end
             n_subj = size(tsD,1);
             

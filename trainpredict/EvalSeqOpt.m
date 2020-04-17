@@ -1,12 +1,13 @@
 function [CritGain, ExamFreq, PercThreshU, PercThreshL, AbsThreshU, AbsThreshL] = EvalSeqOpt(Models)
 
 [ix, jx, nclass] = size(Models);
-CritGain = cell(ix,jx,nclass);
 ExamFreq = cell(ix,jx,nclass);
+CritGain = ExamFreq;
 PercThreshU = ExamFreq;
 PercThreshL = ExamFreq;
 AbsThreshU = ExamFreq;
 AbsThreshL = ExamFreq;
+
 for h=1:nclass
     for k = 1:ix
         for l= 1:jx

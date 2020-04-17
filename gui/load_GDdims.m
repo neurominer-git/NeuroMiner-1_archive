@@ -20,7 +20,7 @@ else
     fld = 'MultiClass';
 end
 
-if isfield(handles,'SubIndex'), I = handles.SubIndex; else, I = true(size(handles.NM.label,1),1); end
+if isfield(handles,'SubIndex') && ~handles.oocvview, I = handles.SubIndex; else, I = true(size(handles.NM.label,1),1); end
 
 handles.ModelParams                         = GDdims.Model.ParamCombs;
 handles.ModelParamsDesc                     = GDdims.Model.ParamDesc;

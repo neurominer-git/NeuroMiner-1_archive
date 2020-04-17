@@ -233,6 +233,9 @@ end
 x2 = plot(lxL(ide2),predh(ide2), '*', 'Color', Color2,'MarkerSize',handles.DataMissMarkerSize,'LineWidth',handles.DataMissMarkerWidth);  
 handlevec = [b,x1,x2];
 legendvec = {handles.BinClass{h}.groupnames{:},'misclassified', 'misclassified'};
+handles.axes1.XTickMode='auto'; 
+handles.axes1.YGrid='off'; 
+handles.axes1.XGrid='off'; 
 
 if AltAx,
     % Display regression lines for alternative X Axis
@@ -271,6 +274,7 @@ if AltAx,
     bar(handles.axes38, Bins1{1}, perr_hist2,'BarWidth',1,'FaceColor', Color2,'FaceAlpha',0.5); 
     hold(handles.axes38,'off'); 
     axes(handles.axes1);
+    
     % Kolomogorv-Smirnov-Tests if available
 %         if exist('kstest2','file')
 %             pnull_hist1 = repmat(sum(err_hist1(:,2))/10,10,1)./sum(err(id1));

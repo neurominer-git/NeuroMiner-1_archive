@@ -83,7 +83,7 @@ if eIN || ~IN.trained
                 IN.stdY(i,:) = nm_nanstd(Y(IN.sIND(:,i),:)); % and STD
                 std_zeros = find(IN.stdY(i,:)<=realmin);
                 if ~isempty(std_zeros)
-                    cprintf('red','\nWarning: %g non-discriminative features exist in the data!', numel(std_zeros));
+                    cprintf('red','\tWarning: %g non-discriminative feature(s) exist in the data! ', numel(std_zeros)); cprintf('black',' ');
                     IN.stdY(i,std_zeros) = 10e-6;
                 end
             end

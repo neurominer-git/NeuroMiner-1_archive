@@ -611,7 +611,7 @@ function varargout = nk_input(varargin)
 %
 %_______________________________________________________________________
 % @(#)nk_input.m	2.8 Andrew Holmes 03/03/04
-
+global NMinfo
 
 %-Parameters
 %=======================================================================
@@ -1304,8 +1304,6 @@ end
 
 varargout = {H};
 
-
-
 case {'d','d!'}                                        %-Display message
 %=======================================================================
 %-Condition arguments
@@ -1541,7 +1539,7 @@ else
 	fprintf('\n= ');cprintf('*black',' %s \n',Title)
     fprintf('%s',repmat('~',1,lbw-length(Title)-3));
 end
-cprintf('*blue','\t%s ',Prompt{1})
+cprintf(sprintf('*[%g,%g,%g]',NMinfo.clmenu(1),NMinfo.clmenu(2),NMinfo.clmenu(3)),'\t%s ',Prompt{1})
 for i=2:prod(size(Prompt)), fprintf('\n\t%s',Prompt{i}), end
 fprintf('%s\n%s\n',TipStr,repmat('~',1,lbw))
 

@@ -118,6 +118,7 @@ if ~exist('IN','var') || isempty(IN)
                 'fcnt', 1, ...
                 'D', jD, ...
                 'optD', jD(:,1), ...
+                'optDh', nan(size(jD,1),nD), ...
                 'Nremain', ones(m,1), ...
                 'Crit', Crit, ...
                 'allOPTs', OPT, ...
@@ -139,6 +140,7 @@ if ~exist('IN','var') || isempty(IN)
         tIN.AnalSeqDesc = Ddesc(Cj(tIN.uN)); % description of optimized node sequence
         % Node examination frequencies
         tIN.examsfreq = zeros(1,numel(tIN.Sequence)); 
+        tIN.optDh(:,1) = jD(:,1);
         for i=1:numel(tIN.Sequence)
             tIN.examsfreq(i) = sum(tIN.Nremain == i)*100/m;
         end
@@ -159,25 +161,28 @@ else
     D = D(:,IN.AnalSeq);
     Nremain = ones(size(D,1),1);
     optD = D(:,1);
+    IN.optDh = nan(size(D,1), size(IN.D,2));
+    IN.optDh(:,1) = D(:,1);
     % if labels are available compute performance at first node.
     if exist('L','var') && ~isempty(L), lbmode = true; else, lbmode = false; end
     if lbmode 
-        IN.SeqPerfGain_test = zeros(1, numel(IN.AnalSeq));
-        IN.SeqPerfGain_test(1) = feval(IN.Crit,L,D(:,1));
+        IN.SeqPerfGain_test     = zeros(1, numel(IN.AnalSeq));
+        IN.SeqPerfGain_test(1)  = feval(IN.Crit,L,D(:,1));
     end
     for j=1:numel(IN.AnalSeq)-1
         % Apply absolute thresholds (questionable whether this is the best
         % strategy or alternatively apply learned percentiles)
-        fI = find(Nremain==j);
-        lthr = IN.optlthr(j); uthr = IN.optuthr(j);
-        ind = D(fI,j) >= lthr & D(fI,j) <= uthr;
+        fI      = find(Nremain==j);
+        lthr    = IN.optlthr(j); uthr = IN.optuthr(j);
+        ind     = D(fI,j) >= lthr & D(fI,j) <= uthr;
         Nremain(fI(ind)) = j+1;
-        optD = replace_predictions(D(:,1:j), optD, D(:,j+1), fI(ind), SVM.SEQOPT.ReplaceMode);
+        optD    = replace_predictions(D(:,1:j), optD, D(:,j+1), fI(ind), SVM.SEQOPT.ReplaceMode);
         optD(fI(ind)) = D(fI(ind),j+1);
         if lbmode 
             % Compute performance gains at each node
             IN.SeqPerfGain_test(j+1) = feval(IN.Crit,L,optD);
         end
+        IN.optDh(:,j+1) = optD;
     end
     % and compute final sequence performance gain if labels have been provided
     if lbmode, optCrit = IN.SeqPerfGain_test(end); end
@@ -239,8 +244,8 @@ for j=1:numel(R.vecneg{I})
                     ijOPT = feval(Crit,tL,nD(fII));     % get performance if predictions of cases to be propagated (based on fII) are replaced with predictions of next model in the chain
                 case 2 % based on decision distance change
                     t_jD = jD(fII); t_nD = nD(fII);
-                    prevOPT = mean(t_jD(tL==1)) - mean(t_jD(tL==-1)); % this is the current decision distance between cases to be propagated
-                    ijOPT = mean(t_nD(tL==1)) - mean(t_nD(tL==-1));   % this is the decision distance after propagated cases receive predictions of next model
+                    prevOPT = mean(t_jD(tL==1)) - mean(t_jD(tL==-1)); % this is the current decision margin between cases of opposite classes to be propagated to the next node in the sequence
+                    ijOPT = mean(t_nD(tL==1)) - mean(t_nD(tL==-1));   % this is the decision margin after propagated cases receive predictions of next model
             end
             jD(fII) = nD(fII);
         case 2
@@ -277,6 +282,7 @@ R.optuvec(I) = optuvec;
 R.optlthr(I) = optlthr;
 R.optuthr(I) = optuthr;
 R.optD = optD;
+R.optDh(:,I+1) = optD;
 R.Nremain = optRemain;
 R.jOPT(I) = rOPT;
 R.allOPTs(I) = allOPT;
@@ -290,6 +296,6 @@ D_new = D_opt;
 switch ActMode
     case 1 % simple replacement 
         D_new(I_next) = D_next(I_next);
-    case 2 % ensemble-based fusioning
+    case 2 % ensemble-based mean computation
         D_new(I_next) = nm_nanmean( [ D(I_next,:) D_next(I_next,:) ], 2 );
 end

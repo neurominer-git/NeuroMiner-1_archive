@@ -101,8 +101,7 @@ if (sum(size(y)==1)~=1)
         warning('knee_pt: y must be a vector');
     end
     res_x=nan;
-    idx_of_result=1
-
+    idx_of_result=1;
     return;
 end
 

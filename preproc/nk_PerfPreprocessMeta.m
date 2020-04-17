@@ -201,7 +201,7 @@ for k=sta_iy:stp_iy % Inner permutation loop
 
         ll = ll+1;
         tElapsed = tic;
-        fprintf('\nWorking on CV1 [%g, %g]: Prepare data', k, l);
+        fprintf('\nWorking on CV1 [ %2g, %2g ]: Prepare data', k, l);
         
         if isempty(tY.Tr{k,l})
             tY.Tr{k,l} = cell(1,ukbin); tY.CV{k,l} = cell(1,ukbin); tY.Ts{k,l} = cell(1,ukbin); tY.VI{k,l} = cell(1,ukbin);

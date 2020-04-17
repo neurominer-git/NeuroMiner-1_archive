@@ -32,7 +32,7 @@ function [sY, IN, dT] = nk_PerfAdjForCovarsUsingPCAObj(Y, IN, S)
 % =========================== WRAPPER FUNCTION ============================ 
 if ~exist('S','var'), S=[]; end
 if iscell(Y) && exist('IN','var') && ~isempty(IN)
-    sY = cell(1,numel(Y)); 
+    sY = cell(1,numel(Y)); dT = [];
     for i=1:numel(Y), [sY{i}, IN] = PerfAdjForCovarsUsingPCAObj(Y{i}, IN, S); end
 else
     [ sY, IN, dT ] = PerfAdjForCovarsUsingPCAObj( Y, IN, S );

@@ -7,7 +7,7 @@ function visdata = nk_VisModels(inp, id, GridAct, batchflag)
 % the predictive patterns of the models and optionally computed model 
 % significance using a permutation-based approach
 % %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% (c) Nikolaos Koutsouleris, 12/2018
+% (c) Nikolaos Koutsouleris, 03/2020
 
 global SVM SAV RFE MODEFL CV VERBOSE FUSION MULTILABEL EVALFUNC 
 
@@ -364,7 +364,7 @@ for f=1:ix % Loop through CV2 permutations
                 for k=1:iy % CV1 permutations
 
                     for l=1:jy % CV1 folds
-                            
+
                         if isfield(inp,'CV1') && inp.CV1 == 1
                             inp.CV1p = [k,k]; inp.CV1f = [l,l];
                             fprintf('\nPreprocessing data at selected parameter combination(s) ');

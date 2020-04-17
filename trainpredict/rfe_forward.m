@@ -174,8 +174,11 @@ if r.KneePoint,
         end
     end
     if isnan(kneepoint), kneepoint = numel(Opt.S); end
+    try
     optind = r.FullInd(Opt.S{kneepoint});
-    
+    catch
+        fprintf('problem')
+    end
 elseif isnan(param) && ~optfound 
     % Optimization returned non-finite performance at given parameter
     % combination. Return original feature space

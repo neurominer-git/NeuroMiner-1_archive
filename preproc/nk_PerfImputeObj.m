@@ -77,7 +77,7 @@ switch IN.method
             ll=ll+1;
         end
     case {'euclidean','cityblock','seuclidean','cosine','mahalanobis','jaccard','hamming','hybrid'}
-        tX = IN.X(:,IN.blockind); snan_X = sum(isnan(tX),2)==0;
+        tX = IN.X(:,IN.blockind);
         IN.C = nan(m,1);
         if strcmp(IN.method,'hybrid')
             R = nk_CountUniques(tX);
@@ -92,26 +92,27 @@ switch IN.method
                 % Get training cases which do not have NaNs in the given
                 % column and in the submatrix
                 indnan_Xi = ~isnan(tX(:,ind_Yi(j)));
-                Xj = tX(indnan_Xi & snan_X,:);
+                ind_YY = sum(isnan(tX(indnan_Xi,indi_Yi)))==0;
+                Xj = tX(indnan_Xi, :);
                 % Compute distance metric
                 switch IN.method
                     case 'seuclidean'
-                        S = nm_nanstd(Xj(:,indi_Yi)); S(S==0) = min(S(S~=0));
-                        D = pdist2(Xj(:,indi_Yi), tY(i,indi_Yi), 'seuclidean',S)';
+                        S = nm_nanstd(Xj(:,ind_YY)); S(S==0) = min(S(S~=0));
+                        D = pdist2(Xj(:,ind_YY), tY(i,ind_YY), 'seuclidean',S)';
                     case 'mahalanobis'
                         %C = nancov(Xj(:,indi_Yi)); C(C==0) = min(C(C~=0));
-                        D = pdist2(Xj(:,indi_Yi), tY(i,indi_Yi), 'mahalanobis')';
+                        D = pdist2(Xj, tY(i,ind_YY), 'mahalanobis')';
                     case 'hybrid'
                         % Identify nominal features using predefined cutoff
                         % Compute distances in nominal features
-                        indZ1 = indi_Yi & indNom;
-                        indZ2 = indi_Yi & ~indNom; 
+                        indZ1 = ind_YY & indNom;
+                        indZ2 = ind_YY & ~indNom; 
                         D1 =  pdist2(Xj(:,indZ1), tY(i,indZ1),IN.hybrid.method1);
                         % Compute distances in ordinal / continuous features;
                         D2 =  pdist2(Xj(:,indZ2), tY(i,indZ2),IN.hybrid.method2);
                         D = mean([nk_PerfScaleObj(D1) nk_PerfScaleObj(D2)],2);
                     otherwise
-                        D = pdist2(Xj(:,indi_Yi), tY(i,indi_Yi),IN.method)';
+                        D = pdist2(Xj(:,ind_YY), tY(i,ind_YY),IN.method)';
                 end
                 % Sort training cases according to their proximity to the
                 % test case whose value will be imputed.
@@ -125,11 +126,14 @@ switch IN.method
                 ll=ll+1; 
             end
             if isfield(IN,'compute_corr') && IN.compute_corr
-                IN.C(i) = mean(nk_CorrMat(stY(i,indi_Yi)',Xj(ind(1:kx),indi_Yi)'));
+                IN.C(i) = mean(nk_CorrMat(stY(i,ind_YY)',Xj(ind(1:kx),ind_YY)'));
             end
         end
 end
 if VERBOSE, fprintf('\n\t\t\t%g subject(s) with NaNs, total of %g NaN replaced.',sum(~snan),ll); end
 sY(:,IN.blockind) = stY;
+if sum(isnan(sY(:))) 
+    warning('\nNot all NaNs imputed!')
+end
 % If you remove completely NaN cases temporarily add them back now to the imputed data.
 sY = nk_ManageNanCases(sY, [], IxNaN);

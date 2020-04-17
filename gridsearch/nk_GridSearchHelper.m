@@ -151,6 +151,7 @@ for curlabel=1:MULTILABEL.dim
            GD.sdSEQPercThrL{i, curclass, curlabel}= Perf.SDPercThreshL(curclass,:);
            GD.CasePropagations{i, curclass, curlabel} = nk_cellcat(CV2Perf.binCV1CasePropagations(:,:,curclass),[],2);
            GD.SeqPerfIncreases{i, curclass, curlabel} = nk_cellcat(CV2Perf.binCV1PerformanceIncreases(:,:,curclass),[],1);
+           GD.DecValTraj{i,curclass,curlabel} = cat(3,CV2Perf.binCV1DecValTraj{:,:,curclass});
         end
     end
     

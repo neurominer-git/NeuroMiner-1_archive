@@ -138,7 +138,7 @@ for k=sta_iy:stp_iy % Inner permutation loop
     for l=sta_jy:stp_jy % Inner CV fold loop
         
         tElapsed = tic;
-        fprintf('\nWorking on CV1 [%g, %g]: Prepare data', k, l);
+        fprintf('\nWorking on CV1 [%2g, %2g ]: Prepare data', k, l);
         
         for u=1:ukbin % Binary comparison loop depending on PREPROC.BINMOD & FBINMOD
             
@@ -231,14 +231,14 @@ for k=sta_iy:stp_iy % Inner permutation loop
                 switch BINMOD
                     case {1,3,4}
                         if strcmp(MODEFL,'regression') || RAND.Decompose == 9
-                            fprintf('\nWorking on data partition: CV2 [%g, %g], CV1 [%g, %g]', ...
+                            fprintf('\nWorking on data partition: CV2 [%2g,%2g], CV1 [%2g,%2g]', ...
                                 i, j, k, l)
                         else
-                            fprintf('\nWorking on data partition: CV2 [%g, %g], CV1 [%g, %g, %s]', ...
+                            fprintf('\nWorking on data partition: CV2 [%2g,%2g], CV1 [%2g,%2g, %s]', ...
                                 i, j, k, l, CV.class{i,j}{u}.groupdesc)
                         end
                     case {0,2}
-                            fprintf('\nWorking on data partition: CV2 [%g, %g], CV1 [%g, %g]', ...
+                            fprintf('\nWorking on data partition: CV2 [%2g,%2g], CV1 [%2g,%2g]', ...
                                 i, j, k, l)
                 end
             end
@@ -412,7 +412,7 @@ for k=sta_iy:stp_iy % Inner permutation loop
             if paramfl.write || cv2flag, Pnt(k,l,u).TrainedParam = oTrainedParam; end
             clear TrainedParam SrcParam
         end
-        fprintf('\tCompleted in %1.2fs.',toc(tElapsed)); 
+        fprintf('\tCompleted in %1.2fs. ',toc(tElapsed)); 
     end
 end
 

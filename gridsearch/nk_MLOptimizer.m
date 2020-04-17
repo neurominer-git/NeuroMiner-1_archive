@@ -149,7 +149,8 @@ if strcmp(SVM.prog,'SEQOPT')
     GDanalysis.grid.mean_mSEQPL             = nan(nPs(1),nE-1,nclass,ix*jx,hx);
     GDanalysis.grid.sd_mSEQPL               = nan(nPs(1),nE-1,nclass,ix*jx,hx); 
     GDanalysis.grid.mean_SeqPerfGains       = nan(nPs(1),nE,nclass,ix*jx,hx);
-    GDanalysis.caseprops                    = cell(lx,1,hx);
+    GDanalysis.caseprops                    = cell(lx,nclass,hx);
+    GDanalysis.decvaltraj                   = cell(lx,nclass,ix,hx);
 end
 
 if MULTI.flag
@@ -404,6 +405,7 @@ for f=1:ix % Loop through CV2 permutations
                GD.mSEQPercThrL = cell(nPs(1), nclass, hx);
                GD.sdSEQPercThrL = cell(nPs(1), nclass, hx);
                GD.CasePropagations = cell(nPs(1), nclass, hx);
+               GD.DecValTraj = cell(nPs(1), nclass, hx);
             end
 
             if detrendfl, GD.Detrend = cell(nPs(1),hx); end
@@ -624,16 +626,25 @@ for f=1:ix % Loop through CV2 permutations
                     % sequence optimization algorithm has been run on 
                     if strcmp(SVM.prog,'SEQOPT')
                         fSelNodes = find(GD.BinaryGridSelection{curclass}{curlabel}.SelNodes);
+                        cv2lx = size(GD.BinaryGridSelection{curclass}{curlabel}.bestpred{1}{1,1},1);
+                        %cv1lf = prod(size(GD.DS{1}));
                         if numel(fSelNodes)>1
-                            CaseProps = zeros([size(GD.CasePropagations{GD.BinaryGridSelection{curclass}{curlabel}.SelNodes(fSelNodes(1))}) numel(fSelNodes)]);
+                            CaseProps = zeros(cv2lx, numel(fSelNodes));
+                            DecValTraj = nan([cv2lx size(SVM.SEQOPT.C,2) numel(fSelNodes)]);
                             for cp=1:numel(fSelNodes)
-                                CaseProps(:,:,cp) = GD.CasePropagations{GD.BinaryGridSelection{curclass}{curlabel}.SelNodes(fSelNodes(cp))};
+                                 CaseProps(:,cp) = nm_nanmedian(GD.CasePropagations{fSelNodes(cp)},2);
+                                 DecValTraj_cp = nm_nanmedian(GD.DecValTraj{fSelNodes(cp)},3);
+                                 lenTraj_cp = size(DecValTraj_cp,2);
+                                 DecValTraj(:,1:lenTraj_cp,cp) = DecValTraj_cp; 
                             end
-                            mCaseProps = median(CaseProps,3);
+                            mCaseProps = nm_nanmedian(CaseProps,2);
+                            mDecValTraj = nm_nanmedian(DecValTraj,3);
                         else
-                            mCaseProps = GD.CasePropagations{GD.BinaryGridSelection{curclass}{curlabel}.SelNodes};
+                            mCaseProps = GD.CasePropagations{fSelNodes};
+                            mDecValTraj = nanmedian(GD.DecValTraj{fSelNodes},3);
                         end
                         GDanalysis.caseprops(TsI, curclass, curlabel) = cellmat_mergecols(GDanalysis.caseprops(TsI, curclass,curlabel), num2cell(mCaseProps,2));
+                        GDanalysis.decvaltraj(TsI, curclass, f, curlabel) = cellmat_mergecols(GDanalysis.decvaltraj(TsI, curclass, f, curlabel), num2cell(mDecValTraj,2));
                     end
                 end
             end
@@ -779,6 +790,7 @@ if GDfl || ~batchflag
         GDanalysis.grid.se_SeqPercLower     = nm_nanmean(GDanalysis.grid.sd_mSEQPL,4);
         GDanalysis.grid.mean_SeqPerfGains   = nm_nanmean(GDanalysis.grid.mean_SeqPerfGains,4);
         [GDanalysis.CV2grid.caseprop_freq, GDanalysis.CV2grid.caseprop_node] = nk_ComputeEnsembleCasePropagationProbability(GDanalysis.caseprops,size(SVM.SEQOPT.C,2));
+        GDanalysis.CV2grid.decvaltraj       = nm_nanmedian(cell2matpadnan(GDanalysis.decvaltraj),3);
     end                                
                                         
     % This has to be changed to work in multi-label mode

@@ -33,6 +33,8 @@ if ~multiflag
     if isfield(handles.visdata{1},'PermProb_CV2'),              popuplist{end+1} = 'Permutation-based -log10(P value) [Grand Mean]';            end
     if isfield(handles.visdata{1},'PermProb_CV2_FDR_PVAL'),     popuplist{end+1} = 'Permutation-based -log10(P value, FDR) [Grand Mean]';       end
     if isfield(handles.visdata{1},'PermZ_CV2'),                 popuplist{end+1} = 'Permutation-based Z Score [Grand Mean]';                    end
+	if isfield(handles.visdata{1},'Analytical_p'),     			popuplist{end+1} = 'Analytical -log10(P Value) for Linear SVM [Grand Mean]';    end
+	if isfield(handles.visdata{1},'Analyitcal_p_fdr'),     		popuplist{end+1} = 'Analytical -log10(P Value, FDR) for Linear SVM [Grand Mean]';end
     if isfield(handles.visdata{1},'PermModel_Eval_Global'),     popuplist{end+1} = 'Model P value histogram';                                   end
     handles.selVisMeas.String = popuplist; 
     VisOnFl = 'on';

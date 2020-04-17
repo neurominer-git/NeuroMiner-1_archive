@@ -1,11 +1,11 @@
 %==========================================================================
-%FORMAT o = TransferResults( I, O )                                    
+%FORMAT o = TransferResults( I, O, Param )                                    
 %==========================================================================
 %Subfunction of OptimCore
 %
 %Generates output array from OptimCore processing results
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%(c) Nikolaos Koutsouleris, 07 / 2011
+%(c) Nikolaos Koutsouleris, 03 / 2020
 function o = TransferResults(I, O, Param)
 
 global MULTI W2AVAIL 
@@ -104,11 +104,7 @@ if isfield(O,'critgain')
     o.SDPercThreshL =  zeros(I.nclass, size(td,2)-1);
     for curclass = 1 : I.nclass
        o.CritGain = O.critgain;
-       try
-            o.MeanCritGain(curclass,:) = nm_nanmean(cell2mat(reshape(O.critgain(:,:,curclass),ix*jx,1)));
-       catch
-           fprintf('problem')
-       end
+       o.MeanCritGain(curclass,:) = nm_nanmean(cell2mat(reshape(O.critgain(:,:,curclass),ix*jx,1)));
        o.SDCritGain(curclass,:) = nm_nanstd(cell2mat(reshape(O.critgain(:,:,curclass),ix*jx,1)));
        o.MeanExamFreq(curclass,:) = nm_nanmean(cell2mat(reshape(O.examfreq(:,:,curclass),ix*jx,1)));
        o.SDExamFreq(curclass,:) = nm_nanstd(cell2mat(reshape(O.examfreq(:,:,curclass),ix*jx,1)));

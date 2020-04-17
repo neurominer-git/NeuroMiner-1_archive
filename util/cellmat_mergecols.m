@@ -1,4 +1,4 @@
-function c = mergecols(c,varargin)
+function c = cellmat_mergecols(c,varargin)
 
 % Copyright 2007 The MathWorks, Inc.
 

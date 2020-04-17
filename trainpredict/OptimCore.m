@@ -32,10 +32,10 @@ end
 
 if rtrfl
     % Retrain without optimization
-    [ IN, OUT ] = FoldPerm2(IN, OUT, 'Immediate Retrain (CV1-Tr + CV1-Ts)', 0, 1, 1, 0);
+    [ IN, OUT ] = FoldPerm(IN, OUT, 'Immediate Retrain (CV1-Tr + CV1-Ts)', 0, 1, 1, 0);
 else
     % Train models with optimization
-    [ IN, OUT ] = FoldPerm2(IN, OUT, strout, OptMode, 0, 0, Param.SubSpaceStepping);
+    [ IN, OUT ] = FoldPerm(IN, OUT, strout, OptMode, 0, 0, Param.SubSpaceStepping);
 end
 %if OptMode && RFE.dispres && ~BATCH, PrintWrapperPerf(OUT, PerfStruct); end
 
@@ -119,7 +119,7 @@ end
 S=zeros(IN.nclass,1);
 
 if RetrainFlag
-     [ IN, OUT ] = FoldPerm2(IN, OUT, 'Retrain (CV1-Tr + CV1-Ts)', 0, 1, 0, 0);
+     [ IN, OUT ] = FoldPerm(IN, OUT, 'Retrain (CV1-Tr + CV1-Ts)', 0, 1, 0, 0);
      for curclass=1:IN.nclass
         S(curclass) = size(IN.Y.TrL{1,1}{curclass},1) + size(IN.Y.CVL{1,1}{curclass},1);
      end

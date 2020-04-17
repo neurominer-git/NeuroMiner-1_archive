@@ -13,11 +13,14 @@ if ~hx
             'Position', D.figuresz, ...
             'Color', [0.9 0.9 0.9]);
     else
-        D.h = h; set(0,'CurrentFigure',h); clf
+        D.h = h; set(0,'CurrentFigure',h); clf;
     end
 else
     h = D.h; set(0,'CurrentFigure',h)
 end
+
+fig = gcf; 
+fig.Name = D.binwintitle;
 
 if ~isfield(D,'hl') || ~ishandle(D.hl)
     hl = findobj('Tag','CurrParam');

@@ -1,4 +1,12 @@
 function handles = display_comparator(handles, act)
+% =========================================================================
+% function handles = display_comparator(handles, act)
+% =========================================================================
+% Main function to either perform model comparisons (Quade's test for
+% multiple models, Wilcoxon's test for binary comparisons) or allow the
+% user to interactively plot (sorted) model performances
+% _________________________________________________________________________
+% (c) Nikolaos Koutsouleris, 03/2020
 
 if ~exist('act','var') || isempty(act), act = 'stats'; end
 if ~isfield(handles,'PerfCompWin')
@@ -12,8 +20,11 @@ if ~isfield(handles,'PerfCompWin')
 end
 h = handles.PerfTab.Win ;
 set(0,'CurrentFigure',h)
+
 % -------------------------------------------------------------------------
 function handles = init_fig(handles, WinTag, ActionMode)
+
+sz = get(0,'ScreenSize');
 
 cnt=0; analyses=[];
                                     
@@ -27,46 +38,53 @@ switch ActionMode
                 %analyses{cnt} = handles.NM.analysis{i}.id;
                 analysescnt{cnt} = num2str(cnt);
                 data{cnt, 1} = handles.NM.analysis{i}.id;
-                data{cnt, 2} = false;
+                data{cnt, 2} = '';
+                data{cnt, 3} = '';
+                data{cnt, 4} = false;
             end
         end
         
-        handles.PerfTab.Win = figure('NumberTitle','off','Name','NM Statistical Performance Comparator', 'Tag' ,WinTag,'MenuBar','none');
+        win_wdth = sz(3)/2; win_hght = sz(4)/2; win_x = sz(3)/2 - win_wdth/2; win_y = sz(4)/2 - win_hght/2;
+        handles.PerfTab.Win = figure('NumberTitle','off', ...
+                'Name','NM Statistical Performance Comparator', ...
+                'Tag' ,WinTag, ...
+                'MenuBar','none', ...
+                'Position', [win_x win_y win_wdth win_hght]);
         
         multiflag = false; togmult='off'; if numel(unique(handles.NM.label(~isnan(handles.NM.label))))>2, multiflag = true; togmult='on';end
         handles.PerfTab.analysisselect = uitable('units', 'normalized', 'position', [0.05, 0.110, 0.9, 0.7], ...
-                                        'ColumnName', {'Analyses','Select'}, ... 
-                                        'ColumnFormat',{'char','logical'},...
-                                        'ColumnEditable', [false, true],...
-                                        'ColumnWidth',{400, 'auto'}, ...
+                                        'ColumnName', {'Analyses','Alias','Order','Select'}, ... 
+                                        'ColumnFormat',{'char','char','char','logical'},...
+                                        'ColumnEditable', [false, true, true, true],...
+                                        'ColumnWidth',{400, 200, 50, 'auto'}, ...
                                         'RowName', analyses,...
-                                        'data', data);
-
-        handles.PerfTab.addedit     = uicontrol( 'Style','edit', ...
+                                        'data', data, ...
+                                        'CellEditCallback', {@set_order, handles});
+        handles.PerfTab.addedit        = uicontrol( 'Style','edit', ...
                                         'Units', 'normalized', ...
                                         'Position', [0.05, 0.85, 0.7, 0.06], ...
                                         'TooltipString', sprintf(['Enter additional predictors here that were obtained outside of your NM analysis.' ...
                                                                 '\nMake sure that prediction vectors have the same number of cases\n' ...
                                                                 'and predictions match NM outputs.']));
-        handles.PerfTab.addedit_label = uicontrol('Style','text', ...
+        handles.PerfTab.addedit_label  = uicontrol('Style','text', ...
                                         'Units', 'normalized', ...
                                         'Position', [0.05, 0.92, 0.7, 0.04], ...
                                         'String',sprintf('Enter external predictor outputs here [ %g cases, any number of predictors ]', size(handles.NM.cases,1)));
-        handles.PerfTab.multiflag = uicontrol('Style','togglebutton', ...
+        handles.PerfTab.multiflag      = uicontrol('Style','togglebutton', ...
                                         'units','normalized',...
                                         'Position',[0.80 0.85 0.15 0.06], ...
                                         'String','Multi-group', ...
                                         'Enable', togmult, ...
                                         'TooltipString', 'toggle button to compare multi-group or binary classifiers');   
-        handles.PerfTab.fileseltext = uicontrol('Style','edit', ...
+        handles.PerfTab.fileseltext    = uicontrol('Style','edit', ...
                                         'units','normalized', ...
                                         'Position',[0.05 0.04 0.58 0.06]);
-        handles.PerfTab.fileseldlg  = uicontrol('Style','pushbutton', ...
+        handles.PerfTab.fileseldlg     = uicontrol('Style','pushbutton', ...
                                         'units','normalized',...
                                         'Position',[0.64 0.04 0.15 0.06], ...
                                         'String','Save as', ...
                                         'Callback', {@saveas,handles});
-        handles.PerfTab.tabulate    = uicontrol('Style','pushbutton', ...
+        handles.PerfTab.tabulate       = uicontrol('Style','pushbutton', ...
                                         'units','normalized', ...
                                         'Position',[0.80 0.04 0.15 0.06], ...
                                         'String','Compare', ...
@@ -162,6 +180,31 @@ end
 [FileName,PathName] = uiputfile(ext,'Save performance table','PerfTable');
 handles.PerfTab.fileseltext.String = fullfile(PathName, FileName);
 
+function handles = set_order(src,evt, handles)
+
+row = evt.Indices(1); 
+switch evt.Indices(2) 
+    case 2
+        col = 4;
+        if ~strcmp(src.Data{row,col},'') 
+            src.Data{row, col} = true;
+        end
+    case 4
+        col = 3;
+
+        if evt.NewData && strcmp(src.Data{row,col},'') 
+            if row == 1
+                src.Data{row,col} = '1';
+            else
+            %[m,n] = size(src.Data);
+                selected = find(cell2mat(src.Data(1:row-1,4)));
+                src.Data{row,col} = num2str(numel(selected)+1);
+            end
+        else
+            src.Data{row,col} = '';
+        end
+
+end
 
 function handles = compare_predictors(src, evt, handles)
 
@@ -170,7 +213,6 @@ pth = fileparts(handles.PerfTab.fileseltext.String);
 if isempty(handles.PerfTab.fileseltext.String) || isempty(pth), errordlg('Provide a valid output path before tabulating the data.'); return; end
 
 curlabel = handles.curlabel;
-curclass = 1;
 
 if ~isfolder(pth)
     [status, msg] = mkdir(pth);
@@ -182,15 +224,28 @@ if ~isfolder(pth)
     end
 end
 
-AnalysisSelection = cell2mat(handles.PerfTab.analysisselect.Data(:,2));
+AnalysisSelection = cell2mat(handles.PerfTab.analysisselect.Data(:,4));
+OrderSelection = str2num(char(handles.PerfTab.analysisselect.Data(:,3)));
 
 if ~any(AnalysisSelection)
     errordlg('You have to select at least one analysis from the list')
     return
 end
+if sum(AnalysisSelection) ~= numel(OrderSelection),
+    errordlg('You have to specify ordering indices for all selected analyses')
+end
+
+AnalysisStrings = handles.PerfTab.analysisselect.Data(:,1);
+AnalysisAliasStrings = handles.PerfTab.analysisselect.Data(:,2);
+I = strcmp(AnalysisAliasStrings,'');
+AnalysisAliasStrings(I) = AnalysisStrings(I);
+AnalysisAliasStringsSel = AnalysisAliasStrings(AnalysisSelection);
+
 
 % Analyse cross-validation structures and optimization criteria
 a = zeros(1,sum(AnalysisSelection)); nA=numel(a); fd = find(AnalysisSelection);
+[~,OrderSelection] = sort(OrderSelection,'ascend'); 
+fd = fd(OrderSelection); AnalysisAliasStringsSel=AnalysisAliasStringsSel(OrderSelection);
 CV = handles.NM.analysis{fd(1)}.params.cv;
 for i=1:nA
     a(i) = fd(i);
@@ -244,7 +299,7 @@ Lg = handles.NM.label(:,curlabel);
 Lg(nanO)=NaN;
 
 % Do we have to recompute the prediction performanc because of cases with
-% NaN labels or complete NaN data?
+% NaN labels or complete NaN data? 
 if any(nanO), recomp = true; else, recomp = false; end   
 
 nA = sum(AnalysisSelection);
@@ -256,7 +311,7 @@ end
 
 switch handles.PerfTab.multiflag.Value
 
-    case 1
+    case 1 % MULTI-CLASS ANALYSIS
         G    = zeros(ix*jx, mPadd+nA, handles.ngroups);
         %Create one-vs-rest labels
         Lgfd = zeros(size(Lg,1),handles.ngroups);
@@ -299,9 +354,9 @@ switch handles.PerfTab.multiflag.Value
                     AnalG = handles.NM.analysis{a(i)}.GDdims{g};
                     
                     if nGDdims > 1
-                        AnalName = sprintf('%s_G%g-vs-REST_M%g', handles.NM.analysis{a(i)}.id, curclass, M(g));
+                        AnalName = sprintf('%s_G%g-vs-REST_M%g', AnalysisAliasStringsSel{i}, curclass, M(g));
                     elseif handles.nclass > 1
-                        AnalName = sprintf('%s_G%g-vs-REST', handles.NM.analysis{a(i)}.id, curclass);
+                        AnalName = sprintf('%s_G%g-vs-REST', AnalysisAliasStringsSel{i}, curclass);
                     else
                         AnalName = handles.NM.analysis{a(i)}.id;
                     end
@@ -365,8 +420,10 @@ switch handles.PerfTab.multiflag.Value
                 end
              end
         end
+        
         AnalNames = [PNames AnalNames];
         [ pth ,nam , ext ] = fileparts(handles.PerfTab.fileseltext.String);
+        
         % Perform stats for each one-vs-rest classifier
         for curclass=1:handles.ngroups
             Filename = fullfile(pth, [nam sprintf('_G%g-vs-REST', curclass) ext]);
@@ -389,11 +446,22 @@ switch handles.PerfTab.multiflag.Value
             handles.comparator_stats_multi = wilcoxon(Gm(:,1), Gm(:,2), 0.05);
         end
 
-    case 0
+    case 0 % BINARY / REGRESSION ANALYSIS
+        % for repeated LSO it may make sense to remove a CV2 fold that
+        % contains only subjects from one class ( in these cases NM
+        % automatically replaces BAC with either sensitivity or
+        % specificity ). The statistical analysis would be run on a mixed
+        % performance criterion
+        col_skip = [];
+        % if LGOflag = true then OOT performances are computed for each
+        % leave-group-out index, instead of performing the test on CV2
+        % performances
+        LGOflag = false;
+        
         % Map external predictor to cross-validation structure 
         % (implement mapping to binary dichotomizers in multi-class case)
         for curclass=1:handles.nclass
-            G = zeros(ix*jx,mPadd+nA);
+            G = zeros(ix*(jx-numel(col_skip)),mPadd+nA);
             if mPadd>0
                 for g=1:mPadd
                     ll=1;
@@ -425,11 +493,22 @@ switch handles.PerfTab.multiflag.Value
             lx = size(handles.NM.label,1); ig = mPadd+1;
 
             % now either get CV2 grids straightaway or recompute grid
-            AnalNames = []; Gnames = cell(ix*jx,1);
-
+          
+            AnalNames = [];
+            if LGOflag && ~recomp 
+                Crit = 'BAC';
+                LSO =  handles.NM.analysis{a(1)}.params.TrainParam.RAND.CV2LCO.ind; 
+                nLSO = numel(unique(LSO));
+                Gnames = cell(nLSO,1);
+                G = zeros(nLSO,mPadd+nA);
+            else
+                Gnames = cell(ix*(jx-numel(col_skip)),1);
+            end
+            
             for i=1:nA
 
                 AggrFlag = handles.NM.analysis{a(i)}.params.TrainParam.RFE.CV2Class.EnsembleStrategy.AggregationLevel;
+              
                 M = handles.NM.analysis{a(i)}.params.TrainParam.FUSION.M;
                 nGDdims = numel(handles.NM.analysis{a(i)}.GDdims);
 
@@ -437,11 +516,11 @@ switch handles.PerfTab.multiflag.Value
 
                     AnalG = handles.NM.analysis{a(i)}.GDdims{g};
                     if nGDdims > 1
-                        AnalName = sprintf('%s_Cl%g_M%g', handles.NM.analysis{a(i)}.id, curclass, M(g));
+                        AnalName = sprintf('%s_Cl%g_M%g', AnalysisAliasStringsSel{i}, curclass, M(g));
                     elseif handles.nclass > 1
-                        AnalName = sprintf('%s_Cl%g', handles.NM.analysis{a(i)}.id, curclass);
+                        AnalName = sprintf('%s_Cl%g', AnalysisAliasStringsSel{i}, curclass);
                     else
-                        AnalName = handles.NM.analysis{a(i)}.id;
+                        AnalName = AnalysisAliasStringsSel{i};
                     end
                     AnalName = regexprep(AnalName,'-','_');
                     if length(AnalName) > namelengthmax
@@ -505,12 +584,22 @@ switch handles.PerfTab.multiflag.Value
                             NodesCnt(:,1) = NodesCnt(:,2)+1;
                         end
                     else
-                        ll=1;
-                        for f=1:ix
-                            for d=1:jx
-                                G(ll,ig) = AnalG.bestTS{curclass}(f,d);
-                                Gnames{ll} = sprintf('CV2: R%g_F%g', f,d);
-                                ll=ll+1;
+                        if LGOflag
+                            for f = 1:nLSO
+                                Perfs = AnalG.BinClass{curclass}.mean_predictions( LSO == f );
+                                Labels = Lg ; Labels(Lg == curclass)=1; Labels(Lg ~= curclass) = -1; Labels = Labels( LSO == f );
+                                G(f,ig) = feval(Crit, Labels, Perfs);
+                                Gnames{f} = sprintf('Group %g', f);
+                            end
+                        else
+                            ll=1;
+                            for f=1:ix
+                                for d=1:jx
+                                    if ~isempty(col_skip) && d==col_skip, continue; end
+                                    G(ll,ig) = AnalG.bestTS{curclass}(f,d);
+                                    Gnames{ll} = sprintf('CV2: R%g_F%g', f,d);
+                                    ll=ll+1;
+                                end
                             end
                         end
                     end
@@ -528,8 +617,9 @@ switch handles.PerfTab.multiflag.Value
             handles.comparator_stats{curclass}.PredictorPerformances = G;
             if numel(AnalNames)>2
                 handles.comparator_stats{curclass} = quadetest(G, Gnames, AnalNames, Filename);
+                display_classcomparison_matrix(handles.comparator_stats{curclass}.tbl_p_fdr_posthoc, AnalNames, mean(G), std(G));
             else
-                handles.comparator_stats{curclass} = wilcoxon(G(:,1), G(:,2), 0.05, Gnames, AnalNames, Filename);
+                handles.comparator_stats{curclass} = wilcoxon(G(:,1)', G(:,2)', 0.05, Gnames, AnalNames, Filename);
             end
 
         end
@@ -537,7 +627,8 @@ end
 
 function handles = visualize_performances(src, evt, handles)
 
-Temp   = {'BAC', 'acc',       'sens', 'spec', 'PPV',    'NPV',        'FPR',  'PSI',       'pLR',        'nLR', 'DOR', 'NNP', 'NND', 'Youden', 'MCC', 'Fscore', 'Gmean'}'
+lw = 2;
+mk = 12;
 
 AnalysisSelection = cell2mat(handles.PerfTab.analysisselect.Data(:,3));
 AnalysisStrings = handles.PerfTab.analysisselect.Data(:,1);
@@ -610,16 +701,19 @@ else
         indR = find(PerfSeparate(PerfSelection)); 
         yyaxis left
         for i=1:numel(indL)
-            h{1,i} = plot(1:size(Px,1),Px(:,indL(i)),'-o','Color', rgb(PerfColors{indLC(i)}), 'MarkerFaceColor', rgb(PerfColors{indLC(i)}), 'LineWidth',2,'MarkerSize',7);
+            h{1,i} = plot(1:size(Px,1),Px(:,indL(i)),'-o', ...
+                'Color', rgb(PerfColors{indLC(i)}), 'MarkerFaceColor', rgb(PerfColors{indLC(i)}), 'MarkerEdgeColor', 'w', 'LineWidth',lw,'MarkerSize',mk);
         end
         yyaxis right
         for i=1:numel(indR)
-            h{2,i} = plot(1:size(Px,1),Px(:,indR(i)),'-X','Color', rgb(PerfColors{indRC(i)}),'MarkerFaceColor', rgb(PerfColors{indRC(i)}),'LineWidth',2,'MarkerSize',7);
+            h{2,i} = plot(1:size(Px,1),Px(:,indR(i)),'-s', ...
+                'Color', rgb(PerfColors{indRC(i)}),'MarkerFaceColor', rgb(PerfColors{indRC(i)}), 'MarkerEdgeColor', 'w','LineWidth',lw,'MarkerSize',mk);
         end
     else
         indSel = find(PerfSelection);
         for i=1:numel(indSel)
-            h{i} = plot(1:size(Px,1),Px(:,i),'-o','Color',rgb(PerfColors{indSel(i)}), 'MarkerFaceColor', rgb(PerfColors{indSel(i)}), 'LineWidth',2,'MarkerSize',7);
+            h{i} = plot(1:size(Px,1),Px(:,i),'-o', ...
+                'Color',rgb(PerfColors{indSel(i)}), 'MarkerFaceColor', rgb(PerfColors{indSel(i)}), 'MarkerEdgeColor', 'w', 'LineWidth',lw,'MarkerSize',mk);
         end
     end
     ax = gca;
@@ -631,5 +725,12 @@ ax.XTickLabel = AnalysisAliasStringsSel;
 ax.XTickLabelRotation = 45;
 ax.XLabel.String = 'Analyses';
 ax.XLabel.FontWeight = 'bold';
-ax.YLabel.String = 'Performance Measure(s)';
-ax.YLabel.FontWeight = 'bold';
+ax.YAxis(1).Label.String = 'Performance Measure(s)';
+ax.YAxis(1).Label.FontWeight = 'bold';
+ax.YAxis(1).FontSize = 12;
+ax.YAxis(2).Label.String = 'Performance Measure(s)';
+ax.YAxis(2).Label.FontWeight = 'bold';
+ax.YAxis(2).FontSize = 12;
+ax.Box = 'on';
+ax.YGrid = 'on';
+ax.Color = [0.95 0.95 0.95]; 

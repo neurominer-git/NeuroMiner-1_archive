@@ -1,6 +1,8 @@
 function handles = perf_display(handles)
 % Set current analysis
-analind = get(handles.selAnalysis,'Value'); handles.curranal = analind;
+analind = get(handles.selAnalysis,'Value'); 
+handles.prevanal = handles.curranal;
+handles.curranal = analind;
 if ~handles.NM.analysis{analind}.status || ~isfield(handles.NM.analysis{analind},'GDdims')
     set_visibility(handles)
     set_panel_visibility(handles,'off');

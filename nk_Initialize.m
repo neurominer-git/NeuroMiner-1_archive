@@ -4,7 +4,7 @@ function nk_Initialize(action)
 % =========================================================================
 % startup script for NeuroMiner 
 % %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% (c) Nikolaos Koutsouleris, 12/2019
+% (c) Nikolaos Koutsouleris, 03/2020
 
 global NMinfo NM CALIBAVAIL OOCVAVAIL SPMAVAIL FSAVAIL
 
@@ -14,7 +14,7 @@ NMinfo.info.author  = 'Nikolaos Koutsouleris';
 NMinfo.info.affil   = 'Section for Neurodiagnostic Applications';
 NMinfo.info.dep     = 'Department of Psychiatry and Psychotherapy';
 NMinfo.info.inst    = 'Ludwig-Maximilian-University';
-NMinfo.info.datever = '01/2020';
+NMinfo.info.datever = '03/2020';
 NMinfo.info.timestamp = date;
 NMinfo.info.email   = 'nm@pronia.eu';
 try
@@ -111,7 +111,6 @@ if action.all
             addpath(fullfile(defs.path,'FeatGen/MRMR')); fprintf('.');
             addpath(fullfile(defs.path,'FeatGen/SVM')); fprintf('.');
             addpath(fullfile(defs.path,'FeatGen/SA')); fprintf('.');
-            %addpath(fullfile(defs.path,'FeatGen/mLMNN2.5')); lmnn_setpaths; fprintf('.');
         end
         
         % Preprocessing subdirectory
@@ -123,6 +122,8 @@ if action.all
             addpath(fullfile(defs.path,'preproc/drtools'));fprintf('.');
             addpath(fullfile(defs.path,'preproc/drrobust'));fprintf('.');
             addpath(fullfile(defs.path,'preproc/nmfv1_4')); fprintf('.');
+            addpath(fullfile(defs.path,'preproc/NeNMF')); fprintf('.');
+            addpath(fullfile(defs.path,'preproc/NMF_Soteiras')); fprintf('.');
         end
         
         % Train & Predict functions subdirectory
@@ -248,22 +249,6 @@ if ~isempty(NM) && ~isstruct(NM)
 end
 NM.defs.paths = defs.path;
 NM.defs.NM_ver = NMinfo.info.ver;
-% try
-%     NM.defs.JTextArea = [];
-%     cmdWinDoc = com.mathworks.mde.cmdwin.CmdWinDocument.getInstance;
-%     listeners = cmdWinDoc.getDocumentListeners;
-%     for i=1:numel(listeners)
-%         listener_str = listeners(i).toString;
-%         if ~isempty(strfind(listener_str,'JTextArea'))
-%             NM.defs.JTextArea = listeners(i); 
-%             NM.defs.JTextArea.setBackground(java.awt.Color(0.8,0.9,0.9))
-%             NM.defs.JTextArea.setForeground(java.awt.Color(0,0,0.5));
-%             break
-%         end
-%     end
-% catch
-%     NM.defs.JTextArea = [];
-% end
 if ~isfield(NM.defs,'ver'), NM.defs.ver = ver; end
 if ~isfield(NM.defs,'computer'), NM.defs.computer = computer; end
 

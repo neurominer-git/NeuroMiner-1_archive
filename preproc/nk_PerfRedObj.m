@@ -243,8 +243,20 @@ if eIN || ~isfield(IN,'mpp') || isempty(IN.mpp)
                 end
             end
             pY = pY'; IN.mpp.r_err = fitRes;
-        case 'optNMF'
-            [IN.mpp.W, IN.mpp.H] = opnmf_mem(Y', IN.DR.dims);
+        case {'optNMF', 'NeNMF'}
+            switch IN.DR.RedMode
+                case 'optNMF'
+                    [IN.mpp.W, IN.mpp.H] = opnmf_mem(Y', IN.DR.dims);
+                case 'NeNMF'
+                    switch IN.DR.options.algo
+                        case 'RPI'
+                            [IN.mpp.W, IN.mpp.H, IN.mpp.fitRes] = RPI_NeNMF( Y', [], [], IN.DR.dims, IN.DR.options.tmax);
+                        case 'RSI'
+                            [IN.mpp.W, IN.mpp.H, IN.mpp.fitRes] = RSI_NeNMF( Y', [], [], IN.DR.dims, IN.DR.options.tmax);
+                        case 'Vanilla'
+                            [IN.mpp.W, IN.mpp.H, IN.mpp.fitRes] = VANILLA_NeNMF( Y', [], [], IN.DR.dims, IN.DR.options.tmax);
+                    end
+            end
             pY = AUtoPhysicalUnits(Y',IN.mpp.W); pY=pY';
         case 'FastMVU'
             k = nk_ReturnParam('K',Params_desc, opt);
@@ -307,7 +319,7 @@ else
             pY = bsxfun(@minus, Y, IN.mpp.sampleMean) * IN.mpp.vec;
         case 'NNMF'
             pY = featureExtrationTest(IN.TrX',Y',IN.mpp); pY = pY';
-        case 'optNMF'
+        case {'optNMF','NeNMF'}
             pY = AUtoPhysicalUnits(Y',IN.mpp.W); pY=pY';
         case 'SPCA'
             pY = nk_PerfSPCA(Y, IN.mpp);

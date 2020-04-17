@@ -54,24 +54,24 @@ if n<=15
     %to compute the p-value see how many values are more extreme of the observed
     %W and then divide for the total number of combinations
     p=length(J(abs(J)>=abs(W)))/length(J); %p-value
-    STATS.method='Exact distribution';
-    STATS.W=W;
-    STA
+    STATS.method = 'Exact distribution';
+    STATS.W      = W;
+    STATS.p      = p;
 else
-    sW = sqrt((2*n^3+3*n^2+n-t)/6); %standard deviation
-    zW = (abs(W)-0.5)/sW; %z-value with correction for continuity
-    p=1-normcdf(zW); %p-value
-    STATS.method='Normal approximation';
-    STATS.W=W;
-    STATS.mean=0;
-    STATS.std=sW;
-    STATS.z=zW;
-    STATS.p=p;
+    sW           = sqrt((2*n^3+3*n^2+n-t)/6); %standard deviation
+    zW           = (abs(W)-0.5)/sW; %z-value with correction for continuity
+    p            = 1-normcdf(zW); %p-value
+    STATS.method = 'Normal approximation';
+    STATS.W      = W;
+    STATS.mean   = 0;
+    STATS.std    = sW;
+    STATS.z      = zW;
+    STATS.p      = p;
 end
 
 if exist('filename','var') && ~isempty(filename)
    sh = {'pp','stats'};
-   tbl_perf = array2table([x1 x2],'VariableNames',ynames', 'RowNames', xnames);
+   tbl_perf = array2table([x1' x2'],'VariableNames',ynames', 'RowNames', xnames);
    tbl_stats = struct2table(STATS);
    writetable(tbl_perf,filename,'Sheet',sh{1},'WriteRowNames',true);
    writetable(tbl_stats,filename,'Sheet',sh{2});

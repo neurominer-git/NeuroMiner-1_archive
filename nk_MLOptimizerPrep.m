@@ -313,7 +313,7 @@ end
 if ~isfield(inp1,'rootdir') || isempty(inp1.rootdir) || ~exist(inp1.rootdir,'dir')==7
     inp1.rootdir = fullfile(pwd,mthstr);
 else
-    inp1.rootdir = fullfile(inp1.rootdir,mthstr); 
+    inp1.rootdir = fullfile(analysis.rootdir,mthstr); 
 end
 
 if ~exist(inp1.rootdir,'dir'), mkdir(inp1.rootdir);end

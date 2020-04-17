@@ -129,7 +129,6 @@ switch act
         kbin = 1;
         %% Define program parameters
         if strcmp(MODEFL,'classification') && RAND.Decompose ~= 9, kbin = length(CV.class{1,1}); end
-
         datid       = NM.id;
         switch act
             case 6

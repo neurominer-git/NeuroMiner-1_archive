@@ -4,6 +4,7 @@
 function handles = display_classplot_oocv(h, handles)
 
 % Prepare axes
+warning off
 axes(handles.axes1); cla(handles.axes1); hold on
 handles.axes1.Position = handles.axes1pos_orig;
 handles.axes38.Visible = 'off';  cla(handles.axes38);
@@ -15,6 +16,20 @@ GraphType = get(handles.selYaxis,'Value');
 
 % Get index to OOCV data
 oocvind = handles.selCVoocv.Value - 1;
+
+if ~isfield(handles,'oocvind'), handles.oocvind = oocvind; end
+
+% Try to find OOCV data pointer in newly selected analysis.
+if handles.curranal ~= handles.prevanal && handles.OOCVinfo.Analyses{handles.prevanal}.OOCVdone
+    descprev = handles.OOCVinfo.Analyses{handles.prevanal}.descriptor{handles.oocvind};
+    descnew = handles.OOCVinfo.Analyses{handles.curranal}.descriptor;
+    I = find(strcmp(descnew,descprev));
+    if ~isempty(I) && I ~= oocvind, 
+        handles.selCVoocv.Value = I+1;
+        oocvind = I;
+    end
+end
+handles.prevanal = handles.curranal;
 
 % Check whether the labels are known
 labels_known = handles.OOCVinfo.Analyses{handles.curranal}.labels_known(oocvind);
@@ -39,6 +54,9 @@ switch GraphType
         P_oocv_h    = handles.OOCV(oocvind).data.BinResults{l}.BinMajVoteProbabilities{h};
 end
 
+% Get subindex if availabel
+if isfield(handles,'SubIndex'), subfl = true; SubI = handles.SubIndex; else, subfl = false; SubI = true(numel(P_oocv_h),1); end
+
 % Mark groups with color
 if isfield(handles.BinClass{h},'ind2')
     id1 = handles.BinClass{h}.ind1; 
@@ -47,6 +65,7 @@ else
     id1 = handles.BinClass{h}.ind1; 
     id2 = ~handles.BinClass{h}.ind1; 
 end
+
 legvecn = false(1,5);
 handlevecn = cell(1,5);
 % Print CV data: Group 1
@@ -81,15 +100,19 @@ if labels_known
     else
         label_oocv_h = handles.OOCV(oocvind).data.BinResults{1}.BinLabels{h};
     end
-
     ind0 =  label_oocv_h ~=0 ; fid0_oocv = find(~label_oocv_h);
-    tP_oocv_h = P_oocv_h(ind0);
-    id1_oocv = label_oocv_h(ind0) == 1 & ~isnan(tP_oocv_h) ; fid1_oocv = find(label_oocv_h(ind0) == 1);
-    id2_oocv = label_oocv_h(ind0) == -1 & ~isnan(tP_oocv_h) ; fid2_oocv = find(label_oocv_h(ind0) == -1);
-
+    tP_oocv_h = P_oocv_h(ind0 & SubI);
+    id1_oocv = label_oocv_h(ind0 & SubI) == 1 & ~isnan(tP_oocv_h) ; fid1_oocv = find(label_oocv_h(ind0 & SubI) == 1);
+    id2_oocv = label_oocv_h(ind0 & SubI) == -1 & ~isnan(tP_oocv_h) ; fid2_oocv = find(label_oocv_h(ind0 & SubI) == -1);
+    if sum(id1_oocv), oocvfl1 = true; else, oocvfl1 = false; end
+    if sum(id2_oocv), oocvfl2 = true; else, oocvfl2 = false; end
+    kpos1 = 2; kpos2 = 2; 
+    if (oocvfl1 && oocvfl2) 
+        kpos1 = 2; kpos2 = 4;
+    end
      % Print independent sample prediction using dot density plots: Group 1
      if sum(id1_oocv)
-        [handlevecn{3},~,N{1},X{1},Y{1}] = dotdensity( 2 ,tP_oocv_h(id1_oocv), ...
+        [handlevecn{3},~,N{1},X{1},Y{1}] = dotdensity( kpos1 ,tP_oocv_h(id1_oocv), ...
             'dotEdgeColor', handles.colptin(handles.BinClass{h}.groupind(1),:), ...
             'dotFaceColor',handles.colptin(handles.BinClass{h}.groupind(1),:), ...
             'dotSize',MSoocv, ...
@@ -106,7 +129,7 @@ if labels_known
         else
             CLP = 'o'; CLR = 'k';
         end
-        [handlevecn{4},~,N{2},X{2},Y{2}] = dotdensity( 4, tP_oocv_h(id2_oocv), ...
+        [handlevecn{4},~,N{2},X{2},Y{2}] = dotdensity( kpos2, tP_oocv_h(id2_oocv), ...
             'dotEdgeColor', CLR, ...
             'dotFaceColor', CLR, ...
             'dotSize',MSoocv, ...
@@ -117,7 +140,7 @@ if labels_known
     end
 
     if sum(~ind0)
-        [handlevecn{5},~,N{3},X{3},Y{3}] = dotdensity( 5 , P_oocv_h(~ind0), ...
+        [handlevecn{5},~,N{3},X{3},Y{3}] = dotdensity( kpos1 , P_oocv_h(~ind0), ...
             'dotEdgeColor', 'k', ...
             'dotFaceColor', 'k', ...
             'dotSize',MSoocv, ...
@@ -128,7 +151,7 @@ if labels_known
     end
     N=cell2mat(fN');X=cell2mat(X');Y=cell2mat(Y');
 else
-    [handlevecn{5},~,N,X,Y] = dotdensity( 5 , P_oocv_h, ...
+    [handlevecn{5},~,N,X,Y] = dotdensity( kpos1 , P_oocv_h, ...
         'dotEdgeColor', 'k', ...
         'dotFaceColor', 'k', ...
         'dotSize',MSoocv, ...
@@ -136,7 +159,7 @@ else
         'medianLine', 'on');
     legvecn(5)=1;
 end
-    
+
 % Define textbox info data 
 pss = cell(1,numel(N));psslen=0;
 for i=1:numel(pss)
@@ -186,17 +209,26 @@ if GraphType >3
 else
     probfx = 0; handles.BinClass{h}.P_h = P_h;
 end
-
-LegVec{1} = sprintf('Discovery: %s', handles.BinClass{h}.groupnames{1});
-LegVec{2} = sprintf('Discovery: %s', handles.BinClass{h}.groupnames{2});
-LegVec{3} = sprintf('OOCV: %s', handles.BinClass{h}.groupnames{1});
-LegVec{4} = sprintf('OOCV: %s', handles.BinClass{h}.groupnames{2});
-LegVec{5} = sprintf('OOCV: unlabeled');
+legvecn = logical(legvecn);
+LegendStr = { sprintf('Discovery: %s', handles.BinClass{h}.groupnames{1}), ...
+              sprintf('Discovery: %s', handles.BinClass{h}.groupnames{1}), ...
+              sprintf('OOCV: %s', handles.BinClass{h}.groupnames{1}), ...
+              sprintf('OOCV: %s', handles.BinClass{h}.groupnames{2}), ...
+              sprintf('OOCV: unlabeled') };
+legendvec = LegendStr(legvecn);
 handlevec = handlevecn(legvecn==1);
 Hvec =[]; for i = 1:numel(handlevec), Hvec = [Hvec handlevec{i}]; end
 
-legendvec = LegVec(legvecn==1);
-    
+% Plot binary class deviding line
+xlims = numel(legendvec);
+xLimits = get(handles.axes1,'XLim'); xLimitsVec = xLimits(1):xLimits(2); 
+handles.axes1.XTick = 0.5:1:xlims+0.5; handles.axes1.YGrid = 'off'; handles.axes1.XGrid = 'on';
+zeroline = ones(1,numel(xLimitsVec))*probfx;
+plot(handles.axes1,xLimitsVec,zeroline,'k--','LineWidth',handles.ZeroLineWidth)
+xlim(handles.axes1, [0.5 xlims+0.5]);
+ylim(handles.axes1, 'auto');
+handles.axes1.XTickLabel = [];
+
 switch GraphType
 
     case {1,2,3}
@@ -242,15 +274,19 @@ set(hx(2), ...%'FontSize',handles.AxisLabelSize-2, ...
     'FontWeight',handles.AxisLabelWeight);
 handles.legend_classplot = legend(Hvec, legendvec, 'Location','Best','FontSize', 8,'LineWidth',1);%,'FontSize',handles.LegendFontSize); 
 legend('boxon')
-flg = 'off'; flg2='off';  xlims = 6;
+flg = 'off'; flg2='off';  xlims = numel(legendvec);
 switch labels_known
     case 1
         flg='on';
         %% Extract contigency structure
-        if isfield(handles.OOCV(oocvind).data,'BinResults')
-            contigmat = handles.OOCV(oocvind).data.BinResults{1}.contingency{h};
+        if subfl
+            contigmat = ALLPARAM(label_oocv_h(ind0 & SubI), tP_oocv_h);
         else
-            contigmat = handles.OOCV(oocvind).data.MultiResults{1}.contingency{h};
+            if isfield(handles.OOCV(oocvind).data,'BinResults')
+                contigmat = handles.OOCV(oocvind).data.BinResults{1}.contingency{h};
+            else
+                contigmat = handles.OOCV(oocvind).data.MultiResults{1}.contingency{h};
+            end
         end
         confmatrix = [[contigmat.TP contigmat.FN]; [contigmat.FP contigmat.TN]];
 
@@ -264,17 +300,12 @@ switch labels_known
         if sum(ind0)>2 %&& numel(unique(label_oocv_h(ind0)))>1 
             %% Display ROC
             if isfield(contigmat,'AUC')
-                flg2 = 'on'; [handles.hroc, handles.hroc_random] = display_roc(handles, label_oocv_h , P_oocv_h);
+                flg2 = 'on'; [handles.hroc, handles.hroc_random] = display_roc(handles, label_oocv_h (ind0 & SubI), tP_oocv_h);
             end
             %% Display pie charts
-            [handles.h1pie, handles.h2pie] = display_piecharts(handles, [], contigmat, label_oocv_h );   
-        else
-            xlims = 5;
+            [handles.h1pie, handles.h2pie] = display_piecharts(handles, [], contigmat, label_oocv_h(ind0 & SubI));   
         end
 end
-xlim(handles.axes1, [0 xlims]);
-ylim(handles.axes1, 'auto');
-handles.axes1.XTickLabel = [];
 handles.pnRocCmds.Visible = flg2;
 handles.pnPieCmds.Visible = flg2;
 handles.pnContigCmds.Visible = flg;
@@ -282,8 +313,5 @@ handles.cmdExportCobWeb.Visible = flg;
 handles.cmdMetricExport.Visible = flg;
 handles.cmdExportAxes20.Visible = flg;
 
-% Plot binary class deviding line
-xLimits = get(handles.axes1,'XLim'); xLimitsVec = xLimits(1):xLimits(2);
-zeroline = ones(1,numel(xLimitsVec))*probfx;
-plot(handles.axes1,xLimitsVec,zeroline,'k--','LineWidth',handles.ZeroLineWidth)
+
     

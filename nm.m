@@ -55,7 +55,7 @@ function nm(varargin)
 % option.
 % %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % (c) Nikolaos Koutsouleris, 01/2019
-global EXPERT NM
+global EXPERT NM 
 
 nosplash  = 0; EXPERT = 0;
 % Initialize NM
@@ -107,7 +107,7 @@ end
 end
 
 function [ERR, action] = nm_interface
-global NM BATCH
+global NM BATCH NMinfo
 ERR = [];
 
 if ~isempty(NM) && ~isstruct(NM) 
@@ -118,18 +118,17 @@ end
 
 try
     
-    nk_PrintLogo(true)
-
-    fprintf('\nCurrent working directory: %s',pwd)
     menutitle = 'MAIN INTERFACE';
     
     % Check NM status and define current NM mode based on status
     [s, paramstr] = nk_GetNMStatus(NM);
     
     if ~s.import_finished
-        
+        NMinfo.clback = rgb('HoneyDew');
+        NMinfo.cllogo = rgb('ForestGreen');
+        NMinfo.clmenu = rgb('DarkGreen');
         mn_str = 'Load data for model discovery and cross-validation|'; mn_act = 1;
-        
+        menutitle = [menutitle ' [ DATA INPUT MODE ]'];
     else
         switch NM.modeflag
             case 'classification'
@@ -144,6 +143,10 @@ try
                 
                 if ~s.analyses_locked
                     
+                    NMinfo.clback = rgb('LightCyan');
+                    NMinfo.cllogo = rgb('SteelBlue');
+                    NMinfo.clmenu = rgb('DarkBlue');
+                    menutitle = [menutitle ' [ MODEL DISCOVERY MODE ]'];
                     mn_str = 'Inspect data used for model discovery and cross-validation|'; mn_act = 8;
                     
                     mn_str = [ mn_str 'Set up NM parameter workspace|' ]; mn_act = [ mn_act 2 ];
@@ -171,6 +174,9 @@ try
                     end
 
                 else
+                    NMinfo.clback = rgb('Linen');
+                    NMinfo.cllogo = rgb('DarkSalmon');
+                    NMinfo.clmenu = rgb('IndianRed');
                     mn_str = 'Update analyses'' root paths'; mn_act = 18;
                     mn_str = [ mn_str '|Load data for model application' ]; mn_act = [mn_act 1 ];
                     if s.oocv_data_ready
@@ -184,23 +190,33 @@ try
                     end
                     mn_act = [mn_act 7];
                     if ~isfield(NM.defs,'data_scrambled') || ~NM.defs.data_scrambled
+                        menutitle = [menutitle ' [ MODEL APPLICATION MODE ]'];
                         mn_str = [mn_str '|Shred input data in NM structure (external validation)']; mn_act = [ mn_act 17 ];
+                    else
+                        menutitle = [menutitle ' [ MODEL EXPORT MODE ]'];
                     end
                 end
 
             case 0
-                
-                fprintf('\n\n')
-                cprintf('*red','Parameter setup not complete! \n')
-                if iscell(paramstr), paramstr = char(paramstr); end
-                for i=1:size(paramstr,1), 
-                    cprintf('red','%s \n',paramstr(i,:)); 
-                end
                 mn_str = ['Inspect data used for model discovery and cross-validation' ...
                             '|Set up NM parameter workspace' ];
                 mn_act = [8 2];
         end
 
+    end
+    
+    NM = nk_InitNMwindowColors(NM,NMinfo.clback);
+    
+    nk_PrintLogo(true)
+    
+    fprintf('\nCurrent working directory: %s',pwd)
+    if ~s.setup_ok && s.import_finished
+        fprintf('\n\n')
+        cprintf('*red','Parameter setup not complete! \n')
+        if iscell(paramstr), paramstr = char(paramstr); end
+        for i=1:size(paramstr,1), 
+            cprintf('red','%s \n',paramstr(i,:)); 
+        end
     end
     
     if numel(NMfields) == 1 && strcmp(NMfields{1},'defs')
@@ -220,6 +236,7 @@ try
     end
     
     mn_sel = nk_input(menutitle,0,'mq',mn_str,mn_act);
+    
     mn_opt = {'loaddata', ...
               'config', ...
               'initanal', ...
@@ -398,6 +415,8 @@ function savemat(NM)
 
 [filename, pathname] = uiputfile('*.mat', 'Save NeuroMiner structure file');
 
+NM = nk_InitNMwindowColors(NM, [1 1 1 ]);
+NM.defs = rmfield(NM.defs,'JTextArea');
 if ~isequal(filename,0) && ~isequal(pathname,0)
     fprintf('\nSaving %s ... please wait',filename)
     save(fullfile(pathname,filename),'NM')
@@ -407,16 +426,15 @@ end
 
 function QuitNeuroMiner()
 global NM
-fprintf('\n'); cprintf('blue*','Good Bye... \n');
+NM = nk_InitNMwindowColors(NM, [1 1 1 ]);
+NM.defs = rmfield(NM.defs,'JTextArea');
+fprintf('\n'); %clc; 
+cprintf('blue*','Good Bye... \n');
 delete(findobj('Tag','PrintCVBarsBin'));
 %delete(findobj('Name','NM Results Manager'));
 delete(findobj('Name','Probabilistic Feature Exraction'));
 clear CALIBAVAIL OOCVAVAIL
 if isfield(NM,'runtime'), NM = rmfield(NM,'runtime'); end
-% if isfield(NM.defs,'JTextArea') && ~isempty( NM.defs.JTextArea)
-%      NM.defs.JTextArea.setBackground(java.awt.Color(1,1,1));
-%      NM.defs.JTextArea.setForeground(java.awt.Color(0,0,0));
-% end
 assignin('base', 'NM', NM)
 clearvars -global NM st
 if exist('temp.nii','file'); delete('temp.nii'); end

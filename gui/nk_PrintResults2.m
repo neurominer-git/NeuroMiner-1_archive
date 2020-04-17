@@ -750,17 +750,18 @@ function cmdSubgroupSet_Callback(hObject, eventdata, handles)
 
 try
     % Get alternative X values from workspace
-    I = evalin('base',char(get(handles.txtSubgroupSet,'String')));
-    if ~isequal(size(I),size(handles.NM.label))
-        errordlg('Wrong size of index vector')
-    elseif ~islogical(I)
-         errordlg('Index vector has to be a logical vector')
+    I = evalin('base',char(get(handles.txtSubgroupSet,'String'))); [nI, mI] = size(I);
+    if mI>1, errordlg('You entered a matrix, but a vector is required'); end
+    if ~islogical(I), errordlg('A logical vector is required.'); end
+    if handles.oocvview
+        nC = numel(handles.OOCVinfo.Analyses{handles.curranal}.cases{handles.oocvind});
     else
-        handles.SubIndex = I;
-        handles = perf_display(handles);
-        guidata(handles.figure1,handles);
+        nC = size(handles.NM.label,1);
     end
-    
+    if nI ~= nC, errordlg(sprintf('The logical subgroup vector must have %g entries.',nC)); end
+    handles.SubIndex = I;
+    handles = perf_display(handles);
+    guidata(handles.figure1,handles);
 catch ERR
     errordlg(sprintf('Error: %s!',ERR.message))
 end

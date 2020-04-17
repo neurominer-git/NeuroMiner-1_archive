@@ -62,7 +62,7 @@ param.Fscore = (2 * TP) / (2 * TP + FP + FN) ;
 param.MCC = (TP * TN - FP * FN) / sqrt( (TP+FP) * (TP+FN) * (TN+FP) * (TN+FN) );
 if param.spec == 100,
     % Avoid INF
-    param.pLR = param.sens / (100 - 99.9);
+    param.pLR = param.sens / (100 - 99.999999);
 else
     param.pLR = param.sens / (100 - param.spec);
 end

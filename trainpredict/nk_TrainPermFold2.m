@@ -38,11 +38,10 @@
 % generation is strictly limited to each CV1 training & CV1 test sample 
 % on the inner CV loop
 %
-% The function uses a number of subfunctions to complete its task:
-% a) MultiDichoFoldPerm
-% b) 
+% Subfunction(s):
+% * OptimCore
 % %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% (c) Nikolaos Koutsouleris 09/2017
+% (c) Nikolaos Koutsouleris 03/2020
 
 function performance = nk_TrainPermFold2(Y, nclass, ngroups, Ps, FilterSubSets, batchflag)
 
@@ -53,58 +52,49 @@ global RFE BATCH VERBOSE SVM
 
 if ( ~exist('batchflag','var') || isempty(batchflag)) || isempty(BATCH), batchflag = false; BATCH = false; end;
 %  %%%%%%%%%%%%%%%%%%%%%% FEATURE SUBSPACE SELECTION %%%%%%%%%%%%%%%%%%%%%%
+    
+% Perform some sort of feature selection (filter, wrapper or both)
+Weighting = 0;
+if isfield(RFE.Filter,'EnsembleStrategy') && isfield(RFE.Filter.EnsembleStrategy,'Weighting')
+        Weighting = RFE.Filter.EnsembleStrategy.Weighting;
+elseif isfield(RFE.Filter,'Weighting');
+        Weighting = RFE.Filter.Weighting;
+end
 
-%if RFE.Filter.flag || RFE.Wrapper.flag
-    
-    % Perform some sort of feature selection (filter, wrapper or both)
-    Weighting = 0;
-    if isfield(RFE.Filter,'EnsembleStrategy') && isfield(RFE.Filter.EnsembleStrategy,'Weighting')
-            Weighting = RFE.Filter.EnsembleStrategy.Weighting;
-    elseif isfield(RFE.Filter,'Weighting');
-            Weighting = RFE.Filter.Weighting;
-    end
-    
-    % Prepare I structure to input to optimcore
-    I.Y         = Y;
-    I.ngroups   = ngroups;
-	I.nclass    = nclass;
-    I.nperms    = nperms;
-    I.nfolds    = nfolds;
-    I.nvar      = nvar;
-	I.F         = FilterSubSets;
-	I.Ps        = Ps;
-    
-    % Filtering ?
-    %if RFE.Filter.flag
-        
-        if VERBOSE
-            if RFE.Filter.flag
-                fprintf('\n\nGenerate filter-based CV1 ensembles')
-                fprintf('\n-----------------------------------')
-            else
-                fprintf('\n\nGenerate CV1 ensembles with full input feature space')
-                fprintf('\n----------------------------------------------------')
-            end
-        end
-        strout='CV1 Train'; OptMode = 0;
-        performance.Filter = OptimCore(I, [], strout, RFE.Filter, OptMode, Weighting);
-                    
-    %end
-    
-    % Wrapping ?
-    if RFE.Wrapper.flag
+% Prepare I structure to input to OptimCore
+I.Y         = Y;
+I.ngroups   = ngroups;
+I.nclass    = nclass;
+I.nperms    = nperms;
+I.nfolds    = nfolds;
+I.nvar      = nvar;
+I.F         = FilterSubSets;
+I.Ps        = Ps;
 
-        if VERBOSE
-            fprintf('\n\nGenerate wrapper-based CV1 ensembles')
-            fprintf('\n------------------------------------')
-        end
-        strout=[SVM.prog '-Wrapper']; OptMode = 1;
-        
-        if RFE.Filter.flag,  I.F = performance.Filter.SubSpaces; end
-        performance.Wrapper = OptimCore(I, [], strout, RFE.Wrapper, OptMode, Weighting);
-                    
+if VERBOSE
+    if RFE.Filter.flag
+        fprintf('\n\nGenerate filter-based CV1 ensembles')
+        fprintf('\n-----------------------------------')
+    else
+        fprintf('\n\nGenerate CV1 ensembles with full input feature space')
+        fprintf('\n----------------------------------------------------')
     end
-    
-%end
+end
+strout = 'CV1 Train'; OptMode = 0; 
+performance.Filter = OptimCore(I, [], strout, RFE.Filter, OptMode, Weighting);
+
+% Wrapping ?
+if RFE.Wrapper.flag
+
+    if VERBOSE
+        fprintf('\n\nGenerate wrapper-based CV1 ensembles')
+        fprintf('\n------------------------------------')
+    end
+    strout = [SVM.prog '-Wrapper']; OptMode = 1; 
+    if RFE.Filter.flag,  I.F = performance.Filter.SubSpaces; end
+    performance.Wrapper = OptimCore(I, [], strout, RFE.Wrapper, OptMode, Weighting);
 
 end
+    
+
+

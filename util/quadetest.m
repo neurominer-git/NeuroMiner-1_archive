@@ -68,7 +68,7 @@ function STATS = quadetest(x, xnames, ynames, filename, varargin)
 p = inputParser;
 addRequired(p, 'x',@(x) validateattributes(x,{'numeric'},{'2d','real','finite','nonnan','nonempty'}));
 addOptional(p, 'alpha',0.05, @(x) validateattributes(x,{'numeric'},{'scalar','real','finite','nonnan','>',0,'<',1}));
-addOptional(p, 'verbose', true, @(x) validateattributes(x,{'numeric'},{'binary'}));
+addOptional(p, 'verbose', false, @(x) validateattributes(x,{'numeric'},{'binary'}));
 
 if ~exist('xnames','var') || isempty(xnames), 
     xnames = cellstr([repmat('Partition_',size(x,1),1) num2str((1:size(x,1))')])';
@@ -130,8 +130,17 @@ if pvalue<alpha
     mc      = Rdiff>cv; %Find differences greater than critical value
     tval    = Rdiff ./ denom;
     pval    = 1-tcdf(tval,dfd);
-    [mc_fdr, cv_p, ~,pval_fdr] = fdr_bh(pval,0.05,'pdep');
-    
+    % We do need to correct only the p values in the lower triangle of the
+    % matrix without the diagnonal for multiple comparisons
+    Jx       = itril(size(pval),0);
+    Jy       = itriu(size(pval),1);
+    pval_nan = pval; pval_nan(Jx) = nan;
+    [mc_fdr, cv_p, ~,pval_fdr] = fdr_bh(pval_nan(~isnan(pval_nan)),0.05,'pdep');
+    pval_nan_fdr = pval_nan;
+    pval_nan_fdr(Jy) = pval_fdr;
+    pval(Jx) = nan;
+    mc_nan_fdr = nan(size(pval));
+    mc_nan_fdr(Jy) = mc_fdr;
     %display results
     if verbose
         disp(' ')
@@ -166,9 +175,9 @@ if nargout >0
         STATS.tbl_perf = array2table(x,'VariableNames',ynames', 'RowNames',xnames);
         STATS.tbl_rankdiff_posthoc = array2table(Rdiff,'VariableNames',ynames', 'RowNames',ynames);
         STATS.tbl_p_posthoc = array2table(pval,'VariableNames',ynames', 'RowNames',ynames);
-        STATS.tbl_p_fdr_posthoc = array2table(pval_fdr,'VariableNames',ynames', 'RowNames',ynames);
+        STATS.tbl_p_fdr_posthoc = array2table(pval_nan_fdr,'VariableNames',ynames', 'RowNames',ynames);
         STATS.tbl_crit_posthoc = array2table(mc,'VariableNames',ynames, 'RowNames',ynames');
-        STATS.tbl_crit_fdr_posthoc = array2table(mc_fdr,'VariableNames',ynames', 'RowNames',ynames);
+        STATS.tbl_crit_fdr_posthoc = array2table(mc_nan_fdr,'VariableNames',ynames', 'RowNames',ynames);
         if exist('filename','var') && ~isempty(filename)
             sh = { 'pp', 'blk', 'Quade', 'Rankdiff', 'Crit', 'P_uncorr','P_fdr' };
             writetable(STATS.tbl_perf,filename,'Sheet',sh{1},'WriteRowNames',true);
