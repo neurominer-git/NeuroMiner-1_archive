@@ -111,7 +111,7 @@ switch act
     case 'def_analysis_id'
         if isfield(A,'id') && ~isempty(A.id), id_def = A.id;  end
         id = nk_input('Provide an alphanumeric identifier for your analysis',0,'s',id_def);
-        if isempty(id) || strcmp(id,''), return, end
+        if isempty(id) || strcmp(id,''), A.id=na_str; return; end
         A.id = id;
         ind_alphanum = isstrprop(A.id,'alphanum');
         ind_minus = false(size(ind_alphanum)); ind_dot=ind_minus;ind_under=ind_minus;

@@ -304,7 +304,7 @@ if ~defaultsfl
              end
              if NM.TrainParam.RAND.Eq.enabled
 
-                 if ~isempty(NM.covars)
+                 if isfield(NM,'covars') && ~isempty(NM.covars)
                     eqtarget = nk_input('Perform histogram euqalization using the target label or some other covariate', ...
                                         0,'m','Target label|Covariate',[0,1],1);
                     if eqtarget
@@ -333,7 +333,7 @@ if ~defaultsfl
                          fprintf('\n\n************************************************************')
                          fprintf('\nSetup for histogram equalization during CV1 cycle generation')
                          fprintf('\n************************************************************\n')
-                         figure;hist(NM.TrainParam.RAND.Eq.Covar); 
+                         figure;histogram(NM.TrainParam.RAND.Eq.Covar); 
                             ylabel('# of observations in bins'); 
                             xlabel(varstr); 
                             title(['Histogram analysis of ' varstr]);
@@ -413,9 +413,9 @@ if ~defaultsfl
     end
 else
     NM.TrainParam.RAND.CV2Frame     = 1;
-    NM.TrainParam.RAND.OuterFold    = 10;
+    NM.TrainParam.RAND.OuterFold    = 1;
     NM.TrainParam.RAND.OuterPerm    = 10;
-    NM.TrainParam.RAND.InnerFold    = 10;
+    NM.TrainParam.RAND.InnerFold    = 1;
     NM.TrainParam.RAND.InnerPerm    = 10;
 end
 

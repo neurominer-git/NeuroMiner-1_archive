@@ -4,7 +4,7 @@ global NM
 if ~exist('defaultsfl','var') || isempty(defaultsfl), defaultsfl=0; end
 if ~exist('M','var') || isempty(M), M=1; end
 thresh = 0; fwhm = []; flgProj = false; 
-PERM = struct('flag',0,'nperms',100,'sigflag',0,'mode',3);
+PERM = struct('flag',0,'nperms',1000,'sigflag',0,'mode',1);
 normfl = false; if any(strcmp({'LIBSVM','LIBLIN'}, NM.TrainParam.SVM.prog)), normfl = true; end
 normdef = 1; if ~isfield(VIS,'norm'), VIS.norm = normdef; end   
 if ~defaultsfl
@@ -133,8 +133,8 @@ if ~defaultsfl
                 else
                     VIS.PERM.sigflag = 0; 
                 end
+                VIS.PERM.mode = nk_input('Permutation mode',0,'m','Labels|Features (within-label)|Labels & Features',1:3,VIS.PERM.mode);
             end
-            VIS.PERM.mode = nk_input('Permutation mode',0,'m','Labels|Features (within-label)|Labels & Features',1:3,VIS.PERM.mode);
         case 8
             if VIS.norm == 1, VIS.norm = 2; else, VIS.norm = 1; end
             
@@ -202,19 +202,3 @@ if thresh.type == 1 || thresh.type == 2
 else
     thresh.logop = 0;
 end
-
-
-% function VIS = config_scaling(VIS)
-% 
-% if ~isempty(VIS.postscaling), postscaledef = 1; else postscaledef = 0; end; 
-% postscaleflag = nk_input('Scale feature weights after projection to input space',0,'yes|no',[1,0], postscaledef);
-% 
-% if postscaleflag
-%     postscaling.min = nk_input('Minimum of scaling range',0,'e',0,1);
-%     postscaling.max = nk_input('Maximum of scaling range',0,'e',1,1);
-% else
-%     postscaling = [];
-% end
-% VIS.postscaling = postscaling;
-% 
-% end
