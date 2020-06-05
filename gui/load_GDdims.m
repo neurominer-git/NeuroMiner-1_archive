@@ -93,7 +93,23 @@ if isfield(GDdims,'BinClass') || isfield(GDdims,'MultiClass')
         handles.BinClass{j}.CI1_predictions     = GDdims.BinClass{j}.CI1_predictions( handles.BinClass{j}.ind );
         handles.BinClass{j}.CI2_predictions     = GDdims.BinClass{j}.CI2_predictions( handles.BinClass{j}.ind  );
         handles.BinClass{j}.prob_predictions    = GDdims.BinClass{j}.prob_predictions( handles.BinClass{j}.ind ,:);
-
+        if isfield(GDdims.BinClass{j},'mean_cutoff_probabilities')
+            handles.BinClass{j}.mean_cutoff_probabilities = GDdims.BinClass{j}.mean_cutoff_probabilities( handles.BinClass{j}.ind );
+            handles.BinClass{j}.std_cutoff_probabilities =  GDdims.BinClass{j}.std_cutoff_probabilities( handles.BinClass{j}.ind );
+            handles.BinClass{j}.mean_cutoff_percentiles = GDdims.BinClass{j}.mean_cutoff_percentiles( handles.BinClass{j}.ind );
+            handles.BinClass{j}.std_cutoff_percentiles =  GDdims.BinClass{j}.std_cutoff_percentiles( handles.BinClass{j}.ind );
+            handles.BinClass{j}.mean_cutoff_probabilities  = handles.BinClass{j}.mean_cutoff_probabilities( handles.BinClass{j}.sortind, handles.curlabel );
+            handles.BinClass{j}.std_cutoff_probabilities = handles.BinClass{j}.std_cutoff_probabilities ( handles.BinClass{j}.sortind, handles.curlabel );
+            handles.BinClass{j}.mean_cutoff_percentiles = handles.BinClass{j}.mean_cutoff_percentiles ( handles.BinClass{j}.sortind, handles.curlabel );
+            handles.BinClass{j}.std_cutoff_percentiles = handles.BinClass{j}.std_cutoff_percentiles ( handles.BinClass{j}.sortind, handles.curlabel );
+            handles.BinClass{j}.mean_globalcutoff_probabilities = GDdims.BinClass{j}.mean_globalcutoff_probabilities ;
+            handles.BinClass{j}.std_globalcutoff_probabilities = GDdims.BinClass{j}.std_globalcutoff_probabilities ;
+            handles.BinClass{j}.mean_globalcutoff_percentiles = GDdims.BinClass{j}.mean_globalcutoff_percentiles ;
+            handles.BinClass{j}.std_globalcutoff_percentiles= GDdims.BinClass{j}.std_globalcutoff_percentiles ;
+            handles.BinClass{j}.CoxMode = 1;
+        else
+            handles.BinClass{j}.CoxMode = 0;
+        end
         handles.BinClass{j}.mean_predictions    = handles.BinClass{j}.mean_predictions( handles.BinClass{j}.sortind, handles.curlabel );
         handles.BinClass{j}.std_predictions     = handles.BinClass{j}.std_predictions( handles.BinClass{j}.sortind, handles.curlabel );
         handles.BinClass{j}.CI1_predictions     = handles.BinClass{j}.CI1_predictions( handles.BinClass{j}.sortind, handles.curlabel );
@@ -103,6 +119,8 @@ if isfield(GDdims,'BinClass') || isfield(GDdims,'MultiClass')
 
         handles.BinClass{j}.contingency         = GDdims.BinClass{j}.contigency(handles.curlabel);
         handles.BinClass{j}.prob_contingency    = GDdims.BinClass{j}.prob_contigency(handles.curlabel);
+        
+        
         switch handles.METAstr
             case 'none'
                 handles.BinClass{j}.best_TR             = GDdims.bestTR{j}(:,:, handles.curlabel);
@@ -135,6 +153,9 @@ if isfield(GDdims,'BinClass') || isfield(GDdims,'MultiClass')
         handles.BinClass{j}.tbl_cont.array(remind) = [];
         handles.BinClass{j}.tbl_cont.array = cell2mat(handles.BinClass{j}.tbl_cont.array);
         handles.BinClass{j}.tbl_cont.rownames(remind) = [];
+        
+
+        
     end    
     % Add multi-class data to handles
     if isfield(GDdims,'MultiClass')

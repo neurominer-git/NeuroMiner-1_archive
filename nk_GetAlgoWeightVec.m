@@ -19,7 +19,7 @@ switch SVM.prog
         end
     case 'MEXELM'
         xV = MD.outW;
-    case 'GLMFIT'
+    case  'GLMFIT'
         xV = MD.beta(2:end);
     case 'matLRN'
         % Check whether addBias == 1 and whether algo was kernalized
@@ -39,7 +39,8 @@ switch SVM.prog
         nF = numel(STACKING.sel_anal);
         xV = zeros(nF,1);
         xV(MD.AnalSeq) = (MD.examsfreq(MD.examsfreq>0)/100)';
-        
+    case 'WBLCOX'
+        xV = MD.beta;
     otherwise
         if errorflag
             error(['Vizualisation for ' SVM.prog ' not supported yet. Please consult the NM Manual for more information']);

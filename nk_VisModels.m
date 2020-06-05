@@ -9,7 +9,7 @@ function visdata = nk_VisModels(inp, id, GridAct, batchflag)
 % %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % (c) Nikolaos Koutsouleris, 03/2020
 
-global SVM SAV RFE MODEFL CV VERBOSE FUSION MULTILABEL EVALFUNC 
+global SVM SAV RFE MODEFL CV VERBOSE FUSION MULTILABEL EVALFUNC CVPOS
 
 % %%%%%%%%%%%%%%%%%%%%%%%%%%%%% INITIALIZATION %%%%%%%%%%%%%%%%%%%%%%%%%%%%
 visdata         = [];                               % Initialize with empty output
@@ -62,6 +62,7 @@ BINMOD = iPREPROC.BINMOD;
 clc
 
 inp.id = id;
+CVPOS.fFull = FullPartFlag;
 
 for i = 1 : nM
     
@@ -172,7 +173,8 @@ for f=1:ix % Loop through CV2 permutations
         end;
         
         [iy, jy] = size(CV.cvin{f,d}.TrainInd); % No. of Perms / Folds at CV1 level
-        
+        CVPOS.CV2p = f;
+        CVPOS.CV2f = d;
         operm = f; ofold = d;
         oVISpath = nk_GenerateNMFilePath(inp.rootdir, SAV.matname, inp.datatype, multlabelstr, strout, id, operm, ofold);
         OptModelPath = nk_GenerateNMFilePath( inp.rootdir, SAV.matname, 'OptModel', [], inp.varstr, inp.id, operm, ofold);
@@ -364,7 +366,10 @@ for f=1:ix % Loop through CV2 permutations
                 for k=1:iy % CV1 permutations
 
                     for l=1:jy % CV1 folds
-
+                        
+                        CVPOS.CV1p = k;
+                        CVPOS.CV1f = l;
+                        
                         if isfield(inp,'CV1') && inp.CV1 == 1
                             inp.CV1p = [k,k]; inp.CV1f = [l,l];
                             fprintf('\nPreprocessing data at selected parameter combination(s) ');
@@ -639,12 +644,10 @@ for f=1:ix % Loop through CV2 permutations
                                             ipTx = Tx{n} >= 0; inTx = Tx{n} < 0;
                                             TxV(ipTx) = sum(bsxfun(@ge,Tx_perm{n}(ipTx,:),Tx{n}(ipTx)),2)/nperms(1);
                                             TxV(inTx) = sum(bsxfun(@le,Tx_perm{n}(inTx,:),Tx{n}(inTx)),2)/nperms(1);
-                                            %Pvals = sum(bsxfun(@ge,abs(Tx_perm{n}(Fpind,:)),abs(Tx{n}(Fpind))),2)/nperms(1);
                                             Pvals = TxV(Fpind);
                                             
                                             % ... and the Z score vector:
-                                            %Zvals = bsxfun(@rdivide, Tx{n}(Fpind) - nanmean(Tx_perm{n}(Fpind,2)), nanstd(Tx_perm{n}(Fpind,:),[],2));
-                                            Zvals = bsxfun(@rdivide, Tx{n} - nanmean(Tx_perm{n},2), nanstd(Tx_perm{n},[],2));
+                                            Zvals = bsxfun(@rdivide, Tx{n} - nm_nanmean(Tx_perm{n},2), nm_nanstd(Tx_perm{n},2));
                                             Zvals = Zvals(Fpind);
                                             
                                             % with stacking there is a
@@ -685,12 +688,12 @@ for f=1:ix % Loop through CV2 permutations
                                                 Imj = vec_mj == mj & Fpind;
                                                 I1.VCV1{h,n}(mj,il(h)) = mean(Tx{n}(Imj));
                                                 if ~decompfl(n) && u==1,  
-                                                    I1.VCV1PEARSON{h, n}(mj,kil(h)) = nanmean(Rx{n}(Imj));
-                                                    I1.VCV1SPEARMAN{h, n}(mj,kil(h)) = nanmean(SRx{n}(Imj));
-                                                    I1.VCV1PEARSON_UNCORR_PVAL{h, n}(mj,kil(h)) = nanmean(nk_PTfromR(Rx{n}(Imj), size(Ymodel,1), 2));
-                                                    I1.VCV1SPEARMAN_UNCORR_PVAL{h, n}(mj,kil(h)) = nanmean(nk_PTfromR(SRx{n}(Imj), size(Ymodel,1), 2));
+                                                    I1.VCV1PEARSON{h, n}(mj,kil(h)) = nm_nanmean(Rx{n}(Imj));
+                                                    I1.VCV1SPEARMAN{h, n}(mj,kil(h)) = nm_nanmean(SRx{n}(Imj));
+                                                    I1.VCV1PEARSON_UNCORR_PVAL{h, n}(mj,kil(h)) = nm_nanmean(nk_PTfromR(Rx{n}(Imj), size(Ymodel,1), 2));
+                                                    I1.VCV1SPEARMAN_UNCORR_PVAL{h, n}(mj,kil(h)) = nm_nanmean(nk_PTfromR(SRx{n}(Imj), size(Ymodel,1), 2));
                                                     if linsvmfl
-                                                        I1.VCV1PVAL_ANALYTICAL{h, n}(mj,kil(h)) = nanmean(PAx{n}(Imj));
+                                                        I1.VCV1PVAL_ANALYTICAL{h, n}(mj,kil(h)) = nm_nanmean(PAx{n}(Imj));
                                                     end
                                                 end
                                             end

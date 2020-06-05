@@ -82,6 +82,7 @@ if [ "$saveparam" = '2' ] ; then
 else
   loadparam=2
 fi
+read -p 'Operate at the CV1 level [ 1 = yes, 2 = no ] ' inpCV1flag
 read -p 'CV2 grid start row: ' CV2x1
 read -p 'CV2 grid end row: ' CV2x2
 read -p 'CV2 grid start column: ' CV2y1
@@ -138,6 +139,7 @@ $saveparam
 $loadparam
 $optparamspath
 $optmodelspath
+$inpCV1flag
 $curCPU
 $numCPU
 $CV2x1

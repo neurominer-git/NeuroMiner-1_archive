@@ -35,12 +35,12 @@ GraphType = get(handles.selYaxis,'Value');
 switch GraphType
     case {1,2,3}
        
-        predh       = handles.BinClass{h}.mean_predictions;
+        predh = handles.BinClass{h}.mean_predictions;
         switch GraphType
             case 2
                 % Mean predictions with 95%-CI
-                errbarCI2 = handles.BinClass{h}.CI2_predictions;
-                errbarCI1 = handles.BinClass{h}.CI1_predictions;
+                errbarCI2 = handles.BinClass{h}.CI2_predictions+offs;
+                errbarCI1 = handles.BinClass{h}.CI1_predictions+offs;
                 switch handles.tglSort.Value
                     case 0 
                         L = predh - errbarCI1; U = errbarCI2 - predh;
@@ -73,8 +73,8 @@ switch GraphType
     case 5
         % Cross-CV2 perm majority voting probabilities (95%-CIs)
         predh = handles.BinClass{h}.CV2grid.mean_predictions;
-        errbarCI2 = handles.BinClass{h}.CV2grid.CI2_predictions;
-        errbarCI1 = handles.BinClass{h}.CV2grid.CI1_predictions;
+        errbarCI2 = handles.BinClass{h}.CV2grid.CI2_predictions+offs;
+        errbarCI1 = handles.BinClass{h}.CV2grid.CI1_predictions+offs;
         switch handles.tglSort.Value
             case 0 
                 L = predh - errbarCI1; U = errbarCI2 - predh;
@@ -118,21 +118,35 @@ ylim(handles.axes1, 'auto');
 
 % Define textbox info data 
 pss = cell(1,numel(predh)); psslen=0;
+if handles.BinClass{h}.CoxMode
+    offs = handles.BinClass{h}.mean_cutoff_probabilities;
+else
+    offs = zeros(size(predh,1),1);
+end
+
 for i=1:numel(pss)
     if handles.BinClass{h}.labelh(i) > 0, 
         expgroupi = handles.BinClass{h}.groupnames{1}; 
     else
         expgroupi = handles.BinClass{h}.groupnames{2};
     end
-    if sign(predh(i)) > 0, 
-        predgroupi = handles.BinClass{h}.groupnames{1}; 
+    if predh(i) > offs(i),
+       predgroupi = handles.BinClass{h}.groupnames{1}; 
     else
-        predgroupi = handles.BinClass{h}.groupnames{2}; 
+       predgroupi = handles.BinClass{h}.groupnames{2}; 
     end
-    pss{i} = sprintf(['Subject ID: %s' ...
+    if  handles.BinClass{h}.CoxMode
+        pss{i} = sprintf(['Subject ID: %s' ...
+                    '\nExpected group: %s' ...
+                    '\nPredicted Group: %s' ...
+                    '\nScore: %g' ...
+                    '\nCutoff: %g'], handles.BinClass{h}.cases{i}, expgroupi, predgroupi, predh(i), offs(i));
+    else
+        pss{i} = sprintf(['Subject ID: %s' ...
                     '\nExpected group: %s' ...
                     '\nPredicted Group: %s' ...
                     '\nScore: %g'], handles.BinClass{h}.cases{i}, expgroupi, predgroupi, predh(i));
+    end
     if size(pss{i},2)> psslen, psslen=size(pss{i},2); pssi = i; end
 end
 hText = uicontrol('Style','text','String', pss{pssi},'FontSize',11, 'Units','normalized', 'Parent', gcf,'Visible','off'); 
@@ -177,7 +191,7 @@ end
 if GraphType > 3, 
     signpred = sign(predh-0.5);
 else
-    signpred = sign(predh);
+    signpred = sign(predh-offs);
 end
 err = signpred ~= labelh;
 idx1 = id1 & ~err; idx2 = id2 & ~err; b(1) = 0; b(2)= 0;
@@ -221,7 +235,11 @@ else
 end
 xLimits = get(handles.axes1,'XLim'); xLimitsVec = xLimits(1):xLimits(2);
 zeroline = ones(1,numel(xLimitsVec))*probfx;
-
+if handles.BinClass{h}.CoxMode
+    zeroline = handles.BinClass{h}.mean_cutoff_probabilities;
+    xLimitsVec(1)=[]; xLimitsVec(end)=[];
+end
+    
 ide1 = id1 & err; ide2 = id2 & err;
 
 x1 = plot(lxL(ide1),predh(ide1), '*', 'Color', handles.colptin(handles.BinClass{h}.groupind(1),:),'MarkerSize',handles.DataMissMarkerSize,'LineWidth',handles.DataMissMarkerWidth);
@@ -294,8 +312,10 @@ if AltAx,
 %         end
 end
 
-plot(xLimitsVec,zeroline,'k--','LineWidth',handles.ZeroLineWidth)
-
+plot(xLimitsVec,zeroline,'LineWidth',handles.ZeroLineWidth,'Color',rgb('Grey'))
+if handles.BinClass{h}.CoxMode
+    %plotshaded(lxL,[(zeroline+(offs/2-zeroline))'; (zeroline-(offs/2-zeroline))'], 'k')
+end
 switch GraphType
 
     case {1,2,3}
@@ -323,6 +343,8 @@ switch GraphType
                 end
             case 'matLRN'
                 algostr = sprintf('matLearn [ %s ]',char(handles.params.TrainParam.SVM.matLRN.algo));
+            case 'WBLCOX'
+                algostr = sprintf('Willbur-Cox proportional hazards model: predicted risk');
             otherwise
                 algostr = [handles.params.TrainParam.SVM.prog ' score'];
         end

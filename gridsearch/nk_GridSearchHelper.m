@@ -139,20 +139,31 @@ for curlabel=1:MULTILABEL.dim
     % Compute generalization error for current binary comparison
     GD.ERR(i,:,curlabel)       = GD.TR(i,:,curlabel) - GD.TS(i,:,curlabel);
 
-    if strcmp(SVM.prog,'SEQOPT')
-        for curclass = 1:nclass
-           GD.mSEQI{i, curclass, curlabel}      = Perf.MeanCritGain(curclass,:);
-           GD.sdSEQI{i, curclass, curlabel}     = Perf.SDCritGain(curclass,:);
-           GD.mSEQE{i, curclass, curlabel}      = Perf.MeanExamFreq(curclass,:);  
-           GD.sdSEQE{i, curclass, curlabel}     = Perf.SDExamFreq(curclass,:); 
-           GD.mSEQPercThrU{i, curclass, curlabel}= Perf.MeanPercThreshU(curclass,:);
-           GD.sdSEQPercThrU{i, curclass, curlabel}= Perf.SDPercThreshU(curclass,:);
-           GD.mSEQPercThrL{i, curclass, curlabel}= Perf.MeanPercThreshL(curclass,:);
-           GD.sdSEQPercThrL{i, curclass, curlabel}= Perf.SDPercThreshL(curclass,:);
-           GD.CasePropagations{i, curclass, curlabel} = nk_cellcat(CV2Perf.binCV1CasePropagations(:,:,curclass),[],2);
-           GD.SeqPerfIncreases{i, curclass, curlabel} = nk_cellcat(CV2Perf.binCV1PerformanceIncreases(:,:,curclass),[],1);
-           GD.DecValTraj{i,curclass,curlabel} = cat(3,CV2Perf.binCV1DecValTraj{:,:,curclass});
-        end
+    switch SVM.prog
+        case 'SEQOPT'
+            for curclass = 1:nclass
+               GD.mSEQI{i, curclass, curlabel}      = Perf.MeanCritGain(curclass,:);
+               GD.sdSEQI{i, curclass, curlabel}     = Perf.SDCritGain(curclass,:);
+               GD.mSEQE{i, curclass, curlabel}      = Perf.MeanExamFreq(curclass,:);  
+               GD.sdSEQE{i, curclass, curlabel}     = Perf.SDExamFreq(curclass,:); 
+               GD.mSEQPercThrU{i, curclass, curlabel} = Perf.MeanPercThreshU(curclass,:);
+               GD.sdSEQPercThrU{i, curclass, curlabel} = Perf.SDPercThreshU(curclass,:);
+               GD.mSEQPercThrL{i, curclass, curlabel} = Perf.MeanPercThreshL(curclass,:);
+               GD.sdSEQPercThrL{i, curclass, curlabel} = Perf.SDPercThreshL(curclass,:);
+               GD.CasePropagations{i, curclass, curlabel} = nk_cellcat(CV2Perf.binCV1CasePropagations(:,:,curclass),[],2);
+               GD.SeqPerfIncreases{i, curclass, curlabel} = nk_cellcat(CV2Perf.binCV1PerformanceIncreases(:,:,curclass),[],1);
+               GD.DecValTraj{i,curclass,curlabel} = cat(3,CV2Perf.binCV1DecValTraj{:,:,curclass});
+            end
+        case 'WBLCOX'
+            for curclass=1:nclass
+               GD.mCutOffPerc(i, curclass, curlabel) = Perf.MeanThreshPerc(curclass,:);
+               GD.sdCutOffPerc(i, curclass, curlabel) = Perf.SDThreshPerc(curclass,:);
+               GD.mCutOffProb(i, curclass, curlabel) = Perf.MeanThreshProb(curclass,:);
+               GD.sdCutOffProb(i, curclass, curlabel) = Perf.SDThreshProb(curclass,:);
+               GD.CV1predictedtimes{i,curlabel} = Perf.PredictedTimes(:,:,curclass);
+               GD.CV2predictedtimes{i,curlabel} = CV2Perf.binCV1times(:,:,curclass);
+               GD.CV2Cutoffs{i,curlabel} = CV2Perf.binCV1probthresh(:,:,curclass);
+            end            
     end
     
     %%%%% OPTIONALLY, PRINT INFO TO FIGURE:

@@ -68,7 +68,7 @@ if eIN || ~IN.trained
     
     switch IN.method
         
-        % X_i = (X_i - median(X)) / std(X) 
+     
         case {'standardization using median', 'standardization using mean'}
             
             funmean = 'nm_nanmedian'; if strcmp(IN.method,'standardization using mean'), funmean = 'nm_nanmean'; end

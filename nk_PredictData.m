@@ -54,13 +54,18 @@ if MULTI.flag,
     Predict.MultiCV1Performance  = zeros(iy,jy); 
 end
 
-if strcmp(SVM.prog,'SEQOPT')
-    Predict.binCV1CasePropagations = cell(iy,jy,nclass);
-    Predict.binCV1PerformanceIncreases = cell(iy,jy,nclass);
-    Predict.binCV1DecValTraj = cell(iy,jy,nclass);
-    Ydum = dTSLabel{1};
-else
-    Ydum = zeros(size(dTSLabel{1},1),1);
+switch SVM.prog
+    case 'SEQOPT'
+        Predict.binCV1CasePropagations = cell(iy,jy,nclass);
+        Predict.binCV1PerformanceIncreases = cell(iy,jy,nclass);
+        Predict.binCV1DecValTraj = cell(iy,jy,nclass);
+        Ydum = dTSLabel{1};
+    case 'WBLCOX'
+        Predict.binCV1times = cell(iy,jy,nclass);
+        Predict.binCV1probthresh = zeros(iy,jy,nclass);
+        Ydum = zeros(size(dTSLabel{1},1),1);
+    otherwise
+        Ydum = zeros(size(dTSLabel{1},1),1);
 end
 
 % Compute size of multi-group and binary arrays to avoid dynamic memory allocation
@@ -199,12 +204,20 @@ for k=1:iy % Loop through CV1 permutations
             end
                
             Predict.binCV1Predictions{k,l,curclass} = tsD;
-            if strcmp(SVM.prog,'SEQOPT')
-                for u=1:size(tsD,2)
-                    Predict.binCV1CasePropagations{k,l,curclass} = [Predict.binCV1CasePropagations{k,l,curclass} Mkl{u}.Nremain_test];
-                    Predict.binCV1PerformanceIncreases{k,l,curclass} = [Predict.binCV1PerformanceIncreases{k,l,curclass}; Mkl{u}.SeqPerfGain_test];
-                end
-                Predict.binCV1DecValTraj{k,l,curclass} = Mkl{u}.optDh;
+            switch SVM.prog
+                case 'SEQOPT'
+                    for u=1:size(tsD,2)
+                        Predict.binCV1CasePropagations{k,l,curclass} = [Predict.binCV1CasePropagations{k,l,curclass} Mkl{u}.Nremain_test];
+                        Predict.binCV1PerformanceIncreases{k,l,curclass} = [Predict.binCV1PerformanceIncreases{k,l,curclass}; Mkl{u}.SeqPerfGain_test];
+                    end
+                    Predict.binCV1DecValTraj{k,l,curclass} = Mkl{u}.optDh;
+                case 'WBLCOX'
+                    mdthresh = zeros(size(tsD,2),1);
+                    for u=1:size(tsD,2)
+                        Predict.binCV1times{k,l,curclass} = [ Predict.binCV1times{k,l,curclass} Mkl{u}.predicted_time]; 
+                        mdthresh(u) = Mkl{u}.cutoff.prob;
+                    end
+                    Predict.binCV1probthresh(k,l,curclass) = nm_nanmedian(mdthresh(u));
             end
             n_subj = size(tsD,1);
             
@@ -226,7 +239,8 @@ for k=1:iy % Loop through CV1 permutations
                 if isempty(dtsD)
                     perf(u) = 0;
                 else
-                    perf(u) = feval(EVALFUNC, dTSLabel{curclass}(:,MULTILABEL.curdim), dtsD(:,u));
+                    offs =0; if strcmp(SVM.prog,'WBLCOX'), offs =  Mkl{u}.cutoff.prob; end
+                    perf(u) = feval(EVALFUNC, dTSLabel{curclass}(:,MULTILABEL.curdim), dtsD(:,u)-offs);
                 end
             end
             
@@ -317,9 +331,11 @@ for curclass = 1 : nclass
             % Check for zeros
             if sum(hrx==0) > 0 % Throw coin
                 hrx = nk_ThrowCoin(hrx);
-            end  
+            end 
+            
             Predict.binCV2Performance_Targets(curclass) = feval(EVALFUNC, dTSLabel{curclass}(:,MULTILABEL.curdim), hrx);
-            Predict.binCV2Performance_DecValues(curclass) = feval(EVALFUNC, dTSLabel{curclass}(:,MULTILABEL.curdim), hdx);
+            mdcutoff=0; if strcmp(SVM.prog,'WBLCOX'), probthresh = Predict.binCV1probthresh(:,:,curclass); mdcutoff = nm_nanmedian(probthresh(:)); end
+            Predict.binCV2Performance_DecValues(curclass) = feval(EVALFUNC, dTSLabel{curclass}(:,MULTILABEL.curdim), hdx-mdcutoff);
             % TODO: Adapt the next coding statement to feval
             Predict.binCV2Diversity_Targets(curclass) = nk_Entropy(dTTs);
             Predict.binCV2Diversity_DecValues(curclass) = nk_RegAmbig(dDTs);

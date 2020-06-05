@@ -56,23 +56,26 @@ for k=1:s % Loop through all feature subspaces
     % ******************** Get Model of current subpace *******************
     if iscell(Model), md = Model{k}; else md = Model; end
     
-    % Check training matrix for NaN observations and remove them
-    %kX = nk_RemNanSamples(X);
-    
     % Check test matrix for NaN observations and remove them
-    %[ktXtest, kYtest, rownan] = nk_RemNanSamples(tXtest, Ytest);
-    if ~strcmp(SVM.prog,'SEQOPT')
-        [ rs(:,k), ds(:,k) ] = feval(PREDICTFUNC, X, tXtest, Ytest, md, Features, k);
-    else
-        [ rs(:,k), ds(:,k), md ] = feval(PREDICTFUNC, tXtest, Ytest, md);
-        if iscell(Model), Model{k} = md; else, Model = md; end
+    switch SVM.prog
+        case 'SEQOPT'
+            [ rs(:,k), ds(:,k), md ] = feval(PREDICTFUNC, tXtest, Ytest, md);
+            if iscell(Model), Model{k} = md; else, Model = md; end
+            if ~nonevalflag, ts(k) = feval(EVALFUNC, Ytest, ds(:,k)); end
+        case 'WBLCOX'
+            % we will treat the Weibull-Cox regression model differently
+            [ rs(:,k), ds(:,k), md ] = nk_GetTestPerf_WBLCOX(tXtest, md);
+            if iscell(Model), Model{k} = md; else, Model = md; end
+            if ~nonevalflag, ts(k) = feval(EVALFUNC, Ytest, rs(:,k)); end
+        otherwise
+            [ rs(:,k), ds(:,k) ] = feval(PREDICTFUNC, X, tXtest, Ytest, md, Features, k);
+            % Adjust probabilities if probabilistic output has been
+            % geenerated by the probabilistic algorithm
+            if SVM.RVMflag && ~strcmp(MODEFL,'regression') , ds(:,k) = nk_CalibrateProbabilities(ds(:,k)); end
+            % Return performance measure as defined by EVALFUNC
+            if ~nonevalflag, ts(k) = feval(EVALFUNC, Ytest, ds(:,k)); end
     end
-    % Adjust probabilities if probabilistic output has been geenerated by
-    % PREDICTFUNC
-    if SVM.RVMflag && ~strcmp(MODEFL,'regression') , ds(:,k) = nk_CalibrateProbabilities(ds(:,k)); end
     
-    % Return performance measure as defined by EVALFUNC
-    if ~nonevalflag, ts(k) = feval(EVALFUNC, Ytest, ds); end
 
 end
 

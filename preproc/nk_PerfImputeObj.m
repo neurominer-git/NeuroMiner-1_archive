@@ -28,10 +28,12 @@ function [sY, IN] = nk_PerfImputeObj(Y, IN)
 % (c) Nikolaos Koutsouleris, 07/2017
 
 % =========================== WRAPPER FUNCTION ============================ 
-if iscell(Y) && exist('IN','var') && ~isempty(IN)
+if iscell(Y) 
+    if ~exist('IN','var'), IN.X = Y{1}; end
     sY = cell(1,numel(Y)); 
     for i=1:numel(Y), [sY{i}, IN] =  PerfImputeObj(Y{i}, IN); end
 else
+    if ~exist('IN','var'), IN.X = Y; end
     [ sY, IN ] = PerfImputeObj(Y, IN );
 end
 % =========================================================================

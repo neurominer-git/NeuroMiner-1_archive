@@ -86,6 +86,7 @@ for i=1:nM
         IO.ID = NM.(fldnam){oocvind}.cases;
     else
         IO = rmfield(IO,'ID');
+        if isfield(IO,'survanal_time'), IO = rmfield(IO,'survanal_time'); end
     end
     
     if strcmp(IO.datasource,'matrix')

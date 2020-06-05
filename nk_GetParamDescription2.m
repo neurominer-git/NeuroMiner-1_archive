@@ -1108,6 +1108,8 @@ switch action
                 vargout.classifier = 'Robust LIBSVM';
             case 'SEQOPT'
                 vargout.classifier = 'Sequence optimization based on uncertainty case propagation';
+            case 'WBLCOX'
+                vargout.classifier = 'Willbur-Cox proportional hazard regression';
         end
         
     case 'kernel'            

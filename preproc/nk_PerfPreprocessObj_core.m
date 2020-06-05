@@ -617,7 +617,7 @@ elseif trfl,
         if iscell(SrcParam.covarsSyn)
             IN.TrCovars = [ InputParam.P{i}.TrCovars; SrcParam.covarsSyn{actparam.j}(:, IN.COVAR)]; 
         else
-            IN.TrCovars = [ InputParam.P{i}.sTrInd; SrcParam.covarsSyn(:, IN.COVAR) ]; 
+            IN.TrCovars = [ InputParam.P{i}.TrCovars; SrcParam.covarsSyn(:, IN.COVAR) ]; 
         end
     end
     [InputParam.Tr, TrParami] = nk_PartialCorrelationsObj(InputParam.Tr, IN);

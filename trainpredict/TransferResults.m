@@ -117,5 +117,22 @@ if isfield(O,'critgain')
        o.MeanPercThreshL(curclass,:) = nm_nanmean(cell2mat(reshape(O.percthreshL(:,:,curclass),ix*jx,1)));
        o.SDPercThreshL(curclass,:) = nm_nanstd(cell2mat(reshape(O.percthreshL(:,:,curclass),ix*jx,1)));
     end
+elseif isfield(O,'threshprob')
+    td = cell2mat(reshape(O.times(:,:,1),ix*jx,1));
+    o.PredictedTimes = O.times;
+    o.MeanThreshProb = zeros(I.nclass,1);
+    o.SDThreshProb = zeros(I.nclass,1);
+    o.MeanThreshPerc = zeros(I.nclass,1);
+    o.SDThreshPerc = zeros(I.nclass,1);
+    o.MeanPredictedTimes = zeros(I.nclass, size(td,2));
+    o.SDPredictedTimes = zeros(I.nclass, size(td,2));
+    for curclass = 1 : I.nclass
+        o.MeanThreshProb(curclass) = nm_nanmean(reshape(O.threshprob(:,:,curclass),ix*jx,1));
+        o.SDThreshProb(curclass) = nm_nanstd(reshape(O.threshprob(:,:,curclass),ix*jx,1));
+        o.MeanThreshPerc(curclass) = nm_nanmean(reshape(O.threshperc(:,:,curclass),ix*jx,1));
+        o.SDThreshPerc(curclass) = nm_nanstd(reshape(O.threshperc(:,:,curclass),ix*jx,1));
+        o.MeanPredictedTimes(curclass,:) = nm_nanmean(cell2mat(reshape(O.times(:,:,curclass),ix*jx,1)));
+        o.SDPredictedTimes(curclass,:) = nm_nanstd(cell2mat(reshape(O.times(:,:,curclass),ix*jx,1)));
+    end
 end
 

@@ -36,6 +36,8 @@ spm_file = na_str;
 spm_cov_avail = 0;
 desc_groups{1} = na_str ; 
 desc_data = na_str ;
+survanal_flag = 2;
+survanal_time = na_str;
 brainmask = [];
 badcoords = [];
 case_edit = na_str ;
@@ -99,6 +101,8 @@ if ~exist('IO','var') || isempty(IO) || ~isstruct(IO)
                'covmanage_edit', covmanage_edit, ...
                'nangroup', nangroup, ...
                'nan_subjects', nan_subjects, ...
+               'survanal_flag', survanal_flag, ...
+               'survanal_time', survanal_time, ...
                'M_edit', M_edit, ...
                'badcoords', badcoords, ...
                'brainmask', brainmask, ...
@@ -174,7 +178,9 @@ if isfield(IO,'covmanage_edit'), covmanage_edit = IO.covmanage_edit; end
 if isfield(IO,'filt'),          filt = IO.filt; end
 if isfield(IO,'filt_str'),      filt_str = IO.filt_str; end
 if isfield(IO,'nangroup'),      nangroup = IO.nangroup; end
-if isfield(IO,'modeflag'),      modeflag = IO.modeflag; else IO.modeflag = modeflag; end
+if isfield(IO,'modeflag'),      modeflag = IO.modeflag; else, IO.modeflag = modeflag; end
+if isfield(IO,'survanal_flag'), survanal_flag = IO.survanal_flag; end
+if isfield(IO,'survanal_time'), survanal_time = IO.survanal_time; end
 if isfield(IO,'datasource'),    datasource = IO.datasource; end
 if isfield(IO,'n_subjects'),    n_subjects = IO.n_subjects; end
 if isfield(IO,'delimit'),       delimit = IO.delimit; end
@@ -511,28 +517,28 @@ switch datasource
 
                         switch groupmode 
                             case 1
-                                if ~strcmp(M_edit,na_str), [check_str, mess, IO] = CheckTabFile(IO, 'check_matrix', na_str, mess); else check_str = na_str; end
+                                if ~strcmp(M_edit,na_str), [check_str, mess, IO] = CheckTabFile(IO, 'check_matrix', na_str, mess); else, check_str = na_str; end
                                 mn_matrix_edit = sprintf('Enter name of matrix variable containing the predictor data [ %s ]|', check_str);
                             case 2
-                                if ~strcmp(matrix_edit,na_str),[check_str, mess, IO] = CheckTabFile(IO, 'check_matrix', na_str, mess); else check_str = na_str; end
+                                if ~strcmp(matrix_edit,na_str),[check_str, mess, IO] = CheckTabFile(IO, 'check_matrix', na_str, mess); else, check_str = na_str; end
                                 mn_matrix_edit = sprintf('Enter name of matrix variable containing the predictor data [ %s ]|', check_str);
                         end
                         mn_act = [ mn_act 'def_matrix' ]; mn_str = [mn_str mn_matrix_edit];
                         if ~CheckReadyStatus(mess)
                             %% Collect info about and check the label array
                             if (~oocvflag || IO.labels_known) 
-                                if ~strcmp(IO.label_edit,na_str), [ check_str, mess, IO ] = CheckTabFile(IO, 'check_label', na_str, mess); else check_str = na_str; end
+                                if ~strcmp(IO.label_edit,na_str), [ check_str, mess, IO ] = CheckTabFile(IO, 'check_label', na_str, mess); else, check_str = na_str; end
                                 mn_label_edit = sprintf('Enter name of label variable (%s) in %s [ %s ]|', mn_label_edit_m, groupmode_str, check_str); 
                                 mn_act = [ mn_act 'def_labels' ]; mn_str = [mn_str mn_label_edit];
                             end
 
                             %% Collect info about and check the cases array
-                            if ~strcmp(IO.case_edit,na_str), [ check_str, mess, IO] = CheckTabFile(IO, 'check_ID', na_str, mess); else check_str = na_str; end
+                            if ~strcmp(IO.case_edit,na_str), [ check_str, mess, IO] = CheckTabFile(IO, 'check_ID', na_str, mess); else, check_str = na_str; end
                             mn_case_edit = sprintf('Enter name of case ID variable (cell array of strings ) in %s [ %s ]|', groupmode_str, check_str); 
                             mn_act = [ mn_act 'def_cases' ]; mn_str = [mn_str mn_case_edit];
 
                             %% Collect info about and check the features array
-                            if ~strcmp(IO.col_edit,na_str), [ check_str, mess, IO ] = CheckTabFile(IO, 'check_featnames', na_str, mess); else check_str = na_str; end
+                            if ~strcmp(IO.col_edit,na_str), [ check_str, mess, IO ] = CheckTabFile(IO, 'check_featnames', na_str, mess); else, check_str = na_str; end
                             mn_col_edit = sprintf('Enter name of feature descriptor variable (cell array of strings) in %s [ %s ]|', groupmode_str, check_str ); 
                             mn_act = [ mn_act 'def_featnames' ]; mn_str = [mn_str mn_col_edit];
                         end
@@ -628,6 +634,33 @@ if strcmp(modeflag,'regression') && ( any(~strcmp(IO.label_edit,na_str)) || (isf
     end
 end
 
+if strcmp(modeflag,'classification') && ( any(~strcmp(IO.label_edit,na_str)) || (isfield(IO,'L') && ~isempty(IO.L))) && license('test', 'optimization_toolbox')
+    mn_survival_flag = sprintf('Survival analysis [ %s ]|', yn{survanal_flag}); mn_act = [ mn_act 'def_survival_flag' ]; mn_str = [mn_str mn_survival_flag ];
+    if survanal_flag == 1
+        if ~isnumeric(survanal_time) && strcmp(survanal_time,na_str)
+            mess = GenerateMessageEntry(mess, 'Provide numeric vector with survival/censoring times',1,'SystemCommands');
+        elseif ~isnumeric(survanal_time) 
+            mess = GenerateMessageEntry(mess, 'ERROR: Vector with survival/censoring times must be numeric',1,'red*');
+        elseif sum(isnan(survanal_time))>0
+            mess = GenerateMessageEntry(mess, 'ERROR: Vector with survival/censoring times must not contain NaNs',1,'red*');
+        elseif size(survanal_time,2)>1
+            mess = GenerateMessageEntry(mess, 'ERROR: Provide vector not matrix with survival/censoring times',1,'red*');
+        else
+            lx=[];
+            if isfield(IO,'L')
+                lx = size(IO.L,1);
+            elseif isfield(IO,'t_Y')
+                lx = size(IO.t_Y,1);
+            end
+            if ~isempty(lx) && size(survanal_time,1) ~= lx
+                mess = GenerateMessageEntry(mess, 'ERROR: Vector with survival/censoring times must match number of subjects in the analysis',1,'red*');
+            end
+        end
+        if ~strcmp(survanal_time,na_str), sz_survanal_time = 'defined'; else, sz_survanal_time = na_str; end
+        mn_survival_time = sprintf('Define vector with time-to-event and censoring intervals [ %s ]|', sz_survanal_time); mn_act = [ mn_act 'def_survival_time' ]; mn_str = [ mn_str mn_survival_time ];
+    end
+end
+
 %% Data description
 if ~oocvflag
     mn_descdata = sprintf('Describe data [ %s ]|', desc_data); 
@@ -668,7 +701,14 @@ switch act
     case 'BACK'
         IO.completed = false;
         return
+        
+    case 'def_survival_flag'
+        if IO.survanal_flag ==1, IO.survanal_flag = 2; else, IO.survanal_flag = 1; end 
     
+    case 'def_survival_time'
+        if ~isnumeric(survanal_time) && strcmp(survanal_time,na_str), survanal_time_def = []; end
+        IO.survanal_time = nk_input('Define vector containing survival/censoring intervals', 0, 'i', survanal_time_def );
+        
     case 'def_modeflag'
         
         modeflag = nk_DefineModeflag(modeflag);

@@ -21,6 +21,10 @@ switch SVM.prog
     case 'SEQOPT'
         cParams.val = Params(i,:);
         cParams.desc = Params_desc;
+    case 'WBLCOX'
+        cParams.val = Params(i,:);
+        cParams.desc = Params_desc;
+        
    otherwise
         cParams = Params(i,:); 
         switch SVM.prog

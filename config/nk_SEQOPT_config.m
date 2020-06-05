@@ -2,13 +2,13 @@ function [act, SEQOPT ] = nk_SEQOPT_config(SEQOPT, defaultsfl)
 
 if ~exist('defaultsfl','var') || isempty(defaultsfl), defaultsfl = false; end
 
-if ~isfield(SEQOPT,'C'),            SEQOPT.C = NaN; end
-if ~isfield(SEQOPT,'PerfMode'),     SEQOPT.PerfMode = 1; end
-if ~isfield(SEQOPT,'AnchorType'),   SEQOPT.AnchorType = 1; end
-if ~isfield(SEQOPT,'ReplaceMode'),  SEQOPT.ReplaceMode = 1; end
-if ~isfield(SEQOPT,'Mode'),         SEQOPT.Mode = 1; end
-
 if ~defaultsfl 
+    
+    if ~isfield(SEQOPT,'C'),            SEQOPT.C = NaN; end
+    if ~isfield(SEQOPT,'PerfMode'),     SEQOPT.PerfMode = 1; end
+    if ~isfield(SEQOPT,'AnchorType'),   SEQOPT.AnchorType = 1; end
+    if ~isfield(SEQOPT,'ReplaceMode'),  SEQOPT.ReplaceMode = 1; end
+    if ~isfield(SEQOPT,'Mode'),         SEQOPT.Mode = 1; end
     
     MODEARR = {'The population to be propagated','The entire population'}; MODESTR = MODEARR{SEQOPT.Mode};
     MnuStr = sprintf('Optimization based on ... [ %s ]', MODESTR);                                                    MnuAct = 1;

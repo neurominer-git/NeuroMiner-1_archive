@@ -26,8 +26,13 @@ for i=1:nvar
             end
             loadstr = sprintf('\nLoading %s file:\n%s',filetyp, n);
             fprintf(loadstr);
-            load(px);
-
+            try
+                load(px);
+            catch
+                cprintf('red','\nCould not open file. May be corrupt. Recompute CV2 partition [%g,%g].',f,d);
+                fnd = false;
+                return
+            end
             if exist('GD','var')
                 out = GD;
             elseif exist('pGD','var')

@@ -46,6 +46,8 @@ else
     preprocmat      = inp.preprocmat;
 end
 
+if isfield(inp,'time2event'), time2event = inp.time2event; end
+
 if ( ~exist('batchflag','var') || isempty(batchflag)) || isempty(BATCH), batchflag = false; BATCH = false; end
 
 detrendfl = false;
@@ -112,10 +114,8 @@ end
 algostr = GetMLType(SVM);
 DISP.algostr = algostr; DISP.figbin=[]; DISP.binwintitle = '';
 DISP.Pdesc = Params_desc;
+
 % Setup CV2 container variables:
-
-%[iy, jy] = size(CV.cvin{1,1}.TrainInd);
-
 if ~exist('GridAct','var') || isempty(GridAct), ...
         GridAct=nk_CVGridSelector(ix,jx); end
 
@@ -138,21 +138,33 @@ GDanalysis.grid.mean_CVDiversity            = nan(nPs(1),nclass,ix*jx,hx);
 GDanalysis.grid.mean_TsDiversity            = nan(nPs(1),nclass,ix*jx,hx);
 GDanalysis.grid.SelNodeFreq                 = nan(nPs(1),nclass,ix*jx,hx);
 
-if strcmp(SVM.prog,'SEQOPT')
-    nE = size(SVM.SEQOPT.C,2);
-    GDanalysis.grid.mean_mSEQI              = nan(nPs(1),nE-1,nclass,ix*jx,hx);
-    GDanalysis.grid.sd_mSEQI                = nan(nPs(1),nE-1,nclass,ix*jx,hx);
-    GDanalysis.grid.mean_mSEQE              = nan(nPs(1),nE,nclass,ix*jx,hx);
-    GDanalysis.grid.sd_mSEQE                = nan(nPs(1),nE,nclass,ix*jx,hx);
-    GDanalysis.grid.mean_mSEQPU             = nan(nPs(1),nE-1,nclass,ix*jx,hx);
-    GDanalysis.grid.sd_mSEQPU               = nan(nPs(1),nE-1,nclass,ix*jx,hx);
-    GDanalysis.grid.mean_mSEQPL             = nan(nPs(1),nE-1,nclass,ix*jx,hx);
-    GDanalysis.grid.sd_mSEQPL               = nan(nPs(1),nE-1,nclass,ix*jx,hx); 
-    GDanalysis.grid.mean_SeqPerfGains       = nan(nPs(1),nE,nclass,ix*jx,hx);
-    GDanalysis.caseprops                    = cell(lx,nclass,hx);
-    GDanalysis.decvaltraj                   = cell(lx,nclass,ix,hx);
+% Some algorithms require specific variables
+switch SVM.prog
+    case 'SEQOPT'
+        nE = size(SVM.SEQOPT.C,2);
+        GDanalysis.grid.mean_mSEQI              = nan(nPs(1),nE-1,nclass,ix*jx,hx);
+        GDanalysis.grid.sd_mSEQI                = nan(nPs(1),nE-1,nclass,ix*jx,hx);
+        GDanalysis.grid.mean_mSEQE              = nan(nPs(1),nE,nclass,ix*jx,hx);
+        GDanalysis.grid.sd_mSEQE                = nan(nPs(1),nE,nclass,ix*jx,hx);
+        GDanalysis.grid.mean_mSEQPU             = nan(nPs(1),nE-1,nclass,ix*jx,hx);
+        GDanalysis.grid.sd_mSEQPU               = nan(nPs(1),nE-1,nclass,ix*jx,hx);
+        GDanalysis.grid.mean_mSEQPL             = nan(nPs(1),nE-1,nclass,ix*jx,hx);
+        GDanalysis.grid.sd_mSEQPL               = nan(nPs(1),nE-1,nclass,ix*jx,hx); 
+        GDanalysis.grid.mean_SeqPerfGains       = nan(nPs(1),nE,nclass,ix*jx,hx);
+        GDanalysis.caseprops                    = cell(lx,nclass,hx);
+        GDanalysis.decvaltraj                   = cell(lx,nclass,ix,hx);
+    case 'WBLCOX'
+        GDanalysis.grid.mean_mCutOffPerc        = zeros(nPs(1),nclass,ix*jx,hx);
+        GDanalysis.grid.mean_sdCutOffPerc       = zeros(nPs(1),nclass,ix*jx,hx);
+        GDanalysis.grid.mean_mCutOffProb        = zeros(nPs(1),nclass,ix*jx,hx);
+        GDanalysis.grid.mean_sdCutOffProb       = zeros(nPs(1),nclass,ix*jx,hx);
+        GDanalysis.predtimes                    = cell(lx,nclass,hx);
+        GDanalysis.optcutoffs                   = cell(lx,nclass,hx);
+        GDanalysis.optcutoffpercs               = cell(lx,nclass,hx);
+        GDanalysis.CV2cutoffs                   = cell(lx,nclass,hx);
 end
 
+% ... and multi-class must be treated separately
 if MULTI.flag
     GDanalysis.multi_bestTR             = nan(ix,jx,hx);
     GDanalysis.multi_bestTS             = nan(ix,jx,hx);
@@ -205,7 +217,7 @@ end
 [~, ~, ~, ~, act] = nk_ReturnEvalOperator(SVM.GridParam);
 
 if ~batchflag && RFE.dispres
-   DISP.binwintitle = sprintf('NM Optimization Status Viewer => Analysis: %s', inp.P.analysis_id);
+   DISP.binwintitle = sprintf('NM Optimization Viewer => Analysis: %s', inp.P.analysis_id);
 end
 
 % Parameter flag structure for preprocessing
@@ -395,17 +407,26 @@ for f=1:ix % Loop through CV2 permutations
             GD.DS       = cell(nPs(1),hx);  % CV2 test data
             
             % For sequence optimizer only
-            if strcmp(SVM.prog,'SEQOPT')
-               GD.mSEQI = cell(nPs(1), nclass, hx);
-               GD.sdSEQI = cell(nPs(1),nclass, hx);
-               GD.mSEQE = cell(nPs(1), nclass, hx);  
-               GD.sdSEQE = cell(nPs(1), nclass, hx); 
-               GD.mSEQPercThrU = cell(nPs(1), nclass, hx);
-               GD.sdSEQPercThrU = cell(nPs(1), nclass, hx);
-               GD.mSEQPercThrL = cell(nPs(1), nclass, hx);
-               GD.sdSEQPercThrL = cell(nPs(1), nclass, hx);
-               GD.CasePropagations = cell(nPs(1), nclass, hx);
-               GD.DecValTraj = cell(nPs(1), nclass, hx);
+            switch SVM.prog
+               case 'SEQOPT'
+                   GD.mSEQI = cell(nPs(1), nclass, hx);
+                   GD.sdSEQI = cell(nPs(1),nclass, hx);
+                   GD.mSEQE = cell(nPs(1), nclass, hx);  
+                   GD.sdSEQE = cell(nPs(1), nclass, hx); 
+                   GD.mSEQPercThrU = cell(nPs(1), nclass, hx);
+                   GD.sdSEQPercThrU = cell(nPs(1), nclass, hx);
+                   GD.mSEQPercThrL = cell(nPs(1), nclass, hx);
+                   GD.sdSEQPercThrL = cell(nPs(1), nclass, hx);
+                   GD.CasePropagations = cell(nPs(1), nclass, hx);
+                   GD.DecValTraj = cell(nPs(1), nclass, hx);
+                case 'WBLCOX'
+                   GD.mCutOffPerc = zeros(nPs(1), nclass, hx);
+                   GD.sdCutOffPerc = zeros(nPs(1),nclass, hx);
+                   GD.mCutOffProb = zeros(nPs(1), nclass, hx);  
+                   GD.sdCutOffProb = zeros(nPs(1), nclass, hx);
+                   GD.CV2Cutoffs = cell(nPs(1), nclass, hx);
+                   GD.CV1predictedtimes = cell(nPs(1), nclass, hx);
+                   GD.CV2predictedtimes = cell(nPs(1), nclass, hx);
             end
 
             if detrendfl, GD.Detrend = cell(nPs(1),hx); end
@@ -512,26 +533,34 @@ for f=1:ix % Loop through CV2 permutations
             % Ensemble diversity CV2 test data
             GDanalysis.grid.mean_TsDiversity(:,:,ll,:)    = GD.CV2Div;
             % Specifically treat the sequence optimizer algorithm
-            if strcmp(SVM.prog,'SEQOPT')
-                for curclass=1:nclass
-                    % Mean sequence gain
-                    GDanalysis.grid.mean_mSEQI(:,:,curclass, ll,:)   = cell2matpadnan(GD.mSEQI(:,curclass));
-                    % SD sequence gain
-                    GDanalysis.grid.sd_mSEQI(:,:,curclass, ll,:)     = cell2matpadnan(GD.sdSEQI(:,curclass));
-                    % Mean examination frequencies
-                    GDanalysis.grid.mean_mSEQE(:,:,curclass,ll,:)    = cell2matpadnan(GD.mSEQE(:,curclass));
-                    % SD examination frequencies
-                    GDanalysis.grid.sd_mSEQE(:,:,curclass,ll,:)      = cell2matpadnan(GD.sdSEQE(:,curclass));
-                    % Mean upper threshold for case propagation
-                    GDanalysis.grid.mean_mSEQPU(:,:,curclass,ll,:)   = cell2matpadnan(GD.mSEQPercThrU(:,curclass));
-                    % SD upper threshold for case propagation
-                    GDanalysis.grid.sd_mSEQPU(:,:,curclass,ll,:)     = cell2matpadnan(GD.sdSEQPercThrU(:,curclass));
-                    % Mean lower thresholf for case propagation
-                    GDanalysis.grid.mean_mSEQPL(:,:,curclass,ll,:)   = cell2matpadnan(GD.mSEQPercThrL(:,curclass));
-                    % SD lower thresholf for case propagation
-                    GDanalysis.grid.sd_mSEQPL(:,:,curclass,ll,:)   = cell2matpadnan(GD.sdSEQPercThrL(:,curclass));
-                    GDanalysis.grid.mean_SeqPerfGains(:,:,curclass,ll,:) = cell2matpadnan(cellfun(@nm_nanmean, GD.SeqPerfIncreases(:,curclass), 'UniformOutput', false));
-                end
+            switch SVM.prog
+                case 'SEQOPT'
+                    for curclass = 1 : nclass
+                        % Mean sequence gain
+                        GDanalysis.grid.mean_mSEQI(:,:,curclass, ll,:)   = cell2matpadnan(GD.mSEQI(:,curclass));
+                        % SD sequence gain
+                        GDanalysis.grid.sd_mSEQI(:,:,curclass, ll,:)     = cell2matpadnan(GD.sdSEQI(:,curclass));
+                        % Mean examination frequencies
+                        GDanalysis.grid.mean_mSEQE(:,:,curclass,ll,:)    = cell2matpadnan(GD.mSEQE(:,curclass));
+                        % SD examination frequencies
+                        GDanalysis.grid.sd_mSEQE(:,:,curclass,ll,:)      = cell2matpadnan(GD.sdSEQE(:,curclass));
+                        % Mean upper threshold for case propagation
+                        GDanalysis.grid.mean_mSEQPU(:,:,curclass,ll,:)   = cell2matpadnan(GD.mSEQPercThrU(:,curclass));
+                        % SD upper threshold for case propagation
+                        GDanalysis.grid.sd_mSEQPU(:,:,curclass,ll,:)     = cell2matpadnan(GD.sdSEQPercThrU(:,curclass));
+                        % Mean lower thresholf for case propagation
+                        GDanalysis.grid.mean_mSEQPL(:,:,curclass,ll,:)   = cell2matpadnan(GD.mSEQPercThrL(:,curclass));
+                        % SD lower thresholf for case propagation
+                        GDanalysis.grid.sd_mSEQPL(:,:,curclass,ll,:)   = cell2matpadnan(GD.sdSEQPercThrL(:,curclass));
+                        GDanalysis.grid.mean_SeqPerfGains(:,:,curclass,ll,:) = cell2matpadnan(cellfun(@nm_nanmean, GD.SeqPerfIncreases(:,curclass), 'UniformOutput', false));
+                    end
+                case 'WBLCOX'
+                    for curclass = 1 : nclass
+                        GDanalysis.grid.mean_mCutOffPerc(:,curclass,ll) = GD.mCutOffPerc(:,curclass);
+                        GDanalysis.grid.mean_sdCutOffPerc(:,curclass,ll) = GD.sdCutOffPerc(:,curclass);
+                        GDanalysis.grid.mean_mCutOffProb(:,curclass,ll) = GD.mCutOffProb(:,curclass);
+                        GDanalysis.grid.mean_sdCutOffProb(:,curclass,ll) = GD.sdCutOffProb(:,curclass);
+                    end
             end
             
             if MULTI.flag
@@ -622,29 +651,62 @@ for f=1:ix % Loop through CV2 permutations
                         cellmat_mergecols(GDanalysis.predictions(TsI, curclass,curlabel), ...
                                             num2cell(EnsDat(binInd,:),2));
                     
+%                     switch inp.modeflag
+%                         case 'classification'
+%                             PPX = ALLPARAM(labelh(TsI),
+%                             GDanalysis.grid.sensitivity = SENSITIVIT
+%                     end
+
                     % Concatenate node propagation indices in case the
                     % sequence optimization algorithm has been run on 
-                    if strcmp(SVM.prog,'SEQOPT')
+                    if any(strcmp(SVM.prog,{'SEQOPT','WBLCOX'}))
                         fSelNodes = find(GD.BinaryGridSelection{curclass}{curlabel}.SelNodes);
-                        cv2lx = size(GD.BinaryGridSelection{curclass}{curlabel}.bestpred{1}{1,1},1);
-                        %cv1lf = prod(size(GD.DS{1}));
-                        if numel(fSelNodes)>1
-                            CaseProps = zeros(cv2lx, numel(fSelNodes));
-                            DecValTraj = nan([cv2lx size(SVM.SEQOPT.C,2) numel(fSelNodes)]);
-                            for cp=1:numel(fSelNodes)
-                                 CaseProps(:,cp) = nm_nanmedian(GD.CasePropagations{fSelNodes(cp)},2);
-                                 DecValTraj_cp = nm_nanmedian(GD.DecValTraj{fSelNodes(cp)},3);
-                                 lenTraj_cp = size(DecValTraj_cp,2);
-                                 DecValTraj(:,1:lenTraj_cp,cp) = DecValTraj_cp; 
-                            end
-                            mCaseProps = nm_nanmedian(CaseProps,2);
-                            mDecValTraj = nm_nanmedian(DecValTraj,3);
-                        else
-                            mCaseProps = GD.CasePropagations{fSelNodes};
-                            mDecValTraj = nanmedian(GD.DecValTraj{fSelNodes},3);
-                        end
-                        GDanalysis.caseprops(TsI, curclass, curlabel) = cellmat_mergecols(GDanalysis.caseprops(TsI, curclass,curlabel), num2cell(mCaseProps,2));
-                        GDanalysis.decvaltraj(TsI, curclass, f, curlabel) = cellmat_mergecols(GDanalysis.decvaltraj(TsI, curclass, f, curlabel), num2cell(mDecValTraj,2));
+                        cv2lx = size(GD.BinaryGridSelection{curclass}{curlabel}.bestpred{1}{1,1},1);        
+                        switch SVM.prog
+                            case 'SEQOPT'
+                                if numel(fSelNodes)>1
+                                    CaseProps = zeros(cv2lx, numel(fSelNodes));
+                                    DecValTraj = nan([cv2lx size(SVM.SEQOPT.C,2) numel(fSelNodes)]);
+                                    for cp=1:numel(fSelNodes)
+                                         CaseProps(:,cp) = nm_nanmedian(GD.CasePropagations{fSelNodes(cp)},2);
+                                         DecValTraj_cp = nm_nanmedian(GD.DecValTraj{fSelNodes(cp)},3);
+                                         lenTraj_cp = size(DecValTraj_cp,2);
+                                         DecValTraj(:,1:lenTraj_cp,cp) = DecValTraj_cp; 
+                                    end
+                                    mCaseProps = nm_nanmedian(CaseProps,2);
+                                    mDecValTraj = nm_nanmedian(DecValTraj,3);
+                                else
+                                    mCaseProps = GD.CasePropagations{fSelNodes};
+                                    mDecValTraj = nanmedian(GD.DecValTraj{fSelNodes},3);
+                                end
+                                GDanalysis.caseprops(TsI, curclass, curlabel) = cellmat_mergecols(GDanalysis.caseprops(TsI, curclass,curlabel), num2cell(mCaseProps,2));
+                                GDanalysis.decvaltraj(TsI, curclass, f, curlabel) = cellmat_mergecols(GDanalysis.decvaltraj(TsI, curclass, f, curlabel), num2cell(mDecValTraj,2));
+                            case 'WBLCOX'
+                                if numel(fSelNodes)>1
+                                    PredTimes = []; CV2Cutoffs = [];
+                                    OptCutOffs = zeros(1, numel(fSelNodes));
+                                    OptCutOffPercs = zeros(1, numel(fSelNodes));
+                                    for cp = 1:numel(fSelNodes)
+                                        PredTimes = [PredTimes nk_cellcat(GD.CV2predictedtimes{fSelNodes(cp)},[],2)];
+                                        CV2Cutoffs = [CV2Cutoffs GD.CV2Cutoffs{fSelNodes(cp)}(:)'];
+                                        OptCutOffs(cp) = GD.mCutOffProb(fSelNodes(cp));
+                                        OptCutOffPercs(cp) = GD.mCutOffPerc(fSelNodes(cp));
+                                    end
+                                    mPredTimes = nm_nanmedian(PredTimes,2);
+                                    mCV2Cutoffs = nm_nanmedian(CV2Cutoffs);
+                                    mOptCutoffs = nm_nanmedian(OptCutOffs);
+                                    mOptCutoffPercs = nm_nanmedian(OptCutOffPercs);
+                                else
+                                    mPredTimes = nk_cellcat(GD.CV2predictedtimes{fSelNodes(1)},[],2);
+                                    mCV2Cutoffs = nm_nanmedian(GD.CV2Cutoffs{fSelNodes(1)}(:));
+                                    mOptCutoffs = GD.mCutOffProb(fSelNodes(1));
+                                    mOptCutoffPercs = GD.mCutOffPerc(fSelNodes(1));
+                                end
+                                GDanalysis.CV2cutoffs(TsI, curclass, curlabel) = cellmat_mergecols( GDanalysis.CV2cutoffs(TsI, curclass, curlabel), num2cell(repmat(mCV2Cutoffs, numel(TsI),1)));  
+                                GDanalysis.predtimes(TsI, curclass, curlabel) = cellmat_mergecols( GDanalysis.predtimes(TsI, curclass, curlabel), num2cell(mPredTimes,2));  
+                                GDanalysis.optcutoffs(TsI, curclass, curlabel) = cellmat_mergecols( GDanalysis.optcutoffs(TsI, curclass, curlabel), num2cell(repmat(mOptCutoffs, numel(TsI),1)));  
+                                GDanalysis.optcutoffpercs(TsI, curclass, curlabel) = cellmat_mergecols( GDanalysis.optcutoffpercs(TsI, curclass, curlabel), num2cell(repmat(mOptCutoffPercs, numel(TsI),1)));  
+                        end 
                     end
                 end
             end
@@ -779,18 +841,24 @@ if GDfl || ~batchflag
                                             nm_nansum(GDanalysis.grid.SelNodeFreq,3), ...
                                             sum(nm_nansum(GDanalysis.grid.SelNodeFreq,3)))*100;
     % Specifically account for the sequence optimizer                                     
-    if strcmp(SVM.prog,'SEQOPT')
-        GDanalysis.grid.mean_SeqExamFreq    = nm_nanmean(GDanalysis.grid.mean_mSEQE,4);
-        GDanalysis.grid.se_SeqExamFreq      = nm_nanmean(GDanalysis.grid.sd_mSEQE,4);
-        GDanalysis.grid.mean_SeqGain        = nm_nanmean(GDanalysis.grid.mean_mSEQI,4);
-        GDanalysis.grid.se_SeqGain          = nm_nanmean(GDanalysis.grid.sd_mSEQI,4);
-        GDanalysis.grid.mean_SeqPercUpper   = nm_nanmean(GDanalysis.grid.mean_mSEQPU,4);
-        GDanalysis.grid.se_SeqPercUpper     = nm_nanmean(GDanalysis.grid.sd_mSEQPU,4);
-        GDanalysis.grid.mean_SeqPercLower   = nm_nanmean(GDanalysis.grid.mean_mSEQPL,4);
-        GDanalysis.grid.se_SeqPercLower     = nm_nanmean(GDanalysis.grid.sd_mSEQPL,4);
-        GDanalysis.grid.mean_SeqPerfGains   = nm_nanmean(GDanalysis.grid.mean_SeqPerfGains,4);
-        [GDanalysis.CV2grid.caseprop_freq, GDanalysis.CV2grid.caseprop_node] = nk_ComputeEnsembleCasePropagationProbability(GDanalysis.caseprops,size(SVM.SEQOPT.C,2));
-        GDanalysis.CV2grid.decvaltraj       = nm_nanmedian(cell2matpadnan(GDanalysis.decvaltraj),3);
+    switch SVM.prog
+        case 'SEQOPT'
+            GDanalysis.grid.mean_SeqExamFreq    = nm_nanmean(GDanalysis.grid.mean_mSEQE,4);
+            GDanalysis.grid.se_SeqExamFreq      = nm_nanmean(GDanalysis.grid.sd_mSEQE,4);
+            GDanalysis.grid.mean_SeqGain        = nm_nanmean(GDanalysis.grid.mean_mSEQI,4);
+            GDanalysis.grid.se_SeqGain          = nm_nanmean(GDanalysis.grid.sd_mSEQI,4);
+            GDanalysis.grid.mean_SeqPercUpper   = nm_nanmean(GDanalysis.grid.mean_mSEQPU,4);
+            GDanalysis.grid.se_SeqPercUpper     = nm_nanmean(GDanalysis.grid.sd_mSEQPU,4);
+            GDanalysis.grid.mean_SeqPercLower   = nm_nanmean(GDanalysis.grid.mean_mSEQPL,4);
+            GDanalysis.grid.se_SeqPercLower     = nm_nanmean(GDanalysis.grid.sd_mSEQPL,4);
+            GDanalysis.grid.mean_SeqPerfGains   = nm_nanmean(GDanalysis.grid.mean_SeqPerfGains,4);
+            [GDanalysis.CV2grid.caseprop_freq, GDanalysis.CV2grid.caseprop_node] = nk_ComputeEnsembleCasePropagationProbability(GDanalysis.caseprops,size(SVM.SEQOPT.C,2));
+            GDanalysis.CV2grid.decvaltraj       = nm_nanmedian(cell2matpadnan(GDanalysis.decvaltraj),3);
+        case 'WBLCOX'
+            GDanalysis.grid.mean_CutOffProb     = nm_nanmean(GDanalysis.grid.mean_mCutOffProb,3);
+            GDanalysis.grid.se_CutOffProb       = nm_nanmean(GDanalysis.grid.mean_sdCutOffProb,3);
+            GDanalysis.grid.mean_CutOffPerc     = nm_nanmean(GDanalysis.grid.mean_mCutOffPerc,3);
+            GDanalysis.grid.se_CutOffPerc       = nm_nanmean(GDanalysis.grid.mean_sdCutOffPerc,3);
     end                                
                                         
     % This has to be changed to work in multi-label mode
@@ -820,15 +888,16 @@ if GDfl || ~batchflag
                     ind1 = label == CV.class{1,1}{h}.groups(1); 
                     labelh(ind1,h) = 1; labelh(~ind1,h) = -1;
                 end
+                labelhx = labelh(:,h); labelhx(labelh(:,h)<0)=0; Ix = find(labelh(:,h)); nIx = numel(Ix); 
                 if ix>1
-                    Px = GDanalysis.CV2grid.predictions; [Mx, Nx, ~] = size(Px); labelhx = labelh(:,h); labelhx(labelh(:,h)<0)=0; Ix = find(labelh(:,h));
+                    Px = GDanalysis.CV2grid.predictions; [Mx, Nx, ~] = size(Px); 
                     GDanalysis.CV2grid.mean_predictions(:,h) = nm_nanmean(Px(:,:,h),2);
                     GDanalysis.CV2grid.std_predictions(:,h)  = nm_nanstd(Px(:,:,h),2);
                     % I love anonymous functions - Compute performance measures
                     % for each permutation in the Grid.
                     try
                         %[ GDanalysis.CV2grid.Xsvm(:,:,h), GDanalysis.CV2grid.Ysvm(:,:,h) ] = arrayfun( @(j) perfcurve2(labelh(:,h), Px(:,j,h), 1), 1:Nx );
-                        GDanalysis.CV2grid.CI_predictions(Ix,:,h) = cell2mat(arrayfun(@(i) percentile(Px(Ix(i),:,h),[2.5 97.5]),1:numel(Ix),'UniformOutput',false)');
+                        GDanalysis.CV2grid.CI_predictions(Ix,:,h)= cell2mat(arrayfun(@(i) percentile(Px(Ix(i),:,h),[2.5 97.5]),1:numel(Ix),'UniformOutput',false)');
                         GDanalysis.CV2grid.BAC(:,h)              = arrayfun( @(j) BAC(labelh(Ix,h),Px(Ix,j,h)-0.5), 1:Nx );
                         GDanalysis.CV2grid.sens(:,h)             = arrayfun( @(j) SENSITIVITY(labelh(Ix,h), Px(Ix,j,h)-0.5), 1:Nx );
                         GDanalysis.CV2grid.spec(:,h)             = arrayfun( @(j) SPECIFICITY(labelh(Ix,h), Px(Ix,j,h)-0.5), 1:Nx );
@@ -841,8 +910,27 @@ if GDfl || ~batchflag
                         warning('CVdatamats of more than one CV2 permutation are needed.')
                     end
                 end
-                % Do performance stats over the entire experiment
-                GDanalysis.BinClass{h} = nk_ComputeEnsembleProbability(GDanalysis.predictions(:,h), labelh(:,h));
+                switch SVM.prog
+                    case 'WBLCOX'
+                        GDanalysis.BinClass{h} = nk_ComputeEnsembleProbability(GDanalysis.predictions(:,h), labelh(:,h),[], GDanalysis.CV2cutoffs, GDanalysis.optcutoffpercs);
+                        GDanalysis.BinClass{h}.Time.mean_predicted_times = cell2matpadnan(GDanalysis.predtimes(Ix,h));
+                        if size(GDanalysis.BinClass{h}.Time.mean_predicted_times,2)==1, GDanalysis.BinClass{h}.Time.mean_predicted_times=[GDanalysis.BinClass{h}.Time.mean_predicted_times nan(nIx,1)]; end
+                        GDanalysis.BinClass{h}.Time.mean_predicted_times = nm_nanmedian(GDanalysis.BinClass{h}.Time.mean_predicted_times,2); 
+                        GDanalysis.BinClass{h}.Time.observed_times = time2event(Ix);
+                        ind = GDanalysis.BinClass{h}.Time.mean_predicted_times>0;
+                        [rr, pp, rl, ru]                       = corrcoef(GDanalysis.BinClass{h}.Time.observed_times(ind), GDanalysis.BinClass{h}.Time.mean_predicted_times(ind) );
+                        GDanalysis.BinClass{h}.Time.R2         = SCC(GDanalysis.BinClass{h}.Time.observed_times(ind), GDanalysis.BinClass{h}.Time.mean_predicted_times(ind));
+                        GDanalysis.BinClass{h}.Time.r          = rr(1,2);
+                        GDanalysis.BinClass{h}.Time.p          = pp(1,2);
+                        GDanalysis.BinClass{h}.Time.r_95CI_low = rl(1,2);
+                        GDanalysis.BinClass{h}.Time.r_95CI_up  = ru(1,2);
+                        %% Convert correlation coefficient to T value
+                        GDanalysis.BinClass{h}.Time.t          = rr(1,2) * sqrt((sum(ind)-2) / (1 - rr(1,2)*rr(1,2)));
+                        
+                    otherwise
+                        % Do performance stats over the entire experiment
+                        GDanalysis.BinClass{h} = nk_ComputeEnsembleProbability(GDanalysis.predictions(:,h), labelh(:,h));
+                end
             end
     end
 

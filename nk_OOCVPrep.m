@@ -345,4 +345,5 @@ for i = 1:inp1.nF
 end
 clear inp1 inp2
 OOCVres =  nk_OOCVMeta(OOCVres, inp);
-
+hu = findobj('Tag','OOCV');
+if ~isempty(hu), delete(hu); end

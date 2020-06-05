@@ -29,6 +29,7 @@ switch OptimFlag
         NumDdefs                        = 50;
         Kdefs                           = 7;
         Weightdefs                      = 1;
+        CoxCutoffsdefs                  = [20:10:80];
         SEQOPTstepsdefs                 = 10;
         SEQOPTlimsLdefs                 = 50;
         SEQOPTlimsUdefs                 = 50;
@@ -74,6 +75,7 @@ switch OptimFlag
             if isfield(GRD,'CutOffparams'),             SEQOPTstepsdefs = GRD.CutOffparams; end
             if isfield(GRD,'LimsLparams'),              SEQOPTlimsLdefs = GRD.LimsLparams; end
             if isfield(GRD,'LimsUparams'),              SEQOPTlimsUdefs = GRD.LimsUparams; end
+            if isfield(GRD,'CoxCutoffparams')           CoxCutoffsdefs = GRD.CoxCutoffparams; end
             if isfield(GRD,'OptRegul'),                 OptRegul = GRD.OptRegul; end
             if isfield(GRD,'NodeSelect'),               NodeSelect = GRD.NodeSelect; end
             
@@ -139,6 +141,8 @@ switch OptimFlag
                     end
                     menustr = sprintf('%s|Define %s parameters [ %s ]|', menustr, SVM.prog, str); 
                     menuact = [ menuact 21 ];
+                
+                    
             end
             
             %% Kernel setup
@@ -237,6 +241,11 @@ switch OptimFlag
                     [LimsUstr, n_pars(end+1)] = nk_ConcatParamstr( SEQOPTlimsUdefs );
                     PX = nk_AddParam(SEQOPTlimsUdefs, ['ML-' LimsUstr], 2, PX);
                     menustr = sprintf('%s|Define %s [ %s ]', menustr, LimsUparstr, LimsUstr);                           menuact = [ menuact 24 ];
+                case 'WBLCOX'
+                    CoxCutOffparstr = 'Percentile thresholds for class assignment';
+                    [CutOffstr, n_pars(end+1)] = nk_ConcatParamstr( CoxCutoffsdefs );
+                    PX = nk_AddParam(CoxCutoffsdefs, ['ML-' CutOffstr], 2, PX);
+                    menustr = sprintf('%s|Define %s [ %s ]', menustr, CoxCutOffparstr, CutOffstr);                         menuact = [ menuact 25 ];  
             end
             
             GRD.GridMaxType = GridMaxType;
@@ -300,42 +309,6 @@ switch OptimFlag
                     PolyCoefdefs  = nk_input([Pcparstr ' for polynomial kernels'],0,'e',PolyCoefdefs);  PX = nk_AddParam(PolyCoefdefs, ['ML-' Pcparstr], 2, PX);
                 case 6
                     PolyDegrdefs  = nk_input([Pdparstr ' for polynomial kernels'],0,'e',PolyDegrdefs);  PX = nk_AddParam(PolyDegrdefs, ['ML-' Pdparstr], 2, PX);
-                case 12
-                    Neurondefs    = nk_input([Neuronparstr ' range'],0,'e',Neurondefs);                 PX = nk_AddParam(Neurondefs, ['ML-' Neuronparstr], 2, PX);
-                case 13
-                    Kdefs         = nk_input([Kparstr ' range'],0,'e',Kdefs);                           PX = nk_AddParam(Kdefs, ['ML-' Kparstr], 2, PX);
-                case 14
-                    Toldefs       =  nk_input([Tparstr ' range'],0,'e',Toldefs);                        PX = nk_AddParam(Toldefs, ['ML-' Tparstr], 2, PX);
-                case 15
-                    Weightdefs    =  nk_input([Weightparstr ' range'],0,'e',Weightdefs);                PX = nk_AddParam(Weightdefs, ['ML-' Weightparstr], 2, PX);
-                case 16
-                    Leafdefs    =  nk_input([Lfparstr ' range'],0,'e',Leafdefs);                        PX = nk_AddParam(Leafdefs, ['ML-' Lfparstr], 2, PX);
-                case 17
-                    Treedefs    =  nk_input([Dtparstr ' range'],0,'e',Treedefs);                        PX = nk_AddParam(Treedefs, ['ML-' Dtparstr], 2, PX);
-                case 18
-                    NumDdefs    =  nk_input([Dnparstr ' range'],0,'e',NumDdefs);                        PX = nk_AddParam(NumDdefs, ['ML-' Dnparstr], 2, PX);
-                case 20
-                    GRD.matLearn = nk_matLearn_config(GRD.matLearn,SVM.matLRN.learner.framework,2);
-                    if isfield(GRD.matLearn,'Params')
-                        for j=1:numel(GRD.matLearn.Params)
-                            PX = nk_AddParam(GRD.matLearn.Params(j).range, ['ML-' GRD.matLearn.Params(j).name], 2, PX);
-                        end
-                    end
-                case 21
-                     if isfield(GRD,(SVM.prog)), PXX = GRD.(SVM.prog); else, PXX=[]; end
-                    switch SVM.prog
-                        case {'GLMNET','GRDBST'}
-                            GRD.(SVM.prog) = nk_GLMNET_config(SVM.prog,PXX, 0);
-                        case 'ROBSVM'
-                            t_act = 1; while t_act > 0, [ PXX, t_act ] = nk_ROBSVM_config(SVM.prog,PXX, NM.modeflag,0); end
-                            GRD.(SVM.prog) = PXX; 
-                    end
-                case 22
-                    SEQOPTstepsdefs =  nk_input([CutOffparstr ' range'],0,'e',SEQOPTstepsdefs);         PX = nk_AddParam(SEQOPTstepsdefs, ['ML-' CutOffparstr], 2, PX);
-                case 23
-                    SEQOPTlimsLdefs =  nk_input([LimsLparstr ' range'],0,'e',SEQOPTlimsLdefs);          PX = nk_AddParam(SEQOPTlimsLdefs, ['ML-' LimsLparstr], 2, PX);
-                case 24
-                    SEQOPTlimsUdefs =  nk_input([LimsLparstr ' range'],0,'e',SEQOPTlimsUdefs);          PX = nk_AddParam(SEQOPTlimsUdefs, ['ML-' LimsUparstr], 2, PX);                   
                 case 7
                     if ~OptRegul.flag, OptRegul.flag = 2; end
                     OptRegul.flag   = nk_input('Enable model selection across CV1 parameters ?', 0, ...
@@ -380,7 +353,45 @@ switch OptimFlag
 %                             NodeSelect = nk_EnsembleStrategy2_config(NodeSelect, NM, [], navistr);
                         case 4
                             NodeSelect.percvec = nk_input('Define [lower : stepping : upper ] percentile search vector ', 0, 'e', NodeSelect.percvec);
-                    end       
+                    end
+                case 12
+                    Neurondefs    = nk_input([Neuronparstr ' range'],0,'e',Neurondefs);                 PX = nk_AddParam(Neurondefs, ['ML-' Neuronparstr], 2, PX);
+                case 13
+                    Kdefs         = nk_input([Kparstr ' range'],0,'e',Kdefs);                           PX = nk_AddParam(Kdefs, ['ML-' Kparstr], 2, PX);
+                case 14
+                    Toldefs       =  nk_input([Tparstr ' range'],0,'e',Toldefs);                        PX = nk_AddParam(Toldefs, ['ML-' Tparstr], 2, PX);
+                case 15
+                    Weightdefs    =  nk_input([Weightparstr ' range'],0,'e',Weightdefs);                PX = nk_AddParam(Weightdefs, ['ML-' Weightparstr], 2, PX);
+                case 16
+                    Leafdefs    =  nk_input([Lfparstr ' range'],0,'e',Leafdefs);                        PX = nk_AddParam(Leafdefs, ['ML-' Lfparstr], 2, PX);
+                case 17
+                    Treedefs    =  nk_input([Dtparstr ' range'],0,'e',Treedefs);                        PX = nk_AddParam(Treedefs, ['ML-' Dtparstr], 2, PX);
+                case 18
+                    NumDdefs    =  nk_input([Dnparstr ' range'],0,'e',NumDdefs);                        PX = nk_AddParam(NumDdefs, ['ML-' Dnparstr], 2, PX);
+                case 20
+                    GRD.matLearn = nk_matLearn_config(GRD.matLearn,SVM.matLRN.learner.framework,2);
+                    if isfield(GRD.matLearn,'Params')
+                        for j=1:numel(GRD.matLearn.Params)
+                            PX = nk_AddParam(GRD.matLearn.Params(j).range, ['ML-' GRD.matLearn.Params(j).name], 2, PX);
+                        end
+                    end
+                case 21
+                     if isfield(GRD,(SVM.prog)), PXX = GRD.(SVM.prog); else, PXX=[]; end
+                    switch SVM.prog
+                        case {'GLMNET','GRDBST'}
+                            GRD.(SVM.prog) = nk_GLMNET_config(SVM.prog,PXX, 0);
+                        case 'ROBSVM'
+                            t_act = 1; while t_act > 0, [ PXX, t_act ] = nk_ROBSVM_config(SVM.prog,PXX, NM.modeflag,0); end
+                            GRD.(SVM.prog) = PXX; 
+                    end
+                case 22
+                    SEQOPTstepsdefs =  nk_input([CutOffparstr ' range'],0,'e',SEQOPTstepsdefs);         PX = nk_AddParam(SEQOPTstepsdefs, ['ML-' CutOffparstr], 2, PX);
+                case 23
+                    SEQOPTlimsLdefs =  nk_input([LimsLparstr ' range'],0,'e',SEQOPTlimsLdefs);          PX = nk_AddParam(SEQOPTlimsLdefs, ['ML-' LimsLparstr], 2, PX);
+                case 24
+                    SEQOPTlimsUdefs =  nk_input([LimsLparstr ' range'],0,'e',SEQOPTlimsUdefs);          PX = nk_AddParam(SEQOPTlimsUdefs, ['ML-' LimsUparstr], 2, PX);
+                case 25
+                    CoxCutoffsdefs =  nk_input([CoxCutOffparstr ' range'],0,'e',CoxCutoffsdefs);        PX = nk_AddParam(CoxCutoffsdefs, ['ML-' CoxCutOffparstr], 2, PX);
             end
             if ~isempty(PX) && ~isempty(PX.opt), n_pars = size(PX.opt,1); else n_pars = 0; end
         else
@@ -402,6 +413,7 @@ switch OptimFlag
         GRD.CutOffparams        = SEQOPTstepsdefs;
         GRD.LimsLparams         = SEQOPTlimsLdefs;
         GRD.LimsUparams         = SEQOPTlimsUdefs;
+        GRD.CoxCutoffparams     = CoxCutoffsdefs;
         GRD.OptRegul            = OptRegul;
         GRD.NodeSelect          = NodeSelect;
         GRD.n_params            = n_pars;

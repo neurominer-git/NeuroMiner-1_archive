@@ -33,9 +33,11 @@ function [ GD, MD ] = nk_MLOptimizer_ParamCycler(GD, MD, DISP, Ps, Params_desc, 
 % %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % (c) Nikolaos Koutsouleris, 09/2017
 
-global CV MULTILABEL
+global CV MULTILABEL CVPOS
 
 pltcnt =0 ; nPs = size(Ps{1},1); 
+CVPOS.CV2p = f;
+CVPOS.CV2f = d;
 
 if ~exist('PsSel','var') || isempty(PsSel)
     PiSel = true(nPs,nclass);
@@ -121,7 +123,7 @@ for i = 1:nPs
         mapYi = extract_dimmat(mapY, i_dl, cPs); 
         % ... and extract features according to filter mechanism (if
         % needed)
-        FilterSubSets = nk_CreateSubSets(mapYi);     
+        FilterSubSets = nk_CreateSubSets(mapYi); 
     end   
     % Compute current model(s) for variable parameter combination P(i) = [ P1 P2 P3
     % ... Pn] using the CV1 data partitions. Apply single or ensemble model

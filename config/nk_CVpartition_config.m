@@ -89,19 +89,22 @@ if ~defaultsfl
         if isfield(NM.TrainParam,'RAND')
             
             if isfield(NM.TrainParam.RAND,'lgoflp'), lgoflp = NM.TrainParam.RAND.lgoflp; end
-            
+            CV2reps = ''; MenuVec_extra = [];
             CV2STR_FRAME = '(Pooled) cross-validation';
             if isfield(NM.TrainParam.RAND,'CV2Frame')
                CV2frm = NM.TrainParam.RAND.CV2Frame;
+               
                switch NM.TrainParam.RAND.CV2Frame
                     case 2
                        if NM.TrainParam.RAND.OuterPerm>1
-                           CV2STR_FRAME = sprintf('Outer Leave-Group-Out (%g repetitions)/Inner Pooled ',NM.TrainParam.RAND.OuterPerm);
+                           CV2STR_FRAME = 'Outer Leave-Group-Out/Inner Pooled ';
                        else
                            CV2STR_FRAME = 'Outer Leave-Group-Out/Inner Pooled';
                        end
+                       CV2reps = sprintf('Define number of Leave-Group-Out repetitions [ %g repetitions ]|',NM.TrainParam.RAND.OuterPerm);  MenuVec_extra = 12;
                     case 3
                        CV2STR_FRAME = 'Nested Leave-Group-Out';
+                       NM.TrainParam.RAND.OuterPerm = 1;
                    case 4
                        CV2STR_FRAME = 'Outer Leave-Group-Out/Inner Leave-Group-In';
                 end
@@ -205,9 +208,11 @@ if ~defaultsfl
         end
     end
 
+    if ~isempty(CV2reps), MenuVec = [MenuVec(1:3) MenuVec_extra MenuVec(4:end) ]; end
+    if ~isempty(MenuRem), MenuVec(MenuRem) = []; end
+    
     nk_PrintLogo
 
-    if ~isempty(MenuRem), MenuVec(MenuRem) = []; end
     cprintf('blue','\n****************************************************************************************')
     cprintf('blue','\nSelect appropriate Kx (x=1/2) of folds for your dataset, where:')
     cprintf('blue','\n\tKx < # of available subjects defines K-fold repeated, stratified cross-validation')
@@ -220,6 +225,7 @@ if ~defaultsfl
                     [CV2Frame ...
                      CV2ps ...
                      CV2fs ...
+                     CV2reps ...
                      CV1ps ...
                      CV1fs ...
                      Decomp ...
@@ -246,11 +252,8 @@ if ~defaultsfl
                      case {2,3,4}
                          NM.TrainParam.RAND.CV2LCO.ind = ...
                              nk_input('Define index vector for Outer (CV2) case-to-group assignment',0,'i',[],[numel(NM.cases),1]);
-                         switch NM.TrainParam.RAND.CV2Frame
-                             case 2
-                                NM.TrainParam.RAND.OuterPerm = nk_input('Number of repetitions for Outer (CV2) cross-validation',0,'w1',CV2pn);
-                             otherwise
-                                NM.TrainParam.RAND.OuterPerm = 1;
+                         if NM.TrainParam.RAND.CV2Frame~=2
+                             NM.TrainParam.RAND.OuterPerm = 1;
                          end
                          NM.TrainParam.RAND.OuterFold = numel(unique(NM.TrainParam.RAND.CV2LCO.ind));
                  end
@@ -410,12 +413,16 @@ if ~defaultsfl
              savecv = nk_input('Path & filename for cross-validation structure',0,'s');
              cv =  NM.cv;
              save(['CVstruct_' savecv '.mat'],'cv');
+             
+        case 12
+             NM.TrainParam.RAND.OuterPerm = nk_input('Number of repetitions for Outer (CV2) cross-validation',0,'w1',CV2pn);
+                             
     end
 else
     NM.TrainParam.RAND.CV2Frame     = 1;
-    NM.TrainParam.RAND.OuterFold    = 1;
-    NM.TrainParam.RAND.OuterPerm    = 10;
-    NM.TrainParam.RAND.InnerFold    = 1;
-    NM.TrainParam.RAND.InnerPerm    = 10;
+    NM.TrainParam.RAND.OuterFold    = 10;
+    NM.TrainParam.RAND.OuterPerm    = 1;
+    NM.TrainParam.RAND.InnerFold    = 10;
+    NM.TrainParam.RAND.InnerPerm    = 1;
 end
 

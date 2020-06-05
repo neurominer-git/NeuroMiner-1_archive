@@ -14,7 +14,7 @@ NMinfo.info.author  = 'Nikolaos Koutsouleris';
 NMinfo.info.affil   = 'Section for Neurodiagnostic Applications';
 NMinfo.info.dep     = 'Department of Psychiatry and Psychotherapy';
 NMinfo.info.inst    = 'Ludwig-Maximilian-University';
-NMinfo.info.datever = '03/2020';
+NMinfo.info.datever = '05/2020';
 NMinfo.info.timestamp = date;
 NMinfo.info.email   = 'nm@pronia.eu';
 try
@@ -141,6 +141,7 @@ if action.all
             addpath(fullfile(defs.path,'trainpredict/matLearn2016'));
             addpath(genpath(fullfile(defs.path,'trainpredict/matLearn2016'))); fprintf('.');
             addpath(genpath(fullfile(defs.path,'trainpredict/glmnet'))); fprintf('.');
+            addpath(fullfile(defs.path,'trainpredict/weibull_cox_v_1_1_4')); fprintf('.');
         end
         
         if ~checkpaths(matpaths,fullfile(defs.path,'gridsearch'))

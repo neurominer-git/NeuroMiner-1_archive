@@ -1,5 +1,5 @@
 % =========================================================================
-% FORMAT param = ALLPARAM(expected, predicted)
+% FORMAT param = ALLPARAM(expected, predicted, invflag, tiedfun)
 % =========================================================================
 % Compute all classification parameters
 % %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

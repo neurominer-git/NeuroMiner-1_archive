@@ -55,6 +55,9 @@ inparams.stacking =         inp.stacking;
 inparams.rootdir =          inp.rootdir;
 inparams.gdmat =            inp.gdmat;
 inparams.preprocmat =       inp.preprocmat;
+if isfield(inp,'time2event'),
+    inparams.time2event =   inp.time2event;
+end
 
 clear inp
 
@@ -206,6 +209,9 @@ for i=1:inparams.nclass
             inparams.Params_desc{i}{1} = 'Lambda';
             inparams.Params{i}{2} = GRD.Gparams;
             inparams.Params_desc{i}{2} = 'Sigma';
+        case 'WBLCOX'
+            inparams.Params{i}{1} = GRD.CoxCutoffparams;
+            inparams.Params_desc{i}{1} = 'P-Cox-cutoff';
     end
 
     % Define number of ML algo parameter to be optimized in

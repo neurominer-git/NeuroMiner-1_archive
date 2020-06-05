@@ -54,6 +54,11 @@ if isfield(NM,'TrainParam') && ...
     end
 end
 
+% for compatibility reasons
+if ~isfield(NM.TrainParam,'STACKING') || ~NM.TrainParam.STACKING.flag
+    NM.TrainParam.STACKING.flag=2; 
+end
+
 % Adjust varind when in stacking mode and remove any SPATIAL operations
 % from current modality
 if NM.TrainParam.STACKING.flag == 1
@@ -130,10 +135,6 @@ if ~exist('act','var') || isempty(act)
     s = nk_GetNMStatus(NM);
     if ~isempty(s.completed_analyses) && any(s.completed_analyses & s.isequalcv_analyses) && sum(s.nmodal_analyses)>1
         menustr = [ menustr sprintf('Define meta-learning/stacking options [ %s ]|', STATUS.STACKING) ]; menuact = [ menuact 18 ]; 
-    end
-    
-    if ~isfield(NM.TrainParam,'STACKING') || ~NM.TrainParam.STACKING.flag
-        NM.TrainParam.STACKING.flag=2; 
     end
     
     %% Check whether more than one variate are available and make data fusion options available

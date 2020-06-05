@@ -6,7 +6,7 @@
 %    agreed to when this code was downloaded, and a copy of which is available at
 %    http://www.dcs.gla.ac.uk/inference/pMKL/Terms_and_Conditions.html.
 
-function [Xs Xmean Xstd] = standardize_data(X,Xmean,Xstd)
+function [Xs, Xmean, Xstd] = standardize_data(X,Xmean,Xstd)
 
 N = size(X,1);
 

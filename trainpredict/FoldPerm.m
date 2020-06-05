@@ -28,7 +28,7 @@
 
 function [IN, OUT] = FoldPerm(IN, OUT, strout, fRFE, fFull, RetrainImmediate, fKX, LoopParam)
 
-global VERBOSE CV MODEFL RAND MULTILABEL MULTI RFE
+global VERBOSE CV MODEFL RAND MULTILABEL MULTI RFE CVPOS
 
 RF = []; fMULTI = false; VI = []; 
 if MULTI.flag ==1 && ... 
@@ -72,7 +72,7 @@ PermNum = numel(PermVec);
 FoldNum = numel(FoldVec);
 ClassNum = numel(ClassVec);
 kx = 1;
-
+CVPOS.fFull = fFull;
 for ii=1:PermNum % Loop through CV1 permutations
 
     for jj=1:FoldNum % Loop through CV1 folds
@@ -80,6 +80,8 @@ for ii=1:PermNum % Loop through CV1 permutations
         % Initialize variables for partition
         i           = PermVec(ii); 
         j           = FoldVec(jj);
+        CVPOS.CV1p = i;
+        CVPOS.CV1f = j;
         modelTrL    = cell(1,ClassNum);
         Ymodel      = cell(1,ClassNum);
         Ytrain      = cell(1,ClassNum);

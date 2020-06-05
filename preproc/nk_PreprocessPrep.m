@@ -267,6 +267,7 @@ switch act
             inp.multiflag = 0; if ~isempty(MULTI) && MULTI.flag, inp.multiflag = nk_input('Select models at multi-group optimum', 0,'yes|no',[1,0],1); end
             if isfield(NM,'covars'); inp.covars = NM.covars; else inp.covars = []; end
             inp.covars_oocv = []; inp.ll=1;
+            
             for ix=1:operms % Loop through CV2 perms
 
                     for jx=1:ofolds % Loop through CV2 folds

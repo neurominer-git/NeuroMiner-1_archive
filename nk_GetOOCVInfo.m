@@ -53,24 +53,28 @@ if AS.analcompleteflag >0 && AS.oocvappflag
                     OOCVinfo.Analyses{i}.OOCVdone = true;
                     OOCVinfo.Analyses{i}.OOCVvec = find(~cellfun(@isempty,NM.analysis{OOCVinfo.AnalVec(i)}.OOCV));
                     for j = 1:numel(OOCVinfo.Analyses{i}.OOCVvec)
-                        OOCVinfo.Analyses{i}.desc{j} = NM.OOCV{OOCVinfo.Analyses{i}.OOCVvec(j)}.desc;
-                        OOCVinfo.Analyses{i}.date{j} = NM.OOCV{OOCVinfo.Analyses{i}.OOCVvec(j)}.date;
-                        OOCVinfo.Analyses{i}.n_subjects_all(j) = NM.OOCV{OOCVinfo.Analyses{i}.OOCVvec(j)}.n_subjects_all;
-                        OOCVinfo.Analyses{i}.labels_known(j) = NM.OOCV{OOCVinfo.Analyses{i}.OOCVvec(j)}.labels_known;
-                       
-                        if OOCVinfo.Analyses{i}.labels_known(j)
-                            lblstr = sprintf(', labels known');
-                            OOCVinfo.Analyses{i}.n_subjects{j} = NM.OOCV{OOCVinfo.Analyses{i}.OOCVvec(j)}.n_subjects;
-                            OOCVinfo.Analyses{i}.label{j} = NM.OOCV{OOCVinfo.Analyses{i}.OOCVvec(j)}.label;
-                        else
-                            OOCVinfo.Analyses{i}.n_subjects{j} = [];
-                            lblstr = '';
-                             OOCVinfo.Analyses{i}.label = [];
+                        try
+                            OOCVinfo.Analyses{i}.desc{j} = NM.OOCV{OOCVinfo.Analyses{i}.OOCVvec(j)}.desc;
+                            OOCVinfo.Analyses{i}.date{j} = NM.OOCV{OOCVinfo.Analyses{i}.OOCVvec(j)}.date;
+                            OOCVinfo.Analyses{i}.n_subjects_all(j) = NM.OOCV{OOCVinfo.Analyses{i}.OOCVvec(j)}.n_subjects_all;
+                            OOCVinfo.Analyses{i}.labels_known(j) = NM.OOCV{OOCVinfo.Analyses{i}.OOCVvec(j)}.labels_known;
+
+                            if OOCVinfo.Analyses{i}.labels_known(j)
+                                lblstr = sprintf(', labels known');
+                                OOCVinfo.Analyses{i}.n_subjects{j} = NM.OOCV{OOCVinfo.Analyses{i}.OOCVvec(j)}.n_subjects;
+                                OOCVinfo.Analyses{i}.label{j} = NM.OOCV{OOCVinfo.Analyses{i}.OOCVvec(j)}.label;
+                            else
+                                OOCVinfo.Analyses{i}.n_subjects{j} = [];
+                                lblstr = '';
+                                 OOCVinfo.Analyses{i}.label = [];
+                            end
+                            OOCVinfo.Analyses{i}.cases{j}   = NM.OOCV{OOCVinfo.Analyses{i}.OOCVvec(j)}.cases;
+                            OOCVinfo.Analyses{i}.files{j}   = NM.OOCV{OOCVinfo.Analyses{i}.OOCVvec(j)}.files;
+                            OOCVinfo.Analyses{i}.defs{j}    = NM.OOCV{OOCVinfo.Analyses{i}.OOCVvec(j)}.defs;
+                            OOCVinfo.Analyses{i}.descriptor{j} = sprintf('%s (<-%s): %g cases%s',  OOCVinfo.Analyses{i}.desc{j}, OOCVinfo.Analyses{i}.date{j}, OOCVinfo.Analyses{i}.n_subjects_all(j), lblstr); 
+                        catch
+                            cprintf('red','\nOOCV data container %g does not exist',j);
                         end
-                        OOCVinfo.Analyses{i}.cases{j}   = NM.OOCV{OOCVinfo.Analyses{i}.OOCVvec(j)}.cases;
-                        OOCVinfo.Analyses{i}.files{j}   = NM.OOCV{OOCVinfo.Analyses{i}.OOCVvec(j)}.files;
-                        OOCVinfo.Analyses{i}.defs{j}    = NM.OOCV{OOCVinfo.Analyses{i}.OOCVvec(j)}.defs;
-                        OOCVinfo.Analyses{i}.descriptor{j} = sprintf('%s (<-%s): %g cases%s',  OOCVinfo.Analyses{i}.desc{j}, OOCVinfo.Analyses{i}.date{j}, OOCVinfo.Analyses{i}.n_subjects_all(j), lblstr); 
                     end
                  else
                      OOCVinfo.Analyses{i}.OOCVdone = false;

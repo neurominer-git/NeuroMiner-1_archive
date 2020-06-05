@@ -38,7 +38,6 @@ if isempty(kerntype)
     param = nk_Kernel_config(param, 1);
 else
     param.kernel.kernstr = kerntype;
-    param = nk_PolyKernel_config(param);
 end        
 
 end

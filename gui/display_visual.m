@@ -363,8 +363,8 @@ end
 if  ~strcmp(meas{measind},'Model P value histogram')
     switch v.params.visflag
         case {0,3,4,5,'matrix'}
-            xlabel(meas{measind});
-            ylabel('Features');
+            xlabel(meas{measind},'FontWeight','bold');
+            ylabel('Features','FontWeight','bold');
             set(gca,'YTick',x);
             if sortfl, 
                 feats = v.params.features(ind); 

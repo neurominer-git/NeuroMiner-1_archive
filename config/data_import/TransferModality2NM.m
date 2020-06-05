@@ -146,6 +146,11 @@ if isfield(I,'Y')
             end
        end
     end
+    
+    if isfield(I,'survanal_time') && isnumeric(I.survanal_time)
+        D.time = I.survanal_time;
+    end
+    
     if ~isfield(D,'defs') || ~isfield(D.defs,'os_sys')
         D.defs.os_sys = computer;
         if isunix

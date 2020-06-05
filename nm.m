@@ -353,7 +353,7 @@ try
             end
             if ~isempty(analind), analind = complvec(analind) ; end
             newdir = nk_DirSelector('Update analyses'' root paths');
-            if exist(newdir,'dir'), 
+            if exist(newdir,'dir')
                 [pnew,nnew] = fileparts(newdir);
                 [~,nold] = fileparts(NM.analysis{analind}.rootdir);
                 if ~strcmp(nnew,nold),
@@ -435,8 +435,9 @@ delete(findobj('Tag','PrintCVBarsBin'));
 delete(findobj('Name','Probabilistic Feature Exraction'));
 clear CALIBAVAIL OOCVAVAIL
 if isfield(NM,'runtime'), NM = rmfield(NM,'runtime'); end
-assignin('base', 'NM', NM)
+NMx = NM;
 clearvars -global NM st
+assignin('base', 'NM', NMx)
 if exist('temp.nii','file'); delete('temp.nii'); end
 end
 

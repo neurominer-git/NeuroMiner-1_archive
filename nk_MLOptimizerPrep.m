@@ -323,6 +323,7 @@ for i = 1:inp1.nF
     %% Get Training / CV data (Y) & Build modality suffix
     inp2  = nk_SetFusionMode2(dat, analysis, inp1.F, inp1.nF, i);
     inp   = catstruct(inp1,inp2); clear inp2
+    if isfield(dat,'time'), inp.time2event = dat.time; end
     if inp.lfl == 2, inp.preprocmat = preprocmat{i,:,:}; end
     
     inp.stranalysis = SAV.matname; strGDdimsfile = fullfile(inp.rootdir, ...

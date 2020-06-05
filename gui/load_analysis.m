@@ -24,12 +24,20 @@ for i = 1:nVarIn
         if ~isempty( vis  ) 
             if numel( vis )>1
                 for n=1:numel( vis )
-                    handles.visdata{n} = vis{n}{1};
+                    try
+                        handles.visdata{n} = vis{n}{1};
+                    catch
+                        handles.visdata{n} = vis{n};
+                    end
                     handles.visdata_table(n) = create_visdata_tables(handles.visdata{n}, [], [], 'create');
                 end
             else
                 for n=1:numel( vis{1} )
-                    handles.visdata{n} = vis{1}{n};
+                    try
+                        handles.visdata{n} = vis{1}{n};
+                    catch
+                        handles.visdata{n} = vis{n};
+                    end
                     handles.visdata_table(n) = create_visdata_tables(handles.visdata{n}, [], [], 'create');
                 end
             end

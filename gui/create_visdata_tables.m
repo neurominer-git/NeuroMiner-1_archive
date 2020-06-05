@@ -50,12 +50,12 @@ switch act
                 end
             end
         else
-            if isempty(ind), ind = 1:size(v.MEAN,1); end
-            VTBL.tbl.ind = ind;
+            if isempty(ind), ind = (1:size(v.MEAN,1))'; end
+            VTBL.tbl.ind = ind; 
             VTBL.tbl.array = [ind v.MEAN(ind), v.SE(ind), v.MEAN_CV2(ind), v.SE_CV2(ind), v.CVRatio(ind), v.CVRatio_CV2(ind), v.Prob_CV2(ind)];
             VTBL.tbl.colnames = {'Feature', 'SortIndex', 'Mean_W', 'StErr_W', 'Mean_W_GM', 'StErr_W_GM', 'CVratio', 'CVratio_GM', 'P_Relia95CI_GM'};
             VTBL.tbl.rownames = v.params.features(ind)';
-            if isfield(v,'Spearman_CV2')
+            if isfield(v,'Spearman_CV2') && isfield(v,'Spearman_CV2_uncorr')
                 VTBL.tbl.array = [VTBL.tbl.array  v.Spearman_CV2(ind), v.Pearson_CV2(ind), v.Spearman_CV2_p_uncorr(ind), v.Pearson_CV2_p_uncorr(ind), v.Spearman_CV2_p_fdr(ind), v.Pearson_CV2_p_fdr(ind)];
                 VTBL.tbl.colnames = [VTBL.tbl.colnames, 'Spearman_GM', 'Pearson_GM', 'Spearman_P_uncorr_GM', 'Pearson_P_uncorr_GM','Spearman_P_FDR_GM', 'Pearson_P_FDR_GM'];           
             end

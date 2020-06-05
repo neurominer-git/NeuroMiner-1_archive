@@ -1,9 +1,9 @@
-function P = nk_CalibrateProbabilities(P)
+function P = nk_CalibrateProbabilities(P, cutoff)
 
-% indN = P<0;
-% indP = P>0;
-% P(indN) = P(indN)+0.5;
-% P(indP) = P(indP)-0.5;
-P = P-0.5;
+if ~exist('cutoff','var') || isempty(cutoff)
+    P = P - 0.05; 
+else
+    P = P - (cutoff+realmin);
+end
 
 end

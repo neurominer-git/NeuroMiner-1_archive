@@ -1,0 +1,23 @@
+function [rs, ds, md] = nk_GetTestPerf_WBLCOX(~, tXtest, ~, md, ~, ~)
+
+lx = size(tXtest,1);
+if isfield(md,'interval')
+    interval = md.interval;
+else
+    interval = mean(md.t0); % median time
+end
+
+ds = arrayfun( @(i) 1 - wc_survival(interval, tXtest(i,:), md), 1:lx )';
+
+if isfield(md,'cutoff')
+    cutoff = percentile(ds,md.cutoff.val);
+else
+    cutoff = percentile(ds,50); % median time
+end
+
+ds = nk_CalibrateProbabilities(ds, cutoff);
+rs = sign(ds);
+
+if nargout>2
+    ts = arrayfun( @(i) wc_predict(tXtest(i,:), md), 1:lx )';
+end
