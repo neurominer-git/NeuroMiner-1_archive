@@ -5,7 +5,7 @@ function [Results, FileNames, RootPath] = nk_OOCV(inp)
 % Independent test data prediction module
 % 
 % %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% (c) Nikolaos Koutsouleris, last modified 12/2021
+% (c) Nikolaos Koutsouleris, last modified 12/2019
 
 global SVM RFE MULTI MODEFL CV EVALFUNC OOCV SCALE SAV CVPOS
 

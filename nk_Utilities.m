@@ -8,11 +8,12 @@ menustr = ['Compile C++ files for NM|'...
            'Create CVresults path master|' ...
            'Create VISdatamat path master|' ...
            'Create OptPreprocParam path master|' ...
-           'Create OptModel path master'];
-menuact = 1:8;
+           'Create OptModel path master|' ...
+           'Update analyses'' paths to new root directory'];
+menuact = 1:9;
 
-if SPMAVAIL
-    menustr = [menustr '|Freesurfer: Downsampling, registration to fsaverage & matrix generation (Linux only)']; menuact = [ menuact 9 ];
+if SPMAVAIL && isunix
+    menustr = [menustr '|Freesurfer: Downsampling, registration to fsaverage & matrix generation (Linux only)']; menuact = [ menuact 10 ];
 end
 nk_PrintLogo
 act = nk_input('Choose utility function',0,'mq', menustr, menuact, 1);
@@ -47,9 +48,22 @@ switch act
         inp = []; inp = nk_GetAnalModalInfo_config(NM, inp);
         nk_GenDataMaster(NM.id, 'OptModel', CV(1),[],inp.rootdir,[],1);
     case 9
+        complvec = []; for z=1:numel(NM.analysis), if NM.analysis{z}.status, complvec = [ complvec z ]; end; end
+        t_act = 1; brief = 1; analind = 1; showmodalvec = []; 
+        while t_act>0, 
+            [t_act, analind, ~, showmodalvec , brief] = nk_SelectAnalysis(NM, 0, 'MAIN INTERFACE >> UPDATE ANALYSES ROOT DIRECTORIES ', analind, [], 1, showmodalvec, brief); 
+        end
+        if ~isempty(analind), 
+            analind = complvec(analind);
+        else
+            analind = complvec;
+        end
+        newdir = nk_DirSelector('Update analyses'' root paths');
+        NM = nk_UpdateRootPaths(NM, analind, newdir);
+    case 10
         [P, Y] = nk_FSreslice;
         assignin('base','P',P);
-        assignin('base','Y',Y);
+        assignin('base','Y',Y);    
 end
 
 nk_Utilities

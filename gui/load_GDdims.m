@@ -105,7 +105,10 @@ if isfield(GDdims,'BinClass') || isfield(GDdims,'MultiClass')
             handles.BinClass{j}.mean_globalcutoff_probabilities = GDdims.BinClass{j}.mean_globalcutoff_probabilities ;
             handles.BinClass{j}.std_globalcutoff_probabilities = GDdims.BinClass{j}.std_globalcutoff_probabilities ;
             handles.BinClass{j}.mean_globalcutoff_percentiles = GDdims.BinClass{j}.mean_globalcutoff_percentiles ;
-            handles.BinClass{j}.std_globalcutoff_percentiles= GDdims.BinClass{j}.std_globalcutoff_percentiles ;
+            handles.BinClass{j}.std_globalcutoff_percentiles= GDdims.BinClass{j}.std_globalcutoff_percentiles;
+            if isfield(GDdims.BinClass{j},'globalcutoff_probabilities')
+                handles.BinClass{j}.globalcutoff_probabilities= GDdims.BinClass{j}.globalcutoff_probabilities( handles.BinClass{j}.ind );
+            end
             handles.BinClass{j}.CoxMode = 1;
         else
             handles.BinClass{j}.CoxMode = 0;
@@ -116,11 +119,19 @@ if isfield(GDdims,'BinClass') || isfield(GDdims,'MultiClass')
         handles.BinClass{j}.CI2_predictions     = handles.BinClass{j}.CI2_predictions( handles.BinClass{j}.sortind, handles.curlabel );
         handles.BinClass{j}.prob_predictions    = handles.BinClass{j}.prob_predictions( handles.BinClass{j}.sortind ,:);
         handles.BinClass{j}.prob_finalpred      = GDdims.BinClass{j}.prob_finalpred( handles.BinClass{j}.sortind, handles.curlabel );
-
-        handles.BinClass{j}.contingency         = GDdims.BinClass{j}.contigency(handles.curlabel);
-        handles.BinClass{j}.prob_contingency    = GDdims.BinClass{j}.prob_contigency(handles.curlabel);
-        
-        
+      
+        if handles.BinClass{j}.CoxMode
+            if isfield(GDdims.BinClass{j},'globalcutoff_probabilities')
+                handles.BinClass{j}.globalcutoff_probabilities = handles.BinClass{j}.globalcutoff_probabilities( handles.BinClass{j}.sortind ,:);
+                handles.BinClass{j}.prob_contingency = ALLPARAM(handles.BinClass{j}.labelh, handles.BinClass{j}.prob_predictions(:,1)-handles.BinClass{j}.globalcutoff_probabilities);
+            else
+                handles.BinClass{j}.prob_contingency = GDdims.BinClass{j}.contigency;
+            end
+            handles.BinClass{j}.contingency      = handles.BinClass{j}.prob_contingency;
+        else
+            handles.BinClass{j}.contingency         = ALLPARAM(handles.BinClass{j}.labelh, handles.BinClass{j}.mean_predictions);
+            handles.BinClass{j}.prob_contingency    = ALLPARAM(handles.BinClass{j}.labelh, handles.BinClass{j}.prob_predictions(:,1)-0.5);
+        end
         switch handles.METAstr
             case 'none'
                 handles.BinClass{j}.best_TR             = GDdims.bestTR{j}(:,:, handles.curlabel);

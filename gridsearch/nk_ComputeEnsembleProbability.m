@@ -241,8 +241,9 @@ for curlabel=1:MULTILABEL.dim
                     pred(ind) = pred(ind) - mean_optcutoffs(ind);
                     %% Compute confusion matrix based on optimally centered Cox-PH probabilities
                     results.costfun_crit = feval(EVALFUNC, xlabl, pred(ind));
-                    results.contigency = feval('ALLPARAM', xlabl, pred(ind)); 
+                    results.contigency = ALLPARAM(xlabl, pred(ind)); 
                     results.prob_contigency = results.contigency;
+                    results.globalcutoff_probabilities = mean_optcutoffs;
                     results.mean_globalcutoff_probabilities = nm_nanmean(mean_optcutoffs);
                     results.std_globalcutoff_probabilities = nm_nanstd(mean_optcutoffs);
                     results.mean_globalcutoff_percentiles = nm_nanmean(mean_optcutoffpercs);

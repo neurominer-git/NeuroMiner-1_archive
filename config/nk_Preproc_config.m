@@ -454,7 +454,7 @@ else
                     cmdstr = 'Rank / Weight features';                                              cmdmnu = 11;
                 case 'remmeandiff'
                     if isfield(NM,'covars') && ~isempty(NM.covars)
-                        cmdstr = 'Correct group offsets from global group mean';                    cmdmnu = 12;
+                        cmdstr = 'Adjust group offsets from global group mean';                    cmdmnu = 12;
                     else
                         continue;
                     end
@@ -610,7 +610,7 @@ if isfield(NM,'covars') && ~isempty(NM.covars)
         tSIND = 1;
     end
 
-    tSIND = nk_input('Select binary group index covariates for offset computation (at least two columns)',0,'i', tSIND);
+    tSIND = nk_input('Select group index covariate for the computation of global and group-specific means (zeros indicate cases to be skipped)',0,'i', tSIND);
     
     if ~isempty(CURACT) && isfield(CURACT,'dIND') && ( ~isempty(CURACT.dIND) || ~strcmp(CURACT.dIND,'NA')), 
         tDIND = CURACT.dIND;
@@ -618,7 +618,7 @@ if isfield(NM,'covars') && ~isempty(NM.covars)
         tDIND = 1;
     end
 
-    tDIND = nk_input('Select group index covariates to apply computed offsets to ',0,'i', tDIND);
+    tDIND = nk_input('Select group index covariate to apply global and group-specific means corrections to (zeros indicate cases to be skipped)',0,'i', tDIND);
     
 end
 

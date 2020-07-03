@@ -20,11 +20,11 @@
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % (c) Nikolaos Koutsouleris, 06/2012
 
-function [M, cases_m, Sind, Dind] = nk_MatchID(Sid, S, Did, D, act, infind)
+function [M, cases_m, Sind, Dind] = nk_MatchID(Sid, S, Did, D, act, infind, verbose)
 
 if ~exist('infind','var') || isempty(infind), infind = false; end
 if infind, funcomp = 'strfind'; else funcomp = 'strcmp'; end
-    
+if ~exist('verbose','var') || isempty(verbose), verbose = 2; end    
 mSid=[]; mDid=[];
 if ~isempty(S)
    Sfl = true;
@@ -56,7 +56,7 @@ switch act
         for i = 1 : numel(Did)
 
             dstr = strtrim(deblank(Did{i}));
-            fprintf('\nSearching match for %s ... ',dstr);
+            if verbose == 2, fprintf('\nSearching match for %s ... ',dstr); end
             fndfl = false;
 
             for j = 1 : numel(Sid)
@@ -65,7 +65,7 @@ switch act
                 a = feval(funcomp,sstr,dstr); 
                 b = feval(funcomp,dstr,sstr);
                 if (~isempty(a) && a) ||  (~isempty(b) && b)
-                    fprintf('match found (%s).',sstr);
+                    if verbose == 2, fprintf('match found (%s).',sstr); end
                     mSid = [mSid; j]; 
                     mDid = [mDid; i];
                     fndfl = true;
@@ -74,10 +74,10 @@ switch act
 
             end
             if ~fndfl, 
-                cprintf('red*','NO MATCH FOUND !!!'); 
+                if verbose == 2, cprintf('red*','NO MATCH FOUND !!!'); end
                 cntnf = cntnf+1; 
                 nfid{cntnf} = dstr;    
-                if strcmp(act,'intersectnan'), cprintf('green', ' filled with NaN!'), end
+                if verbose == 2 && strcmp(act,'intersectnan'), cprintf('green', ' filled with NaN!'), end
             end
             nanDid = [nanDid; fndfl];
         end
@@ -128,20 +128,20 @@ switch act
         for j = 1 : numel(Sid)
             
             sstr = strtrim(Sid{j});
-            fprintf('\nSearching match for %s ... ',sstr);
+            if verbose == 2, fprintf('\nSearching match for %s ... ',sstr); end
             fndfl = false;
             
             for i = 1 : numel(Did)
                 dstr = strtrim(Did{i});
                 a = feval(funcomp,sstr,dstr); b = feval(funcomp,dstr,sstr);
                 if (~isempty(a) && a) ||  (~isempty(b) && b)
-                    fprintf('match found (%s).',dstr);
+                    if verbose == 2, fprintf('match found (%s).',dstr); end
                     fndfl = true;
                     break
                 end
             end
             
-            if ~fndfl,fprintf('store source ID (%s).',sstr); mSid = [ mSid j ]; end
+            if ~fndfl, if verbose == 2, fprintf('store source ID (%s).',sstr); end; mSid = [ mSid j ]; end
             
         end
         if Sfl

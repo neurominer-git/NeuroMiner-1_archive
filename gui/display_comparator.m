@@ -52,7 +52,7 @@ switch ActionMode
                 'Position', [win_x win_y win_wdth win_hght]);
         
         multiflag = false; togmult='off'; if numel(unique(handles.NM.label(~isnan(handles.NM.label))))>2, multiflag = true; togmult='on';end
-        handles.PerfTab.analysisselect = uitable('units', 'normalized', 'position', [0.05, 0.110, 0.9, 0.7], ...
+        handles.PerfTab.analysisselect = uitable('units', 'normalized', 'position', [0.05, 0.195, 0.9, 0.65], ...
                                         'ColumnName', {'Analyses','Alias','Order','Select'}, ... 
                                         'ColumnFormat',{'char','char','char','logical'},...
                                         'ColumnEditable', [false, true, true, true],...
@@ -75,7 +75,33 @@ switch ActionMode
                                         'Position',[0.80 0.85 0.15 0.06], ...
                                         'String','Multi-group', ...
                                         'Enable', togmult, ...
-                                        'TooltipString', 'toggle button to compare multi-group or binary classifiers');   
+                                        'TooltipString', 'toggle button to compare multi-group or binary classifiers'); 
+                                    
+        handles.PerfTab.perfplot_radio = uibuttongroup('Visible','off',...
+                                        'Position',[0.05 0.115 .9 .06]);
+              
+        handles.PerfTab.perf_radio1    = uicontrol(handles.PerfTab.perfplot_radio,'Style','radiobutton', ...
+                                        'units','normalized', ...
+                                        'String','Violins of performance distributions', ...
+                                        'Position',[0.01 0.05 0.25 1]);
+                                    
+        handles.PerfTab.perf_radio2     = uicontrol(handles.PerfTab.perfplot_radio,'Style','radiobutton', ...
+                                        'units','normalized', ...
+                                        'String','Violins of one-vs-all performance deltas', ...
+                                        'Position',[0.25 0.05 0.25 1]);
+                                    
+        handles.PerfTab.perf_radio3     = uicontrol(handles.PerfTab.perfplot_radio,'Style','radiobutton', ...
+                                        'units','normalized', ...
+                                        'String','Box plots of one-vs-one performance deltas', ...
+                                        'Position',[0.525 0.05 0.25 1]);
+                                    
+        handles.PerfTab.perf_radio4     = uicontrol(handles.PerfTab.perfplot_radio,'Style','radiobutton', ...
+                                        'units','normalized', ...
+                                        'String','Median (5%/95%) plot ', ...
+                                        'Position',[0.8 0.05 0.20 1]);
+                                    
+        handles.PerfTab.perfplot_radio.Visible = 'on';
+                                    
         handles.PerfTab.fileseltext    = uicontrol('Style','edit', ...
                                         'units','normalized', ...
                                         'Position',[0.05 0.04 0.58 0.06]);
@@ -177,7 +203,7 @@ else
     ext = '*.csv';
 end
 
-[FileName,PathName] = uiputfile(ext,'Save performance table','PerfTable');
+[FileName,PathName] = uiputfile(ext,'Save performance table','CompareTable');
 handles.PerfTab.fileseltext.String = fullfile(PathName, FileName);
 
 function handles = set_order(src,evt, handles)
@@ -457,7 +483,7 @@ switch handles.PerfTab.multiflag.Value
         % leave-group-out index, instead of performing the test on CV2
         % performances
         LGOflag = false;
-        
+        [ylm, Crit] = nk_GetScaleYAxisLabel(handles.NM.analysis{a(i)}.params.TrainParam.SVM);
         % Map external predictor to cross-validation structure 
         % (implement mapping to binary dichotomizers in multi-class case)
         for curclass=1:handles.nclass
@@ -496,7 +522,6 @@ switch handles.PerfTab.multiflag.Value
           
             AnalNames = [];
             if LGOflag && ~recomp 
-                Crit = 'BAC';
                 LSO =  handles.NM.analysis{a(1)}.params.TrainParam.RAND.CV2LCO.ind; 
                 nLSO = numel(unique(LSO));
                 Gnames = cell(nLSO,1);
@@ -617,13 +642,42 @@ switch handles.PerfTab.multiflag.Value
             handles.comparator_stats{curclass}.PredictorPerformances = G;
             if numel(AnalNames)>2
                 handles.comparator_stats{curclass} = quadetest(G, Gnames, AnalNames, Filename);
-                display_classcomparison_matrix(handles.comparator_stats{curclass}.tbl_p_fdr_posthoc, AnalNames, mean(G), std(G));
+                mw=[]; sw=[];
+                rI = DetermineSelectedRadioButton(handles.PerfTab.perfplot_radio);
+                switch rI
+                    case {1,4}
+                        switch rI
+                            case 1
+                                D = G;
+                            case 4
+                                D = [];  mw = nm_nanmedian(G); sw = abs(mw-percentile(G,5)); sw = [sw;abs(mw-percentile(G,95))];
+                        end
+                        str = 'Performance';
+                        hlinepos = mean(ylm);
+                    case 2
+                        D = nk_ComputeMnMdPairWiseDiff(G,'md','meandiff');
+                        str = 'Mean one-vs.-all \Delta(Performance)';
+                        hlinepos = 0;
+                    case 3
+                        D = nk_ComputeMnMdPairWiseDiff(G,'md','alldiff');
+                        str = 'One-vs.-one \Delta(Performance)';
+                        hlinepos = 0;
+                end
+                display_classcomparison_matrix(handles.comparator_stats{curclass}.tbl_p_fdr_posthoc, AnalNames, mw, sw, [], D, hlinepos, str);
             else
                 handles.comparator_stats{curclass} = wilcoxon(G(:,1)', G(:,2)', 0.05, Gnames, AnalNames, Filename);
             end
 
         end
 end
+
+function SelectedObjectIndex = DetermineSelectedRadioButton(handles)
+cnt=1;
+for i=numel(handles.Children):-1:1
+    Obj{cnt} = handles.Children(i).String;
+    cnt=cnt+1;
+end
+SelectedObjectIndex = find(strcmp(Obj,handles.SelectedObject.String));
 
 function handles = visualize_performances(src, evt, handles)
 
@@ -728,9 +782,11 @@ ax.XLabel.FontWeight = 'bold';
 ax.YAxis(1).Label.String = 'Performance Measure(s)';
 ax.YAxis(1).Label.FontWeight = 'bold';
 ax.YAxis(1).FontSize = 12;
-ax.YAxis(2).Label.String = 'Performance Measure(s)';
-ax.YAxis(2).Label.FontWeight = 'bold';
-ax.YAxis(2).FontSize = 12;
+if numel(ax.YAxis)>1
+    ax.YAxis(2).Label.String = 'Performance Measure(s)';
+    ax.YAxis(2).Label.FontWeight = 'bold';
+    ax.YAxis(2).FontSize = 12;
+end
 ax.Box = 'on';
 ax.YGrid = 'on';
 ax.Color = [0.95 0.95 0.95]; 

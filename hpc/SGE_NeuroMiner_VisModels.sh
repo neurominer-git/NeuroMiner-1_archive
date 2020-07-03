@@ -88,7 +88,7 @@ read -p 'CV2 grid end row: ' CV2x2
 read -p 'CV2 grid start column: ' CV2y1
 read -p 'CV2 grid end column: ' CV2y2
 read -p 'No. of SGE jobs: ' numCPU
-read -p 'Server to use [any=1, psy0cf20=2, mitnvp1=3]: ' sind
+read -p 'Server to use [any=1, psy0cf20=2, mitnvp1-2=3]: ' sind
 if [ "$sind" = '1' ]; then
         SERVER_ID='all.q'
         echo "WARNING: if it is a high RAM job then please use psy0cf20"
@@ -96,7 +96,7 @@ elif [ "$sind" = '2' ]; then
         SERVER_ID='psy0cf20'
         echo "Please estimate RAM accurately"
 elif [ "$sind" = '3' ]; then
-        SERVER_ID='mitnvp1'
+        SERVER_ID='mitnvp1-2'
         echo "WARNING: if it is a high RAM job then please use psy0cf20"
 else
         echo "Enter a number between 1-3"

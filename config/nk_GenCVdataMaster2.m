@@ -83,11 +83,17 @@ switch fl
                 if isempty(FeatInfo{i}{v}.id)
                     fprintf('\n\tNo ID found in filename %s', nam);
                     fprintf('\n\tOpening mat file to find ID.');
-                    load(deblank(featmat{i}{v}));
+                    load(deblank(featmat{i}{v}),'id');
                     try 
                         FeatInfo{i}{v}.id = id;
                     catch
-                        error('\nNo ID found. Abort!')
+                        [~, filnamex] = fileparts( deblank(featmat{i}{v}) );
+                        II = strfind(filnamex,'_ID');
+                        if ~isempty(II)
+                            FeatInfo{i}{v}.id = filnamex(II+3:numel(filnamex));
+                        else
+                            error(sprintf('\nNo ID found. Abort!'))
+                        end
                     end
                 end
                 

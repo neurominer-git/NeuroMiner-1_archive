@@ -66,7 +66,7 @@ elif [ "$sind" = '2' ]; then
         SERVER_ID='psy0cf20'
         echo "Please estimate RAM accurately"
 elif [ "$sind" = '3' ]; then
-        SERVER_ID='mitnvp1'
+        SERVER_ID='mitnvp1-2'
         echo "WARNING: if it is a high RAM job then please use psy0cf20"
 else
         echo "Enter a number between 1-3"

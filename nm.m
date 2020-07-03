@@ -351,38 +351,13 @@ try
             while t_act>0, 
                 [t_act, analind, ~, showmodalvec , brief] = nk_SelectAnalysis(NM, 0, 'MAIN INTERFACE >> UPDATE ANALYSES ROOT DIRECTORIES ', analind, [], 1, showmodalvec, brief); 
             end
-            if ~isempty(analind), analind = complvec(analind) ; end
-            newdir = nk_DirSelector('Update analyses'' root paths');
-            if exist(newdir,'dir')
-                [pnew,nnew] = fileparts(newdir);
-                [~,nold] = fileparts(NM.analysis{analind}.rootdir);
-                if ~strcmp(nnew,nold),
-                    msgbox('New root directory should have the same name as the old one. Only the parent directory can be different', 'Error','error');
-                else
-                    % Adjust root directories
-                    NM.analysis{analind}.parentdir = pnew;
-                    NM.analysis{analind}.rootdir = newdir;
-                    NM.analysis{analind}.logfile = fullfile(newdir,['NM_Analysis' NM.analysis{analind}.id '.log']);
-                    [~,paramsold] = fileparts(NM.analysis{analind}.paramfile);
-                    NM.analysis{analind}.paramdir = fullfile(newdir,'params');
-                    NM.analysis{analind}.paramfile = fullfile(newdir,'params',[paramsold '.mat']);
-                
-                    % Adjust CVdatamat directories
-                    algostr = NM.analysis{analind}.params.TrainParam.SVM.prog;
-                    for i=1:numel(NM.analysis{analind}.GDdims)
-                        NM.analysis{analind}.GDdims{i}.RootPath = fullfile(newdir,algostr);
-                    end
-                    
-                    % Adjust OOCVdatamat directories
-                    if isfield(NM.analysis{analind},'OOCV')
-                        for i=1:numel(NM.analysis{analind}.OOCV)
-                            oocvdir = sprintf('OOCV_%g',i);
-                            NM.analysis{analind}.OOCV{i}.RootPath = fullfile(newdir,algostr,oocvdir);
-                        end
-                    end
-                    msgbox(sprintf('Successfully adjusted directories of analysis %g', analind));
-                end
+            if ~isempty(analind), 
+                analind = complvec(analind);
+            else
+                analind = complvec;
             end
+            newdir = nk_DirSelector('Update analyses'' root paths');
+            NM = nk_UpdateRootPaths(NM, analind, newdir);
     end
 
 catch ERR
