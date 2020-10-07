@@ -261,7 +261,11 @@ function handles = compare_predictors(src, evt, handles)
 pth = fileparts(handles.PerfTab.fileseltext.String);
 if isempty(handles.PerfTab.fileseltext.String) || isempty(pth), errordlg('Provide a valid output path before tabulating the data.'); return; end
 
-curlabel = handles.curlabel;
+if isfield(handles,'curlabel')
+    curlabel = handles.curlabel;
+else
+    curlabel = 1;
+end
 
 if ~isfolder(pth)
     [status, msg] = mkdir(pth);
@@ -685,7 +689,7 @@ switch handles.PerfTab.multiflag.Value
                                 case 1
                                     D = G;
                                 case 4
-                                    D = [];  mw = nm_nanmedian(G); sw = abs(mw-percentile(G,5)); sw = [sw;abs(mw-percentile(G,95))];
+                                    D = [];  mw = nm_nanmedian(G); sw = abs(mw-percentile(G,25)); sw = [sw;abs(mw-percentile(G,75))];
                             end
                             str = 'Performance';
                             hlinepos = mean(ylm);

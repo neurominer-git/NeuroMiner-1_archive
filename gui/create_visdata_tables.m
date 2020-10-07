@@ -23,7 +23,12 @@ switch act
                 VTBL.tbl(curclass).colnames = ...
                     {'Feature', 'SortIndex', 'Mean_W', 'StErr_W', 'Mean_W_GM', 'StErr_W_GM', 'CVratio', 'CVratio_GM', 'P_Relia95CI_GM'};
                 if isfield(v,'SignBased_CV2')
-                    VTBL.tbl(curclass).array = [ VTBL.tbl(curclass).array v.SignBased_CV2{curclass}(ind), v.SignBased_CV2_z{curclass}(ind), v.SignBased_CV2_p_uncorr{curclass}(ind), v.SignBased_CV2_p_fdr{curclass}(ind) ];
+                    if iscell(v.SignBased_CV2)
+                        vx = v.SignBased_CV2{curclass}(ind);
+                    else
+                        vx = v.SignBased_CV2(ind);
+                    end
+                    VTBL.tbl(curclass).array = [ VTBL.tbl(curclass).array vx, v.SignBased_CV2_z{curclass}(ind), v.SignBased_CV2_p_uncorr{curclass}(ind), v.SignBased_CV2_p_fdr{curclass}(ind) ];
                     VTBL.tbl(curclass).colnames = [ VTBL.tbl(curclass).colnames 'SignConst', 'Z_SignConst', 'P_SignConst', 'Pfdr_SignConst' ];
                 end
                 VTBL.tbl(curclass).rownames = v.params.features(ind)';

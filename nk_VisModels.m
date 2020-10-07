@@ -177,7 +177,7 @@ for f=1:ix % Loop through CV2 permutations
         CVPOS.CV2f = d;
         operm = f; ofold = d;
         oVISpath = nk_GenerateNMFilePath(inp.rootdir, SAV.matname, inp.datatype, multlabelstr, strout, id, operm, ofold);
-        OptModelPath = nk_GenerateNMFilePath( inp.rootdir, SAV.matname, 'OptModel', [], inp.varstr, inp.id, operm, ofold);
+        OptModelPath = nk_GenerateNMFilePath( inp.saveoptdir, SAV.matname, 'OptModel', [], inp.varstr, inp.id, operm, ofold);
     
         switch inp.analmode 
             

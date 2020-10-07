@@ -29,16 +29,18 @@ if excelinstalled
         fprintf('\nWriting sheet ''%s'' to excel file %s',sheetnames{i},filename); 
         writetable(tblstruct.(tblnames{i}),filename,'Sheet',sheetnames{i},'WriteRowNames',true);
     end
-    objExcel.Workbooks.Open(filename); 
-    % MRZ: delete default sheets in freshly created .xls
-    [~, sheets] = xlsfinfo(filename);
-    sheetNames2remove = setdiff(sheets,sh); 
-    for i = 1:numel(sheetNames2remove)
-        objExcel.ActiveWorkbook.Worksheets.Item(sheetNames2remove{i}).Delete;
+    try
+        objExcel.Workbooks.Open(filename); 
+        % MRZ: delete default sheets in freshly created .xls
+        [~, sheets] = xlsfinfo(filename);
+        sheetNames2remove = setdiff(sheets,sheetnames); 
+        for i = 1:numel(sheetNames2remove)
+            objExcel.ActiveWorkbook.Worksheets.Item(sheetNames2remove{i}).Delete;
+        end
+        objExcel.ActiveWorkbook.Save
+        objExcel.ActiveWorkbook.Close(filename);
+        delete(objExcel);
     end
-    objExcel.ActiveWorkbook.Save
-    objExcel.ActiveWorkbook.Close(filename);
-    delete(objExcel);
 else
     %... or as csv files
     [pth, nam, ext] = fileparts(filename); 

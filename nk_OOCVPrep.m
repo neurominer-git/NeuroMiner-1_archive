@@ -196,6 +196,7 @@ switch act
             nk_SetupGlobVars2(NM.analysis{inp.analind(i)}.params, 'setup_main', 0); 
             NM.runtime.curanal = inp.analind(i);
             inp.analysis_id = NM.analysis{inp.analind(i)}.id;
+            inp.saveoptdir = [ NM.analysis{inp.analind(i)}.rootdir filesep 'opt' ];
             NM.analysis{inp.analind(i)}.OOCV{inp.oocvind} = OOCVPrep(NM, inp, NM.analysis{inp.analind(i)});
             nk_SetupGlobVars2(NM.analysis{inp.analind(i)}.params, 'clear', 0); 
          end
@@ -265,6 +266,7 @@ if isfield(analysis,'rootdir') && exist(analysis.rootdir,'dir')
 else
     inp1.rootdir = fullfile(pwd,analysis.params.TrainParam.SVM.prog,inp1.oocvname);
 end
+
 if ~exist(inp1.rootdir,'dir'), mkdir(inp1.rootdir); end
 
 % Loop through modalities

@@ -144,13 +144,9 @@ for f=1:ix % Loop through CV2 permutations
         operm = f; ofold = d;
         % Create OOCV partition file path
         oOOCVpath = nk_GenerateNMFilePath(inp.rootdir, SAV.matname, inp.datatype, [], inp.varstr, inp.id, operm, ofold);
-        
+        OptModelPath = nk_GenerateNMFilePath( inp.saveoptdir, SAV.matname, 'OptModel', [], inp.varstr, inp.id, operm, ofold);
         switch inp.analmode
-            
             case 0
-                
-                 OptModelPath = nk_GenerateNMFilePath( inp.rootdir, SAV.matname, 'OOCVOptModel', [], inp.varstr, inp.id, operm, ofold);
-        
                  loadfl = false;
                  if exist(oOOCVpath,'file') && ~ovrwrt && ~batchflag
                     
@@ -410,7 +406,6 @@ for f=1:ix % Loop through CV2 permutations
         if LabelMode
         
             %% Step 5: Assess binary classifier performance, if OOCV Label has been specified
-            
             if strcmp(MODEFL,'classification')
                 for curclass=1:nclass
                     binOOCVDhx_ll = binOOCVDh{curclass}(indDicho{curclass},:);
@@ -425,7 +420,8 @@ for f=1:ix % Loop through CV2 permutations
                     end
                     Results.BinCV2Performance_Targets(curclass, ll) = feval(EVALFUNC, labelDicho{curclass}(indDicho{curclass}) , hrx_ll);
                     Results.BinCV2Performance_DecisionValues(curclass,ll) = feval(EVALFUNC,labelDicho{curclass}(indDicho{curclass}), hdx_ll);
-                    
+                    Results.BinCV2Sensitivity_DecisionValues(curclass,ll) = SENSITIVITY(labelDicho{curclass}(indDicho{curclass}), hdx_ll);
+                    Results.BinCV2Specificity_DecisionValues(curclass,ll) = SPECIFICITY(labelDicho{curclass}(indDicho{curclass}), hdx_ll);
                     Results.contingency{curclass} = ALLPARAM(labelDicho{curclass}(indDicho{curclass}), hdx);
                     Results.BinCV2Performance_Targets_History(curclass,ll) = feval(EVALFUNC, labelDicho{curclass}(indDicho{curclass}) , hrx);
                     Results.BinCV2Performance_DecisionValues_History(curclass,ll) = feval(EVALFUNC, labelDicho{curclass}(indDicho{curclass}) , hdx);
@@ -552,7 +548,7 @@ if ~batchflag
                 Results.CICV2PredictedValues(indnan)=nan;
 
                 Results.ErrCV2PredictedValues = Results.MeanCV2PredictedValues - labelOOCV;
-                if inp.ngroups > 1 & isfield(inp,'groupind')
+                if inp.ngroups > 1 && isfield(inp,'groupind')
                     try
                         [Results.GroupComp.P, Results.GroupComp.AnovaTab, Results.GroupComp.Stats] = ...
                             anova1(Results.ErrCV2PedictedValues,inp.groupind);

@@ -123,9 +123,9 @@ else
             CV1p = []; CV1f = [];
         end
         OptPreprocParamFilename = ...
-            nk_GenerateNMFilePath( inp.procdir, SAV.matname, 'OptPreprocParam', [], inp.varstr, inp.id, CV2p , CV2f, CV1p, CV1f);
+            nk_GenerateNMFilePath( inp.saveoptdir, SAV.matname, 'OptPreprocParam', [], inp.varstr, inp.id, CV2p , CV2f, CV1p, CV1f );
         fprintf('\nSaving %s to disk...', OptPreprocParamFilename)
-        if ~exist(inp.procdir,'dir'), mkdir(inp.procdir);end
+        if ~exist(inp.saveoptdir,'dir'), mkdir(inp.saveoptdir);end
         save(OptPreprocParamFilename,'Param','CV2f','CV2f', '-v7.3');     
     end
 
