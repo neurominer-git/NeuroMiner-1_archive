@@ -63,5 +63,5 @@ inp.GridAct = nk_GenGridAct_batch(NM.analysis{analind}.params.cv, curCPU, numCPU
 inp.preprocmat = preprocmat;                            
 inp = nk_GetAnalModalInfo_config(NM, inp);
                                 
-nk_MLOptimizerPrep(7, NM, inp, 'NM:HPC:MLOPTIMIZER');
+nk_MLOptimizerPrep(7, inp, 'NM:HPC:MLOPTIMIZER');
             

@@ -51,4 +51,4 @@ GridAct = nk_GenGridAct_batch(NM.analysis{analind}.params.cv, ...
 								curCPU, numCPU, CV2x1, CV2x2, CV2y1, CV2y2);
 
 % %%%%%%%%%%%%%%%%%%%%%%%%% PERFORM PREPROCESSING %%%%%%%%%%%%%%%%%%%%%%%%%
-BATCH = 1; nk_PreprocessPrep( 6, NM, analind, GridAct, inp, 'NM:HPC:PREPROCESS');
+BATCH = 1; nk_PreprocessPrep( 6, analind, GridAct, inp, 'NM:HPC:PREPROCESS');
