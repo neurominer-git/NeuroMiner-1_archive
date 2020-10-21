@@ -207,7 +207,7 @@ else
                 case 0
                     kind =  1:kFea; % Include all features
                     sx = kind;
-                case {1, 2, 3, 4, 5, 6, 7, 10, 12, 13}
+                case {1, 2, 3, 4, 5, 6, 7, 10, 12, 13, 14}
                     kind = ind(1:k);
                     sx = 1:k;  
                 case 9 % Generate unfiltered feature subspaces of increasing cardinality

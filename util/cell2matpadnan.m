@@ -1,7 +1,9 @@
-function CC = cell2matpadnan(C,pad)
+function CC = cell2matpadnan(C, pad, maxLengthCell)
 
 if ~exist('pad','var') || isempty(pad), pad=NaN; end 
-maxLengthCell=max(max(cellfun('size',C,2)));  %finding the longest vector in the cell array
+if ~exist('maxLengthCell','var') || isempty(maxLengthCell)
+    maxLengthCell=max(max(cellfun('size',C,2)));  %finding the longest vector in the cell array
+end
 CC = cell(size(C)); n = 1; o=1;
 if ndims(CC)>1, [m,n,o] = size(CC); end
 for k=1:o

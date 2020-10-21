@@ -38,9 +38,11 @@ switch ActionMode
                 %analyses{cnt} = handles.NM.analysis{i}.id;
                 analysescnt{cnt} = num2str(cnt);
                 data{cnt, 1} = handles.NM.analysis{i}.id;
-                data{cnt, 2} = '';
+                data{cnt, 2} = i;
                 data{cnt, 3} = '';
-                data{cnt, 4} = false;
+                data{cnt, 4} = 'no';
+                data{cnt, 5} = '';
+                data{cnt, 6} = false;
             end
         end
         
@@ -52,27 +54,21 @@ switch ActionMode
                 'Position', [win_x win_y win_wdth win_hght]);
         
         multiflag = false; togmult='off'; if numel(unique(handles.NM.label(~isnan(handles.NM.label))))>2, multiflag = true; togmult='on';end
-        handles.PerfTab.analysisselect = uitable('units', 'normalized', 'position', [0.05, 0.195, 0.9, 0.65], ...
-                                        'ColumnName', {'Analyses','Alias','Order','Select'}, ... 
-                                        'ColumnFormat',{'char','char','char','logical'},...
-                                        'ColumnEditable', [false, true, true, true],...
-                                        'ColumnWidth',{400, 200, 50, 'auto'}, ...
-                                        'RowName', analyses,...
-                                        'data', data, ...
-                                        'CellEditCallback', {@set_order, handles});
+                                    
         handles.PerfTab.addedit        = uicontrol( 'Style','edit', ...
                                         'Units', 'normalized', ...
-                                        'Position', [0.05, 0.85, 0.7, 0.06], ...
+                                        'Position', [0.05, 0.87, 0.7, 0.05], ...
                                         'TooltipString', sprintf(['Enter additional predictors here that were obtained outside of your NM analysis.' ...
                                                                 '\nMake sure that prediction vectors have the same number of cases\n' ...
                                                                 'and predictions match NM outputs.']));
         handles.PerfTab.addedit_label  = uicontrol('Style','text', ...
                                         'Units', 'normalized', ...
-                                        'Position', [0.05, 0.92, 0.7, 0.04], ...
+                                        'Position', [0.05, 0.92, 0.7, 0.035], ...
                                         'String',sprintf('Enter external predictor outputs here [ %g cases, any number of predictors ]', size(handles.NM.cases,1)));
+                                    
         handles.PerfTab.multiflag      = uicontrol('Style','togglebutton', ...
                                         'units','normalized',...
-                                        'Position',[0.80 0.85 0.15 0.06], ...
+                                        'Position',[0.80 0.87 0.15 0.05], ...
                                         'String','Multi-group', ...
                                         'Enable', togmult, ...
                                         'TooltipString', 'toggle button to compare multi-group or binary classifiers'); 
@@ -105,18 +101,31 @@ switch ActionMode
         handles.PerfTab.fileseltext    = uicontrol('Style','edit', ...
                                         'units','normalized', ...
                                         'Position',[0.05 0.04 0.58 0.06]);
+                                    
         handles.PerfTab.fileseldlg     = uicontrol('Style','pushbutton', ...
                                         'units','normalized',...
                                         'Position',[0.64 0.04 0.15 0.06], ...
                                         'String','Save as', ...
                                         'Callback', {@saveas,handles});
-        handles.PerfTab.tabulate       = uicontrol('Style','pushbutton', ...
+                                    
+        handles.PerfTab.analysisselect = uitable('units', 'normalized', 'position', [0.05, 0.195, 0.9, 0.65], ...
+                                        'ColumnName', {'Analyses','Idx','Alias','Reference','Order','Select'}, ... 
+                                        'ColumnFormat',{'char','numeric','char',{'yes','no'},'char','logical'},...
+                                        'ColumnEditable', [false, false, true, true, true, true],...
+                                        'ColumnWidth',{400, 50, 200, 50, 50, 'auto'}, ...
+                                        'RowName', analyses,...
+                                        'data', data, ...
+                                        'CellEditCallback', {@set_order, handles});
+        
+        handles.PerfTab.tabulate = uicontrol('Style','pushbutton', ...
                                         'units','normalized', ...
                                         'Position',[0.80 0.04 0.15 0.06], ...
                                         'String','Compare', ...
                                         'FontWeight', 'bold',...
                                         'BackgroundColor', rgb('lightblue'), ...
                                         'Callback', {@compare_predictors, handles});
+        guidata(handles.figure1,handles);
+        
     case 'visual'
         
         for i=1:numel(handles.NM.analysis)
@@ -125,18 +134,19 @@ switch ActionMode
                 %analyses{cnt} = handles.NM.analysis{i}.id;
                 analysescnt{cnt} = num2str(cnt);
                 data{cnt, 1} = handles.NM.analysis{i}.id;
-                data{cnt, 2} = '';
-                data{cnt, 3} = false;
+                data{cnt, 2} = i;
+                data{cnt, 3} = '';
+                data{cnt, 4} = false;
             end
         end
         
         handles.PerfTab.Win = figure('NumberTitle','off','Name','NM Visual Performance Comparator', 'Tag' ,WinTag,'MenuBar','none');
         rowperfs=[];
         handles.PerfTab.analysisselect = uitable('units', 'normalized', 'position', [0.05, 0.110, 0.9, 0.45], ...
-                                        'ColumnName', {'Analyses','Alias','Select'}, ... 
-                                        'ColumnFormat',{'char','char','logical'},...
-                                        'ColumnEditable', [false, true, true],...
-                                        'ColumnWidth',{300, 'auto', 'auto'}, ...
+                                        'ColumnName', {'Analyses','Idx', 'Alias','Select'}, ... 
+                                        'ColumnFormat',{'char', 'numeric', 'char','logical'},...
+                                        'ColumnEditable', [false, false, true, true],...
+                                        'ColumnWidth',{300, 50, 'auto', 'auto'}, ...
                                         'RowName', analyses,...
                                         'data', data);
         switch handles.modeflag
@@ -193,6 +203,8 @@ switch ActionMode
                                         'String','Line plots', ...
                                         'FontWeight', 'normal',...
                                         'BackgroundColor', rgb('lightgrey'));
+
+
 end
  
 function handles = saveas(src, evt, handles)
@@ -206,24 +218,35 @@ end
 [FileName,PathName] = uiputfile(ext,'Save performance table','CompareTable');
 handles.PerfTab.fileseltext.String = fullfile(PathName, FileName);
 
-function handles = set_order(src,evt, handles)
+function handles = set_order(src, evt, handles)
 
 row = evt.Indices(1); 
 switch evt.Indices(2) 
-    case 2
-        col = 4;
+    case 3
+        col = 6;
         if ~strcmp(src.Data{row,col},'') 
             src.Data{row, col} = true;
         end
+        
     case 4
-        col = 3;
-
+        col = 4;
+        vl = src.Data{row,col};
+        src.Data(:,4) = {'no'};
+        src.Data{row,col}= vl;
+        if strcmp(vl,'yes')
+            set(handles.PerfTab.perfplot_radio.Children,'Enable','off');
+        else
+            set(handles.PerfTab.perfplot_radio.Children,'Enable','on');
+        end
+            
+    case 6
+        col = 5;
         if evt.NewData && strcmp(src.Data{row,col},'') 
             if row == 1
                 src.Data{row,col} = '1';
             else
             %[m,n] = size(src.Data);
-                selected = find(cell2mat(src.Data(1:row-1,4)));
+                selected = find(cell2mat(src.Data(1:row-1,5)));
                 src.Data{row,col} = num2str(numel(selected)+1);
             end
         else
@@ -238,7 +261,11 @@ function handles = compare_predictors(src, evt, handles)
 pth = fileparts(handles.PerfTab.fileseltext.String);
 if isempty(handles.PerfTab.fileseltext.String) || isempty(pth), errordlg('Provide a valid output path before tabulating the data.'); return; end
 
-curlabel = handles.curlabel;
+if isfield(handles,'curlabel')
+    curlabel = handles.curlabel;
+else
+    curlabel = 1;
+end
 
 if ~isfolder(pth)
     [status, msg] = mkdir(pth);
@@ -250,8 +277,10 @@ if ~isfolder(pth)
     end
 end
 
-AnalysisSelection = cell2mat(handles.PerfTab.analysisselect.Data(:,4));
-OrderSelection = str2num(char(handles.PerfTab.analysisselect.Data(:,3)));
+AnalysisSelection = cell2mat(handles.PerfTab.analysisselect.Data(:,6));
+OrderSelection = str2num(char(handles.PerfTab.analysisselect.Data(:,5)));
+RefSelection = strcmp(handles.PerfTab.analysisselect.Data(:,4),'yes');
+RefSelectionSel = RefSelection(AnalysisSelection);
 
 if ~any(AnalysisSelection)
     errordlg('You have to select at least one analysis from the list')
@@ -262,17 +291,21 @@ if sum(AnalysisSelection) ~= numel(OrderSelection),
 end
 
 AnalysisStrings = handles.PerfTab.analysisselect.Data(:,1);
-AnalysisAliasStrings = handles.PerfTab.analysisselect.Data(:,2);
+AnalysisIdx     = handles.PerfTab.analysisselect.Data(:,2);
+AnalysisAliasStrings = handles.PerfTab.analysisselect.Data(:,3);
 I = strcmp(AnalysisAliasStrings,'');
 AnalysisAliasStrings(I) = AnalysisStrings(I);
 AnalysisAliasStringsSel = AnalysisAliasStrings(AnalysisSelection);
-
+AnalysisIdxSel = cell2mat(AnalysisIdx(AnalysisSelection));
 
 % Analyse cross-validation structures and optimization criteria
-a = zeros(1,sum(AnalysisSelection)); nA=numel(a); fd = find(AnalysisSelection);
+a = zeros(1,sum(AnalysisSelection)); nA=numel(a); 
+fd = AnalysisIdxSel;
 [~,OrderSelection] = sort(OrderSelection,'ascend'); 
 fd = fd(OrderSelection); AnalysisAliasStringsSel=AnalysisAliasStringsSel(OrderSelection);
+RefSelectionSel = RefSelectionSel(OrderSelection);
 CV = handles.NM.analysis{fd(1)}.params.cv;
+
 for i=1:nA
     a(i) = fd(i);
     if i==1
@@ -640,30 +673,60 @@ switch handles.PerfTab.multiflag.Value
             end
             handles.comparator_stats{curclass}.PredictorNames = AnalNames;
             handles.comparator_stats{curclass}.PredictorPerformances = G;
+            
             if numel(AnalNames)>2
-                handles.comparator_stats{curclass} = quadetest(G, Gnames, AnalNames, Filename);
-                mw=[]; sw=[];
-                rI = DetermineSelectedRadioButton(handles.PerfTab.perfplot_radio);
-                switch rI
-                    case {1,4}
-                        switch rI
-                            case 1
-                                D = G;
-                            case 4
-                                D = [];  mw = nm_nanmedian(G); sw = abs(mw-percentile(G,5)); sw = [sw;abs(mw-percentile(G,95))];
-                        end
-                        str = 'Performance';
-                        hlinepos = mean(ylm);
-                    case 2
-                        D = nk_ComputeMnMdPairWiseDiff(G,'md','meandiff');
-                        str = 'Mean one-vs.-all \Delta(Performance)';
-                        hlinepos = 0;
-                    case 3
-                        D = nk_ComputeMnMdPairWiseDiff(G,'md','alldiff');
-                        str = 'One-vs.-one \Delta(Performance)';
-                        hlinepos = 0;
+
+                if ~any(RefSelectionSel)
+                    % Run quade test if no reference population has been
+                    % defined, thus each model is compared to all other
+                    % models
+                    handles.comparator_stats{curclass} = quadetest(G, Gnames, AnalNames, Filename);
+                    mw=[]; sw=[];
+                    rI = DetermineSelectedRadioButton(handles.PerfTab.perfplot_radio);
+                    switch rI
+                        case {1,4}
+                            switch rI
+                                case 1
+                                    D = G;
+                                case 4
+                                    D = [];  mw = nm_nanmedian(G); sw = abs(mw-percentile(G,25)); sw = [sw;abs(mw-percentile(G,75))];
+                            end
+                            str = 'Performance';
+                            hlinepos = mean(ylm);
+                        case 2
+                            D = nk_ComputeMnMdPairWiseDiff(G,'md','meandiff');
+                            str = 'Mean one-vs.-all \Delta(Performance)';
+                            hlinepos = 0;
+                        case 3
+                            D = nk_ComputeMnMdPairWiseDiff(G,'md','alldiff');
+                            str = 'One-vs.-one \Delta(Performance)';
+                            hlinepos = 0;
+                    end
+                    if ~isfield(handles.comparator_stats{curclass},'tbl_p_fdr_posthoc')
+                        warndlg(sprintf('Quade test was not significant (W=%1.2f; P=%0.3f). Skipping visual post-hoc analysis.',handles.comparator_stats{curclass}.W, handles.comparator_stats{curclass}.p));
+                    else
+                        display_classcomparison_matrix(handles.comparator_stats{curclass}.tbl_p_fdr_posthoc, AnalNames, mw, sw, [], D, hlinepos, str);
+                    end
+                else
+                    % Compare each model against a reference model
+                    AnalNames = [AnalNames(RefSelectionSel) AnalNames(~RefSelectionSel)];
+                    [handles.comparator_stats{curclass}, handles.comparator_diffs{curclass}] = wilcoxon(G(:,RefSelectionSel)', G(:,~RefSelectionSel)', 0.05, Gnames, AnalNames, Filename);
+                    figure; ax = axes; hold on;
+                    d = handles.comparator_diffs{curclass}';
+                    mw = nm_nanmedian(d); %sw = abs(mw-percentile(d,5)); sw = [sw;abs(mw-percentile(d,95))];
+                    sw = nm_95confint(d);
+                    bar(ax, mw, 'FaceColor', rgb('LightSteelBlue'));
+                    errorbar(ax, 1:numel(mw), mw, sw(1,:), sw(2,:), 'LineStyle', 'none', 'Color', 'k'); 
+                    ax.XTick = [1:numel(mw)];
+                    ax.XTickLabel = AnalNames(~RefSelectionSel);
+                    ax.XTickLabelRotation = 45;
+                    ax.XLim = [0.25 numel(mw)+0.75];
+                    ax.Box='on';
+                    ax.TickLabelInterpreter='none';
+                    ax.FontWeight = 'bold';
+                    ax.FontSize = 14;
+                    ax.YAxis.Label.String = sprintf('Difference: %s',Crit);
                 end
-                display_classcomparison_matrix(handles.comparator_stats{curclass}.tbl_p_fdr_posthoc, AnalNames, mw, sw, [], D, hlinepos, str);
             else
                 handles.comparator_stats{curclass} = wilcoxon(G(:,1)', G(:,2)', 0.05, Gnames, AnalNames, Filename);
             end
@@ -684,11 +747,13 @@ function handles = visualize_performances(src, evt, handles)
 lw = 2;
 mk = 12;
 
-AnalysisSelection = cell2mat(handles.PerfTab.analysisselect.Data(:,3));
+AnalysisSelection = find(cell2mat(handles.PerfTab.analysisselect.Data(:,4)));
 AnalysisStrings = handles.PerfTab.analysisselect.Data(:,1);
-AnalysisAliasStrings = handles.PerfTab.analysisselect.Data(:,2);
+AnalysisIdx     = handles.PerfTab.analysisselect.Data(:,2);
+AnalysisAliasStrings = handles.PerfTab.analysisselect.Data(:,3);
 I = strcmp(AnalysisAliasStrings,'');
 AnalysisAliasStrings(I) = AnalysisStrings(I);
+AnalysisIdxSel     = cell2mat(AnalysisIdx(AnalysisSelection));
 
 PerfSelection = cell2mat(handles.PerfTab.perfselect.Data(:,3));
 PerfFullStrings = handles.PerfTab.perfselect.Data(:,1);
@@ -697,26 +762,34 @@ PerfSeparate = cell2mat(handles.PerfTab.perfselect.Data(:,4));
 PerfColors = handles.PerfTab.perfselect.Data(:,5);
 
 nA = numel(AnalysisSelection);
-nAs = sum(AnalysisSelection);
 nP = numel(PerfSelection);
 nPs = sum(PerfSelection);
 nS = sum(PerfSeparate);
 
-Px = zeros(nAs, nPs);
+Px = zeros(nA, nPs);
 cnt_i=0; 
 curclass = 1;
 gddims = 1;
+fd = AnalysisIdxSel;
 for i=1:nA
-    if AnalysisSelection(i)
-        cnt_i=cnt_i+1;
-        cnt_j=0;
-        for j=1:nP
-            if PerfSelection(j)
-                cnt_j=cnt_j+1;
-                Px(cnt_i,cnt_j) = handles.NM.analysis{i}.GDdims{gddims}.BinClass{curclass}.prob_contigency.(PerfStrings{j});
+    cnt_i=cnt_i+1;
+    cnt_j=0;
+    for j=1:nP
+        if PerfSelection(j)
+            cnt_j=cnt_j+1;
+            if ~isfield(handles.NM.analysis{fd(i)},'GDdims')
+                error('Analysis %s not completed!', handles.NM.analysis{fd(i)}.id);
+            else
+                switch handles.NM.modeflag
+                    case 'classification'
+                       Px(cnt_i,cnt_j) = handles.NM.analysis{fd(i)}.GDdims{gddims}.BinClass{curclass}.prob_contigency.(PerfStrings{j});
+                    case  'regression'
+                       Px(cnt_i,cnt_j) = handles.NM.analysis{fd(i)}.GDdims{gddims}.Regr.(PerfStrings{j});
+                end
             end
         end
     end
+    
 end
 
 AnalysisAliasStringsSel = AnalysisAliasStrings(AnalysisSelection);
@@ -777,6 +850,7 @@ end
 legend(PerfFullStrings(PerfSelection),'Location','best'); 
 ax.XTickLabel = AnalysisAliasStringsSel;
 ax.XTickLabelRotation = 45;
+ax.TickLabelInterpreter='none';
 ax.XLabel.String = 'Analyses';
 ax.XLabel.FontWeight = 'bold';
 ax.YAxis(1).Label.String = 'Performance Measure(s)';

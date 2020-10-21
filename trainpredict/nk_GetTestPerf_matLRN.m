@@ -7,7 +7,14 @@ switch MODEFL
         rs = p; ds = p;
     case 'classification'
         if isstruct(p)
-            rs = p.yhat; ds = p.D;
+            rs = p.yhat; 
+            if isfield(p,'D')
+                ds = p.D;
+            elseif isfield(p,'prob') 
+                ds = p.prob-0.5;
+            else
+                ds = p.yhat;
+            end
         else
             rs = p ; ds = p;
         end

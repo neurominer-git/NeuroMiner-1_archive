@@ -19,10 +19,19 @@ if isfield(SVM,'prog')
     end
     
     progstr = [ 'Select learning algorithm [ ' progstr ' ]|'];
-    if isfield(SVM,'prog')
-        if ~isfield(SVM, SVM.prog), defstr = 'parameters undefined'; else, defstr = 'modify parameters'; end
-        learnparstr = [ 'Configure ' d.prog '[ ' defstr ' ]|'];
-        mnuconf = 2;
+    if isfield(SVM,'prog') && ~any(strcmp(SVM.prog,{'kNNMEX','GLMFIT','DECTRE','RNDFOR','MEXELM'}))
+        if any(strcmp(SVM.prog,{'GLMNET','GRDBST'}))&& isfield(NM.TrainParam.GRD, SVM.prog),
+            learnparstr = [];
+            mnuconf = [];
+        else
+            if isfield(SVM, SVM.prog) || ( strcmp(SVM.prog,'MikRVM') && isfield(SVM,'RVM') )
+                defstr = 'modify parameters'; 
+            else
+                defstr = 'parameters undefined'; 
+            end
+            learnparstr = [ 'Configure ' d.prog '[ ' defstr ' ]|'];
+            mnuconf = 2;
+        end
     else
         learnparstr = [];
         mnuconf = [];
@@ -149,7 +158,7 @@ switch NM.modeflag
                         'matLRN'; ...
                         'GLMNET'; ...
                         'GRDBST'];
-            if TrainParam.STACKING.flag==1
+            if isfield(TrainParam,'STACKING') && TrainParam.STACKING.flag==1
                 sftmenu = [sftmenu ...
                         '|SEQOPT -----------> Predictive sequence optimization algorithm (Stacking only)'];
                 sftval = [sftval; ...
@@ -244,6 +253,7 @@ switch act
         mestr = ['Define model algorithm for ' NM.modeflag]; cprintf('*blue','\nYou are here: %s >>>',navistr);
         selProg = nk_input(mestr,0,'mq', sftmenu, 1:size(sftval,1), 1);
         if selProg, SVM.prog = sftval(selProg,:); end
+        SVM = nk_Kernel_config(SVM);
          
     case 2
         
@@ -252,7 +262,7 @@ switch act
             case {'LIBSVM','LIBLIN'}
 
                 SVM = nk_SVM_config(NM, SVM, SVM.prog, kerntype, navistr);
-                if ~isfield(SVM,'kernel'), SVM = nk_Kernel_config(SVM,1); end
+                SVM = nk_Kernel_config(SVM,1); 
 
             case 'MikRVM'
                 SVM.RVMflag = true;
@@ -275,10 +285,13 @@ switch act
                 SVM = nk_Kernel_config(SVM);
 
             case 'IMRELF'
-                SVM.imrelief = nk_IMRelief_config(SVM);
+                SVM.IMRELF = nk_IMRelief_config(SVM);
                 SVM.kernel.kerndesc = 'other';
                 SVM.kernel.kerndef = 1;
                 SVM.kernel.kernstr = ' -t 2';
+                % Resetting hyperparameters when IMRELIEF is chosen.
+                NM.TrainParam.GRD.Cparams = [0.5 1 2 4 8 16 32]; % Sigma
+                NM.TrainParam.GRD.Gparams = [0.5 .1 0.05 0.01 0.005 0.001]; % Lambda
 
             case 'GLMFIT'
                 SVM.RVMflag = true; % Probability flag
@@ -286,6 +299,7 @@ switch act
 
             case 'kNNMEX'
                 SVM.RVMflag = true;
+                SVM = nk_Kernel_config(SVM);
 
             case 'KPCSVM'
                 SVM = nk_KPCA_LINSVM(SVM);

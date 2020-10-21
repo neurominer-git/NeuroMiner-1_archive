@@ -59,13 +59,9 @@ switch SVM.prog
         Predict.binCV1CasePropagations = cell(iy,jy,nclass);
         Predict.binCV1PerformanceIncreases = cell(iy,jy,nclass);
         Predict.binCV1DecValTraj = cell(iy,jy,nclass);
-        Ydum = dTSLabel{1};
     case 'WBLCOX'
         Predict.binCV1times = cell(iy,jy,nclass);
         Predict.binCV1probthresh = zeros(iy,jy,nclass);
-        Ydum = zeros(size(dTSLabel{1},1),1);
-    otherwise
-        Ydum = zeros(size(dTSLabel{1},1),1);
 end
 
 % Compute size of multi-group and binary arrays to avoid dynamic memory allocation
@@ -162,7 +158,7 @@ for k=1:iy % Loop through CV1 permutations
                 end
             end
             YCV = dCVDLabel{k,l}{curclass}(:,MULTILABEL.curdim);
-            
+            Ydum = zeros(size(XTest,1),1);
             if RFE.ClassRetrain
                XTrain = [XTrain; XCV]; YTrain = [YTrain; YCV]; 
             end

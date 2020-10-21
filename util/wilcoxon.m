@@ -1,7 +1,33 @@
-function STATS = wilcoxon(x1, x2, alpha, xnames, ynames, filename)
+function [STATS, DIFF] = wilcoxon(G1, G2, alpha, xnames, ynames, filename)
 % Based on the WILCOXON code of Giuseppe Cardillo
+nG = size(G2,1);
+DIFF = zeros(size(G2));
+ynames2 = ynames(2:end);
+if nG>1, 
+    ynames{1} = [ynames{1} ' [ref]']; 
+end
+for i=1:nG
+    [STATS(i), DIFF(i,:)] = wilcoxon_sub(G1,G2(i,:),alpha, ynames2{i});
+end
 
-dff=sort(x2-x1); %difference between x1 and x2
+if exist('filename','var') && ~isempty(filename)
+   sh = {'pp','diff','stats'};
+   STATALL.tbl_perf = array2table([G1' G2'],'VariableNames',ynames', 'RowNames', xnames);
+   STATALL.tbl_diff = array2table(DIFF','VariableNames',ynames2', 'RowNames', xnames);
+   STATALL.tbl_stats = struct2table(STATS,'AsArray',true);
+   if nG>1
+       pvals = STATALL.tbl_stats{:,end};
+       [~,~,~,pvals_fdr] = fdr_bh(pvals,0.05);
+       STATALL.tbl_stats = [ STATALL.tbl_stats table(pvals_fdr,'VariableNames',{'p[FDR]'})];
+   end
+   tblnames = {'tbl_perf', 'tbl_diff', 'tbl_stats'};
+   display_writetable(STATALL, filename, tblnames, sh);
+end
+
+function [STATS, DIFF] = wilcoxon_sub(x1,x2,alpha, name_comparison)
+
+DIFF = x2-x1;
+dff=sort(DIFF); %difference between x1 and x2
 dff(dff==0)=[]; %eliminate null variations
 n=length(dff); %number of ranks
 if length(x1)~=n %tell me if there are null variations
@@ -46,6 +72,7 @@ clear dff d ld T%clear unnecessary variable
 %If the number of elements N<15 calculate the exact distribution of the
 %signed ranks (the number of combinations is 2^N); else use the normal
 %distribution approximation.
+STATS.comparison = name_comparison;
 if n<=15
     ap=ff2n(n); %the all possibilities based on two-level full-factorial design.
     ap(ap~=1)=-1; %change 0 with -1
@@ -56,6 +83,9 @@ if n<=15
     p=length(J(abs(J)>=abs(W)))/length(J); %p-value
     STATS.method = 'Exact distribution';
     STATS.W      = W;
+    STATS.mean   = [];
+    STATS.std    = [];
+    STATS.z      = [];
     STATS.p      = p;
 else
     sW           = sqrt((2*n^3+3*n^2+n-t)/6); %standard deviation
@@ -69,26 +99,3 @@ else
     STATS.p      = p;
 end
 
-if exist('filename','var') && ~isempty(filename)
-   sh = {'pp','stats'};
-   tbl_perf = array2table([x1' x2'],'VariableNames',ynames', 'RowNames', xnames);
-   tbl_stats = struct2table(STATS);
-   writetable(tbl_perf,filename,'Sheet',sh{1},'WriteRowNames',true);
-   writetable(tbl_stats,filename,'Sheet',sh{2});
-   if ispc
-        try
-            objExcel = actxserver('Excel.Application');
-            objExcel.Workbooks.Open(filename); 
-            % MRZ: delte default sheets in freshly created .xls
-            [~, sheets] = xlsfinfo(filename);
-            sheetNames2remove = setdiff(sheets,sh); 
-            for i = 1:numel(sheetNames2remove)
-                objExcel.ActiveWorkbook.Worksheets.Item(sheetNames2remove{i}).Delete;
-            end
-            objExcel.ActiveWorkbook.Save
-            objExcel.ActiveWorkbook.Close(filename);
-            delete(objExcel);
-        catch
-        end         
-    end
-end

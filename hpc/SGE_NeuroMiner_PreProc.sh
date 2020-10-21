@@ -5,9 +5,9 @@ echo '*** NeuroMiner Elessar DEV           ***'
 echo '*** SGE joblist manager:             ***'
 echo '*** Preprocess features              ***'
 echo '*** (c) 2017 N. Koutsouleris         ***'
-echo '*** Updated Mar2020: Dom             ***'
+echo '*** Updated Sep2020: Dom             ***'
 echo '****************************************'
-echo '     This is the DEVELOPMENT version.   '
+echo '     This is the STABLE      version.   '
 echo '         Expect bugs and report         '
 echo '****************************************'
 echo   
@@ -15,7 +15,7 @@ echo
 # compiled with matlab R2018b so MCR main is v95. Needs to change if different MCR is used.
 export LD_LIBRARY_PATH=/opt/matlab/v95/runtime/glnxa64:/opt/matlab/v95/bin/glnxa64:/opt/matlab/v95/sys/os/glnxa64:/opt/matlab/v95/sys/opengl/lib/glnxa64
 export JOB_DIR=$PWD
-export NEUROMINER=/opt/NM/NeuroMinerMCCMain_dev_v95/for_testing 
+export NEUROMINER=/opt/NM/NeuroMinerMCCMain_1.05_v95/for_testing 
 export ACTION=preproc
 read -e -p 'Path to NM structure: ' datpath
 if [ ! -f $datpath ]; then

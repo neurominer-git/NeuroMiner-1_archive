@@ -33,13 +33,13 @@ if ~defaultsfl
     act = nk_input('Select sequence optimization parameter',0,'mq', MnuStr, MnuAct, 1);
     switch act
         case 1
-            SEQOPT.Mode         = nk_input('Define training population flag for optimization',0,'mq','The population to be propagated|The entire population',[1,2],SEQOPT.Mode);
+            SEQOPT.Mode         = nk_input('Define training population flag for optimization',0,'m','The population to be propagated|The entire population',[1,2],SEQOPT.Mode);
         case 2
-            SEQOPT.ReplaceMode  = nk_input('Sequential decision computation',0,'mq','Replacement|Mean across predictions',[1,2],SEQOPT.ReplaceMode);
+            SEQOPT.ReplaceMode  = nk_input('Sequential decision computation',0,'m','Replacement|Mean across predictions',[1,2],SEQOPT.ReplaceMode);
         case 3
-            SEQOPT.AnchorType   = nk_input('Anchor stepping to model''s decision boundary or decision score median',0,'mq','Decision boundary|Median',[1,2], SEQOPT.AnchorType);
+            SEQOPT.AnchorType   = nk_input('Anchor stepping to model''s decision boundary or decision score median',0,'m','Decision boundary|Median',[1,2], SEQOPT.AnchorType);
         case 4
-            SEQOPT.PerfMode     = nk_input('Optimization mode',0,'mq','Optimization criterion|Mean decision distance',[1,2], SEQOPT.PerfMode);
+            SEQOPT.PerfMode     = nk_input('Optimization mode',0,'m','Optimization criterion|Mean decision distance',[1,2], SEQOPT.PerfMode);
         case 5
             SEQOPT.C            = nk_input('Define sequences matrix to be evaluated',0,'e');
     end

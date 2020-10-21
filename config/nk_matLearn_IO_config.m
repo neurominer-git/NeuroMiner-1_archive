@@ -51,14 +51,16 @@ switch format
         param.sublearner = nk_matLearn_getopts_config(param.sublearner,'get_sublearners',[],[],param.sublearner.framework);
         param.sublearner.algo = nk_matLearn_IO_config(param.sublearner, param, ind, mode);
         out = sprintf('@ml_%s_%s', param.sublearner.framework, char(param.sublearner.algo));
-        ind = false(1,numel(param.Params));
-        if ~isempty(param.Params)
-            for j=1:numel(param.Params)
-               if strfind(param.Params(j).name,'subOptions')
-                   ind(j)=true;
-               end 
+        if isfield(param,'Params')
+            ind = false(1,numel(param.Params));
+            if ~isempty(param.Params)
+                for j=1:numel(param.Params)
+                   if strfind(param.Params(j).name,'subOptions')
+                       ind(j)=true;
+                   end 
+                end
+                param.Params(ind)=[];
             end
-            param.Params(ind)=[];
         end
         
     case 'options_selector'

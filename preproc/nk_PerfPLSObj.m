@@ -14,7 +14,7 @@ else
     else
        if isfield(IN,'TrInd'), IN.indY = IN.TrInd; else IN.indY = []; end
     end
-    [ sY, IN ] = PerfNormObj(Y, IN );
+    [ sY, IN ] = PerfPLSObj( Y, IN );
 end
 
 function [Yrecon, IN] =  PerfPLSObj(X,Y,IN)

@@ -11,7 +11,7 @@ function [param, model] = nk_GetParam2_IMRELF(Y, label, ModelOnly, Params)
 global SVM EVALFUNC 
 
 Y = Y';
-model = SVM.imrelief;
+model = SVM.IMRELF;
 model.targets = label; model.X = Y;
 KernParam = Params(2); SlackParam = Params(1);
 if ischar(KernParam), KernParam = str2double(KernParam); end;  model.sigma = KernParam; 

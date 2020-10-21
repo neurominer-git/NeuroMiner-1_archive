@@ -22,8 +22,10 @@ end
 
 if isfield(handles,'SubIndex') && ~handles.oocvview, I = handles.SubIndex; else, I = true(size(handles.NM.label,1),1); end
 
-handles.ModelParams                         = GDdims.Model.ParamCombs;
-handles.ModelParamsDesc                     = GDdims.Model.ParamDesc;
+if strcmp(handles.METAstr,'none')
+    handles.ModelParams                         = GDdims.Model.ParamCombs;
+    handles.ModelParamsDesc                     = GDdims.Model.ParamDesc;
+end
 
 % Check type of analysis
 if isfield(GDdims,'BinClass') || isfield(GDdims,'MultiClass') 
@@ -78,7 +80,7 @@ if isfield(GDdims,'BinClass') || isfield(GDdims,'MultiClass')
             handles.BinClass{j}.one_vs_all = true;
         end
      
-        if isfield(GDdims,'CV2grid'),
+        if isfield(GDdims,'CV2grid') && isfield(GDdims,'mean_predictions')
             handles.BinClass{j}.CV2grid.mean_predictions    = GDdims.CV2grid.mean_predictions( handles.BinClass{j}.ind, j, handles.curlabel );
             handles.BinClass{j}.CV2grid.std_predictions     = GDdims.CV2grid.std_predictions( handles.BinClass{j}.ind, j, handles.curlabel  );
             handles.BinClass{j}.CV2grid.CI1_predictions     = GDdims.CV2grid.CI_predictions( handles.BinClass{j}.ind, 1, j, handles.curlabel );
@@ -164,8 +166,6 @@ if isfield(GDdims,'BinClass') || isfield(GDdims,'MultiClass')
         handles.BinClass{j}.tbl_cont.array(remind) = [];
         handles.BinClass{j}.tbl_cont.array = cell2mat(handles.BinClass{j}.tbl_cont.array);
         handles.BinClass{j}.tbl_cont.rownames(remind) = [];
-        
-
         
     end    
     % Add multi-class data to handles

@@ -177,7 +177,7 @@ try
                     NMinfo.clback = rgb('Linen');
                     NMinfo.cllogo = rgb('DarkSalmon');
                     NMinfo.clmenu = rgb('IndianRed');
-                    mn_str = 'Update analyses'' root paths'; mn_act = 18;
+                    mn_str = 'Update analyses'' root paths'; mn_act = 17;
                     mn_str = [ mn_str '|Load data for model application' ]; mn_act = [mn_act 1 ];
                     if s.oocv_data_ready
                         mn_str = [ mn_str '|Set up parameters for model application' ]; mn_act = [ mn_act 2 ];
@@ -191,7 +191,7 @@ try
                     mn_act = [mn_act 7];
                     if ~isfield(NM.defs,'data_scrambled') || ~NM.defs.data_scrambled
                         menutitle = [menutitle ' [ MODEL APPLICATION MODE ]'];
-                        mn_str = [mn_str '|Shred input data in NM structure (external validation)']; mn_act = [ mn_act 17 ];
+                        mn_str = [mn_str '|Shred input data in NM structure (external validation)']; mn_act = [ mn_act 16 ];
                     else
                         menutitle = [menutitle ' [ MODEL EXPORT MODE ]'];
                     end
@@ -224,15 +224,14 @@ try
             '|Load NeuroMiner structure' ...
             '|Change working directory' ...
             '|Utilities'];
-        mn_act = [ mn_act 11, 14, 16 ];
+        mn_act = [ mn_act 11, 13, 15 ];
     else
         mn_str = [ mn_str ...
             '|Load NeuroMiner structure' ...
             '|Save NeuroMiner structure' ...
-            '|Clear NeuroMiner structure' ...
             '|Change working directory' ...
             '|Utilities'];
-        mn_act = [ mn_act 11:14 16 ];
+        mn_act = [ mn_act 11 12 13 15 ];
     end
     
     mn_sel = nk_input(menutitle,0,'mq',mn_str,mn_act);
@@ -249,7 +248,6 @@ try
               'oocv', ...
               'loadmat', ...
               'savemat', ...
-              'clearnm', ...
               'changepwd', ...
               'help', ...
               'utilities', ...
@@ -270,7 +268,7 @@ try
         case 'loaddata'
             
             if s.analyses_locked
-                NM = nk_DefineOOCVData2_config(NM, 1,'MAIN');
+                NM = nk_DefineOOCVData_config(NM, 1,'MAIN');
             else
                 act = Inf; 
                 while act>0, 
@@ -323,10 +321,6 @@ try
             
         case 'savemat'
             savemat(NM);
-        
-        case 'clearnm'
-            clearflag = nk_input('Are you sure?',0,'yes|no',[1,0],2);
-            if clearflag, NM=[]; end
         
         case 'changepwd'
             directoryname = uigetdir(pwd, 'Pick a new working directory');

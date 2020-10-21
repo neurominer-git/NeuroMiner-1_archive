@@ -352,7 +352,7 @@ function cmdSave_Callback(hObject, eventdata, handles)
 selItem = get(handles.lstData,'Value');
 %lstItems = get(handles.lstData,'String');
 OOCV = handles.Data.Items{selItem};
-filename = 'NM_OOCVdata';
+filename = 'NM_OOCV_';
 uisave('OOCV',filename);
 
 % --- Executes on button press in chkLabelKnown.
@@ -395,7 +395,7 @@ function cmdLoad_Callback(hObject, eventdata, handles)
 
 n = numel(handles.Data.Items);
 
-filename = uigetfile('*.mat','Load Independent Test Data','MultiSelect','on');
+[filename,pathname] = uigetfile('*.mat','Load Independent Test Data','MultiSelect','on');
 if iscell(filename)
     nF = numel(filename);
 else
@@ -404,9 +404,11 @@ end
 if filename 
     for i=1:nF
         if iscell(filename)
-            load(filename{i})
+            pth = fullfile(pathname,filename{i});
+            load(pth)
         else
-            load(filename)
+            pth = fullfile(pathname,filename);
+            load(pth)
         end
         handles.Data.Items{n+i} = OOCV;
     end

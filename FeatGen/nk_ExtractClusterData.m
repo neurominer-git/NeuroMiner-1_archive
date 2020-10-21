@@ -20,7 +20,7 @@ sdYC = meanYC;
 for i=1:nClust
     ind = C==i;
     meanYC(:,i) = mean(Y(:,ind),2);
-   %sdYC(:,i) = std(Y(:,C==i),0,2); 
+    %sdYC(:,i) = std(Y(:,C==i),0,2); 
 end
 
 return

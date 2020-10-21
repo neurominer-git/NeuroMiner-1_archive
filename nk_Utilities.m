@@ -1,8 +1,7 @@
 function nk_Utilities
-global SPMAVAIL CV NM
+global CV NM
 
-menustr = ['Compile C++ files for NM|'...
-           'Set root paths of neuroimaging tools (SPM/Freesurfer)|' ...
+menustr = ['Set root paths of neuroimaging tools (SPM/Freesurfer)|' ...
            'Create PreprocData path master|' ...
            'Create CVdatamat path master|' ...
            'Create CVresults path master|' ...
@@ -10,21 +9,14 @@ menustr = ['Compile C++ files for NM|'...
            'Create OptPreprocParam path master|' ...
            'Create OptModel path master|' ...
            'Update analyses'' paths to new root directory'];
-menuact = 1:9;
+menuact = 2:9;
 
-if SPMAVAIL && isunix
-    menustr = [menustr '|Freesurfer: Downsampling, registration to fsaverage & matrix generation (Linux only)']; menuact = [ menuact 10 ];
-end
 nk_PrintLogo
 act = nk_input('Choose utility function',0,'mq', menustr, menuact, 1);
                  
 switch act
     case 0
         return
-    case 1
-        NMdir = fileparts(which('nm'));
-        cfilesdir = [NMdir filesep 'cfiles'];
-        nk_make(cfilesdir)
     case 2
         neurominerpath = fileparts(which('neurominer.m'));
         imaging_init_path = fullfile(neurominerpath,'imaging_init.mat');

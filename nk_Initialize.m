@@ -9,12 +9,12 @@ function nk_Initialize(action)
 global NMinfo NM CALIBAVAIL OOCVAVAIL SPMAVAIL FSAVAIL
 
 NMinfo.info.name    = 'NeuroMiner';
-NMinfo.info.ver     = 'Development version 1.05 | ELESSAR ';
+NMinfo.info.ver     = 'Release candidate version 1.05 | ELESSAR ';
 NMinfo.info.author  = 'Nikolaos Koutsouleris';
 NMinfo.info.affil   = 'Section for Neurodiagnostic Applications';
 NMinfo.info.dep     = 'Department of Psychiatry and Psychotherapy';
 NMinfo.info.inst    = 'Ludwig-Maximilian-University';
-NMinfo.info.datever = '05/2020';
+NMinfo.info.datever = '08/2020';
 NMinfo.info.timestamp = date;
 NMinfo.info.email   = 'nm@pronia.eu';
 try
@@ -115,8 +115,9 @@ if action.all
         
         % Preprocessing subdirectory
         if ~checkpaths(matpaths,fullfile(defs.path,'preproc'))
-            addpath(fullfile(defs.path,'preproc')); fprintf('.');
+            addpath(fullfile(defs.path,'preproc')); %fprintf('.');
             addpath(fullfile(defs.path,'preproc/mi')); fprintf('.');
+            addpath(fullfile(defs.path,'preproc/combat')); fprintf('.');
             addpath(fullfile(defs.path,'preproc/drtoolbox')); 
             addpath(fullfile(defs.path,['preproc/drtoolbox' filesep 'techniques'])); fprintf('.');
             addpath(fullfile(defs.path,'preproc/drtools'));fprintf('.');
@@ -124,6 +125,7 @@ if action.all
             addpath(fullfile(defs.path,'preproc/nmfv1_4')); fprintf('.');
             addpath(fullfile(defs.path,'preproc/NeNMF')); fprintf('.');
             addpath(fullfile(defs.path,'preproc/NMF_Soteiras')); fprintf('.');
+            addpath(fullfile(defs.path,'preproc/SparsePLS')); fprintf('.');
         end
         
         % Train & Predict functions subdirectory

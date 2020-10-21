@@ -30,7 +30,7 @@ offset = zeros(nFeatures, 1);
 
 % Initialize f
 for i=1:nFeatures
-    if strcmp(subFunc, 'spl')
+    if strcmp(subFunc, 'sp1')
         f{i} = csaps(X(:,i), zeros(nTrain, 1), smoothing);
     elseif strcmp(subFunc, 'rg')
         f{i} = polyfit(X(:,i), zeros(nTrain, 1), deg);

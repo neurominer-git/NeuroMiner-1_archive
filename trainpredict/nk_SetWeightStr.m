@@ -1,4 +1,5 @@
 function cmdstr = nk_SetWeightStr(SVM, MODEFL, CMDSTR, label, cmdstr)
+global LIBSVMTRAIN
 
 if isfield(SVM.(SVM.prog),'Weighting') && SVM.(SVM.prog).Weighting   
     switch MODEFL
@@ -8,4 +9,6 @@ if isfield(SVM.(SVM.prog),'Weighting') && SVM.(SVM.prog).Weighting
             cmdstr = sprintf('%s -w-1 %g', cmdstr, bal^CMDSTR.WeightFact);             
     end
 end
-cmdstr = [ cmdstr ' -q 1' ];
+if ~strcmp(LIBSVMTRAIN,'svmtrain291')
+    cmdstr = [ cmdstr ' -q 1' ];
+end

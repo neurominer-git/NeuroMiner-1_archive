@@ -3,7 +3,7 @@ function [d, v] = SurfaceReader(filename)
 [~,~,e] = fileparts(deblank(filename));
 switch e
     case {'.mgh','.mgz'}
-        d = MRIread(filename,1); v = d.vol;
+        d = MRIread(filename); v = d.vol;
     case '.gii'
         d = GIIread(filename); v = d.cdata'; 
     otherwise

@@ -18,7 +18,7 @@ function [PREPROC, act, stepind] = nk_Preproc_config(PREPROC, varind, parentstr,
 % of the pre-processing pipeline in the respective CV1 partition (currently
 % only label imputation in the training samples).
 % %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% (c) Nikolaos Koutsouleris, 04/2018
+% (c) Nikolaos Koutsouleris, 08/2020
 
 % Defaults:
 % ---------
@@ -91,12 +91,15 @@ if strcmp(NM.modeflag,'regression')
 end
 
 % Check for availability of image filtering options
+spatfltflag = false; imganalflag = false;
 if NM.datadescriptor{varind}.type == 1 && NM.TrainParam.STACKING.flag==2
+    imganalflag = true;
     if isfield(PREPROC,'SPATIAL') && PREPROC.SPATIAL.cubetype>1
         cmdstr = 'Modify / Disable ';
         if ~strcmp(d.PREPROC.spatialfiltering,'NA'), 
             prestr = sprintf('%s\n* %s', prestr, d.PREPROC.spatialfiltering); 
         end
+        spatfltflag = true;
     else
         cmdstr = 'Enable';
     end
@@ -136,32 +139,59 @@ if isfield(PREPROC,'ACTPARAM') && ~isempty(PREPROC.ACTPARAM)
         cprintf('*black','CV-PREPROCESSING PIPELINE [STACKING MODE] \n')
         cprintf('*black','========================================= ')
     end
+    dimredflag = false;
     for i=1:numel(d.PREPROC.preprocact)
         stepstr = sprintf('Step %g: %s',i,d.PREPROC.preprocact{i});
-        if strcmp(PREPROC.ACTPARAM{i}.cmd,'extfeat')
-			if i==stepind+1
-				fprintf('\n\t'); cprintf('*SystemCommands','\\__ %s',stepstr);
-			else
-				cprintf('SystemCommands','\n\t    %s',stepstr);
-            end
-        elseif strcmp(PREPROC.ACTPARAM{i}.cmd,'extdim')
-            if i==stepind
-				fprintf('\n\t'); cprintf('*black','\\__ %s',stepstr);
-			else
-				fprintf('\n\t    %s',stepstr);
-            end
-        elseif strcmp(PREPROC.ACTPARAM{i}.cmd,'reducedim')
-            if i==stepind || (i == stepind-1 && strcmp(PREPROC.ACTPARAM{i+1}.cmd,'extdim'))
-                fprintf('\n'); cprintf('*black','>> %s',stepstr);                 
-            else
-                 fprintf('\n   %s', stepstr);
-            end
-        else
-            if i==stepind 
-                fprintf('\n'); cprintf('*black','>> %s',stepstr); 
-            else
-                fprintf('\n   %s', stepstr);
-            end
+        switch PREPROC.ACTPARAM{i}.cmd
+            case 'extfeat'
+                if i==stepind+1
+                    fprintf('\n\t'); cprintf('*SystemCommands','\\__ %s ',stepstr);
+                else
+                    cprintf('SystemCommands','\n\t    %s ',stepstr);
+                end
+            case 'extdim'
+                if i==stepind
+                    fprintf('\n\t'); cprintf('*black','\\__ %s ',stepstr);
+                else
+                    fprintf('\n\t    %s',stepstr);
+                end
+            case 'reducedim'
+                dimredflag=true;
+                if i==stepind || (i == stepind-1 && strcmp(PREPROC.ACTPARAM{i+1}.cmd,'extdim'))
+                    fprintf('\n'); cprintf('*black','>> %s ',stepstr);                 
+                else
+                    fprintf('\n   %s', stepstr);
+                end
+            case {'scale','standardize','normalize','unitnormalize'}
+                if i==stepind
+                    if imganalflag && ~spatfltflag
+                        fprintf('\n'); cprintf('*red','>> %s [!!! CV1/2 test data offset errors expected without spatial smoothing !!!]',stepstr); 
+                    else
+                        fprintf('\n'); cprintf('*black','>> %s ',stepstr); 
+                    end
+                else
+                    if imganalflag && ~spatfltflag
+                        fprintf('\n   %s [!!! CV1/2 test data offset errors expected without spatial smoothing !!!]',stepstr); 
+                    else
+                        fprintf('\n   %s',stepstr); 
+                    end
+                end
+            case 'remvarcomp'
+                if ~isfield(PREPROC.ACTPARAM{i}.REMVARCOMP,'G')
+                    fprintf('\n'); cprintf('*red','   %s ',stepstr);
+                else
+                    if i==stepind 
+                        fprintf('\n'); cprintf('*black','>> %s ',stepstr); 
+                    else
+                        fprintf('\n   %s ', stepstr);
+                    end
+                end
+            otherwise
+                if i==stepind 
+                    fprintf('\n'); cprintf('*black','>> %s ',stepstr); 
+                else
+                    fprintf('\n   %s ', stepstr);
+                end
         end
     end
     
@@ -300,18 +330,33 @@ switch act
         
     case 9 % Change order of preprocessing steps
         neworder = nk_input('Define new order of preprocessing steps',0,'e',[],[1, lact]);
-        fl = true; 
+        fl = true(1,2); newcmdorder = cell(numel(neworder),1); 
         for i = 1:numel(neworder)
-            if strcmp(PREPROC.ACTPARAM{neworder(i)}.cmd,'rankfeat') 
-                if i == numel(neworder) || (i < numel(neworder) && ~strcmp(PREPROC.ACTPARAM{neworder(i+1)}.cmd,'extfeat')), fl = false;  end
-            elseif strcmp(PREPROC.ACTPARAM{neworder(i)}.cmd,'reducedim') 
-                if i == numel(neworder) || (i < numel(neworder) && ~strcmp(PREPROC.ACTPARAM{neworder(i+1)}.cmd,'extdim')), fl = false;  end
+            newcmdorder{i} = PREPROC.ACTPARAM{neworder(i)}.cmd; 
+        end
+        for i = 1:numel(neworder)-1
+            if strcmp(newcmdorder{i},'rankfeat') && ~strcmp(newcmdorder{i},'extfeat'), 
+                fl(1) = false;  
+            end
+            if strcmp(newcmdorder{i},'reducedim') && ~strcmp(newcmdorder{i+1},'extdim')
+                for j=1:numel(neworder)
+                    if strcmp(PREPROC.ACTPARAM{j}.cmd,'extdim'), fl(2) = false; break; end 
+                end
             end
         end
-        if fl, 
+        mess=[];
+        if sum(fl) == numel(fl)
             PREPROC.ACTPARAM = PREPROC.ACTPARAM(neworder);
         else
-            errordlg('Reordering cannot be performed! Weighting-based feature generation has to be executed right after the computation of the feature weighting / ranking!')
+            mess = 'Reordering cannot be performed!'; 
+            if ~fl(1)
+                mess = 'Weighting-based feature generation has to be executed right after the computation of the feature weighting / ranking!';
+            end
+            if ~fl(2)
+                mess{3} = 'Extraction of dimensions has to be executed right after the computation of the dimensionality reduction model!';
+            end
+            mess = sprintf('\n%s',char(mess));
+            errordlg(mess);
         end
         stepind = 1;
         
@@ -333,7 +378,6 @@ switch act
 end
 
 if ~isfield(PREPROC,'BINMOD'), PREPROC.BINMOD = 1; end
-%TrainParam.PREPROC{varind} = PREPROC;
 
 end
 
@@ -610,7 +654,7 @@ if isfield(NM,'covars') && ~isempty(NM.covars)
         tSIND = 1;
     end
 
-    tSIND = nk_input('Select group index covariate for the computation of global mean and group-specific means (zeros indicate cases to be skipped)',0,'i', tSIND);
+    tSIND = nk_input('Select group index covariate for the computation of global and group-specific means (zeros indicate cases to be skipped)',0,'i', tSIND);
     
     if ~isempty(CURACT) && isfield(CURACT,'dIND') && ( ~isempty(CURACT.dIND) || ~strcmp(CURACT.dIND,'NA')), 
         tDIND = CURACT.dIND;
@@ -618,7 +662,7 @@ if isfield(NM,'covars') && ~isempty(NM.covars)
         tDIND = 1;
     end
 
-    tDIND = nk_input('Select group index covariate to apply global mean and group-specific means correction (zeros indicate cases to be skipped)',0,'i', tDIND);
+    tDIND = nk_input('Select group index covariate to apply global and group-specific means corrections to (zeros indicate cases to be skipped)',0,'i', tDIND);
     
 end
 

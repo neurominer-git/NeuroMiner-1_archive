@@ -20,4 +20,4 @@ function compile_linux
 
 %%sometimes you have to add -lgfortran at the end for both command lines below
     mex src/mex_ClassificationRF_train.cpp  src/classRF.cpp src/classTree.cpp src/rfutils.cpp src/cokus.cpp rfsub.o -output mexClassRF_train -lm -DMATLAB -O -v -lgfortran 
-    mex src/mex_ClassificationRF_predict.cpp  src/classRF.cpp src/classTree.cpp src/rfutils.cpp src/cokus.cpp rfsub.o -output mexClassRF_predict -lm -DMATLAB -O -v -lgfortran
+    mex src/mex_ClassificationRF_predict.cpp  src/classRF.cpp src/classTree.cpp src/rfutils.cpp src/cokus.cpp rfsub.o -output mexClassRF_predict -lm -DMATLAB -O -v

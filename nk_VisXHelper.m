@@ -1,8 +1,8 @@
-function [I2, I1] = nk_VisXHelper(act, nM, nclass, decompfl, permfl, ix, jx, I2, inp, ll, nperms, I1)
+function [I2, I1, filefound] = nk_VisXHelper(act, nM, nclass, decompfl, permfl, ix, jx, I2, inp, ll, nperms, I1)
 global FUSION SVM
 
 linsvmfl = determine_linsvm_flag(SVM);
-
+filefound = false;
 switch act
     
     case 'init'
@@ -68,7 +68,16 @@ switch act
     case 'accum'
         
         if exist('I1','var')
-            if ischar(I1) && exist(I1,'file'), load(I1); end
+            if ischar(I1) && exist(I1,'file'), 
+                try
+                    load(I1); 
+                    filefound = true;
+                catch
+                    cprintf('red','\nCould not load file %s ', I1);
+                    filefound = false;
+                    return;
+                end
+            end
         else
             error('Visualization structure I1 has to be provided!')
         end

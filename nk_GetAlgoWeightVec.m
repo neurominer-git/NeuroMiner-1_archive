@@ -23,16 +23,22 @@ switch SVM.prog
         xV = MD.beta(2:end);
     case 'matLRN'
         % Check whether addBias == 1 and whether algo was kernalized
-        if isfield(MD,'addBias') && MD.addbias, xV = MD.w(2:end); else, xV = MD.w; end
-        if isfield(MD,'kernel') && MD.kernel, error('Unfortunately, the pre-image of the kernel weight vector cannot be computed with the current version NM.'); end
+        offs=1; if isfield(MD,'addBias') && MD.addBias, offs = 2; end
+        if isfield(MD,'kernel') && MD.kernel, 
+            error('Unfortunately, the pre-image of the kernel weight vector cannot be computed with the current version NM.'); 
+        end
+        if isfield(MD,'w')
+            w = MD.w;
+        elseif isfield(MD,'weights')
+            w = MD.weights;
+        else
+            error(sprintf('\nNo weight vector found in matLearn model. Unfortunately, the visualization of this model is not supported by NM.'));
+        end
+        xV = w(offs:end);  
     case 'GLMNET'
         xV = MD.beta(:,end);
     case 'RNDFOR'
         xV = MD.importance;
-    case 'MikRVM'
-        % Use the Quality factor (=importance of feature for reducing the prediction error)
-        % in the RVM model as weight vector in the subsequent computations
-        xV = MD.D.Q_Factor';
     case 'DECTRE'
         xV = MD.predictorImportance;
     case 'SEQOPT'
@@ -41,6 +47,8 @@ switch SVM.prog
         xV(MD.AnalSeq) = (MD.examsfreq(MD.examsfreq>0)/100)';
     case 'WBLCOX'
         xV = MD.beta;
+    case 'IMRELF'
+        xV = MD.Weight;
     otherwise
         if errorflag
             error(['Vizualisation for ' SVM.prog ' not supported yet. Please consult the NM Manual for more information']);

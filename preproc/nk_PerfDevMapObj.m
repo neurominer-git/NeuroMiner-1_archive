@@ -20,13 +20,13 @@ if isfield(params,'mpp') % Apply model to data
 else % Train model using data
     if isfield(IN,'TrInd'), 
         X = params.covmat(IN.TrInd,:); 
-        if isfield( params,'glabel' ), 
+        if isfield( params,'glabel' ) && ~isempty(params.glabel) 
             X = X(params.glabel(IN.TrInd),:); 
             Y = Y(params.glabel(IN.TrInd),:); 
         end
     else, 
         X = params.covmat; 
-        if isfield( params,'glabel' ), 
+        if isfield( params,'glabel' ) && ~isempty(params.glabel)
             X = X(params.glabel,:); 
             Y = Y(params.glabel,:); 
         end
@@ -49,7 +49,7 @@ if ~isfield(IN,'mpp')
            ind = true(m,1); ind(i)=false;
            switch IN.algostr
                case {'pls','spls'}
-                   [ ~, ~, ~,INi ] = nk_PLS(Y(ind,:),X(ind,:),[]);
+                   [ ~, ~, ~, INi ] = nk_PLS(Y(ind,:),X(ind,:),[]);
                    [ ~, ~, Yrecon(~ind,:)] = nk_PLS(Y(~ind,:),X(~ind,:),INi);
            end
            fprintf('.')

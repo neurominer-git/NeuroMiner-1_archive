@@ -55,8 +55,8 @@ contig{end+1} = ['\bf Positive Likelihood Ratio:\rm ' num2str(contigmat.pLR,'%1.
 contig{end+1} = ['\bf Negative Likelihood Ratio:\rm ' num2str(contigmat.nLR,'%1.1f')];
 contig{end+1} = ['\bf Prognostic Summary Index:\rm ' num2str(contigmat.PSI,'%1.1f')];
 contig{end+1} = ['\bf Youden''s J statistic:\rm ' num2str(contigmat.Youden,'%1.1f')];
-contig{end+1} = ['\bf NNS / NND:\rm ' num2str(contigmat.NNP,'%1.1f') ' / ' num2str(contigmat.NND,'%1.1f')];
-contig{end+1} = ['\bf DOR:\rm ' num2str(contigmat.DOR,'%1.1f')];
+contig{end+1} = ['\bf # Needed to Predict/Diagnose:\rm ' num2str(contigmat.NNP,'%1.1f') '/' num2str(contigmat.NND,'%1.1f')];
+contig{end+1} = ['\bf Diagnostic Odds Ratio:\rm ' num2str(contigmat.DOR,'%1.1f')];
 
 cla(handles.axes5);
 delete(findall(handles.figure1,'Tag','AnnotPerfMeas'))

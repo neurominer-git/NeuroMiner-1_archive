@@ -3,28 +3,29 @@ function IN  = nk_PerfFeatRankObj(oY, IN)
 % FORMAT function IN = nk_PerfFeatRankObj(Y, IN)
 % =========================================================================
 % Takes input matrix Y and ranks its features according to their relevance
-% for predicting IN.curlabel. The relevance vector W can be used to
+% for predicting IN.curlabel. The relevance vector/matrix W can be used to
 % upweight (select) or downweight (remove) respective features in the
-% subsequent processing steps.
+% subsequent processing steps (see nk_PerfWActObj.m).
 %
-% I/O Arguments (: Defaults): 
+% Inputs/Outputs: 
 % -------------------------------------------------------------------------
 % Y                   :     M cases x N features data matrix
-% IN.curlabel         :     Target label for prediction
+% IN.curlabel         :     Label vector/matrix for ranking
 % IN.opt              :     Parameter optimization array
 % IN.Params_desc      :     Parameter descriptions
 % IN.algostr          :     Algorithm used for feature weightung
 % IN.(algostr)        :     Parameter substructure for feature weighting
 %                           algorithm
-% IN.W                :     The ranking vector over the features
+% IN.weightmethod     :     Upweight (=1) or downweight (=2) features
+% IN.W                :     The ranking vector/matrix over the features
 % %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% (c) Nikolaos Koutsouleris, 05/2016
+% (c) Nikolaos Koutsouleris, 08/2020
 
 global VERBOSE
 
 % Defaults
 if isempty(IN),             error('Suitable input structure is missing. See the functions'' help for more information.'); end
-if ~isfield(IN,'curlabel'), error('Label vector is missing! Add a ''curlabel'' variable to your input structure.'); end
+if ~isfield(IN,'curlabel'), error('Label vector/matrix is missing! Add a ''curlabel'' variable to your input structure.'); end
 if ~isfield(IN,'algostr'),  error('No feature weighting algorithm found in the input structure. Provide one according to the function help.'); end
 if isfield(IN,'curglabel') && ~isempty(IN.curglabel)
     Y = oY(IN.curglabel,:); L = IN.curlabel(IN.curglabel); 
@@ -93,12 +94,7 @@ switch IN.algostr
         end
 
         [~, IN.W] = gflip(Y, L, IN.gflip.gflip.extra_param);
-%   case 'lmnn'
-%             IN.W = lmnn2(Y', L, DR.LMNN.k, ...
-%                     'maxiter', 1000, ...
-%                     'quiet',1, ...
-%                     'outdim',IN.LMNN.dims, ...
-%                     'mu', IN.LMNN.mu);
+
     case 'feast'
         if VERBOSE, fprintf(' feast'); end
         [~, IN.W] = nk_FEAST(Y, L, [], IN.FEAST);
@@ -145,18 +141,12 @@ switch IN.algostr
         IN.W = IN.R2;
     
     case 'pls'
-        [Yrecon,IN.PLS] = nk_PerfPLSObj(L,Y,IN.PLS);
-        if isfield(IN,'curglabel') && ~isempty(IN.curglabel)
-            Yrecon_LO = nk_PerfPLSObj(IN.curlabel(~IN.curglabel),[], IN.PLS);
-            tYrecon = zeros(size(oY));
-            tYrecon(IN.curglabel,:)= Yrecon;
-            tYrecon(~IN.curglabel,:)= Yrecon_LO;
-            Yrecon = tYrecon; clear tYrecon Yrecon_LO
+        if strcmp(IN.PLS.algostr,'spls')
+            IN.PLS.cu = nk_ReturnParam('SPLS-cu',Params_desc, opt); 
+            IN.PLS.cv = nk_ReturnParam('SPLS-cv',Params_desc, opt); 
         end
-        IN.W = abs(IN.PLS.YL);
-        IN.Yrecon = Yrecon;
-        IN.plsdev = true;
-        IN.weightmethod = 1;
+        [~,~,~,IN.PLS] = nk_PLS(Y, L, IN.PLS);
+        IN.W = abs(IN.PLS.mpp.u);
         
     case 'extern'
         IN.W = abs(IN.EXTERN);
@@ -173,12 +163,15 @@ switch IN.algostr
 		end
 		IN.W = W1;
 end
-    
-% Options 3 & 4 require to compute a threshold (Do this using
-% percentile method)
-if size(IN.W,2) == 1; IN.W = IN.W'; end
+
+%Transpose weights if needed
+if size(IN.W,2) == size(Y,2); IN.W = IN.W'; end
+
+% Scale from 0 to 1
+IN.W = nk_PerfScaleObj(IN.W);
+
 % If downweighting has been selected invert the weight vector
 if IN.weightmethod == 2, IN.W = 1-IN.W; end
+
 % Make sure there are no NaNs in the weight vector
-IN.W(isnan(IN.W))=0;
-end
+IN.W(~isfinite(IN.W))=0;

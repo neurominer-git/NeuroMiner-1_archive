@@ -43,7 +43,7 @@ if nact ~= nTrParam && paramfl, if VERBOSE;fprintf('\nLength of action sequence 
 
 if nact>1, fprintf('\t...Execute preprocessing sequence: '); end
 
-adasynfl = false; if isfield(SVM,'ADASYN') && SVM.ADASYN.flag == 1, adasynfl = true; end
+adasynfl = false; if isfield(SVM,'ADASYN') && SVM.ADASYN.flag == 1 && any(SrcParam.adasynused), adasynfl = true; end
 
 for i=1:nact
     
@@ -513,11 +513,7 @@ if paramfl && tsfl && isfield(InputParam.P{i},'DR') && ...
 elseif trfl, 
      if actparam.adasynfl 
         if iscell(SrcParam.TrainLabelSyn)
-            try
-                InputParam.P{i}.DR.labels = [InputParam.P{i}.DR.labels; SrcParam.TrainLabelSyn{actparam.j}]; 
-            catch
-                fprintf('problem');
-            end
+            InputParam.P{i}.DR.labels = [InputParam.P{i}.DR.labels; SrcParam.TrainLabelSyn{actparam.j}]; 
         else
             InputParam.P{i}.DR.labels = [InputParam.P{i}.DR.labels; SrcParam.TrainLabelSyn]; 
         end
@@ -778,8 +774,8 @@ tsproc  = false;
 
 if isfield(actparam,'opt') && ~isempty(actparam.opt)
     % Overrun user-defined dimensionality!
-    InputParam.P{i}.DEVMAP.cu = nk_ReturnParam('spls-cu', InputParam.P{i}.DEVMAP.Params_desc, actparam.opt); 
-    InputParam.P{i}.DEVMAP.cv = nk_ReturnParam('spls-cv', InputParam.P{i}.DEVMAP.Params_desc, actparam.opt); 
+    InputParam.P{i}.DEVMAP.cu = nk_ReturnParam('SPLS-cu', InputParam.P{i}.DEVMAP.Params_desc, actparam.opt); 
+    InputParam.P{i}.DEVMAP.cv = nk_ReturnParam('SPLS-cv', InputParam.P{i}.DEVMAP.Params_desc, actparam.opt); 
 end
 
 %InputParam.P{i}.DEVMAP.loo = true;

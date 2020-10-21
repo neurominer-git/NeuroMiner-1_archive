@@ -14,7 +14,7 @@ sortfl = get(handles.tglSortFeat,'Value');
 axes(handles.axes33); cla; hold on
 set(handles.axes33,'TickLabelInterpreter','none')
 
-v = handles.visdata{varind};
+v = handles.visdata{handles.curlabel}{varind};
 if v.params.visflag == 1
     featind = 1:v.params.nfeats;
 else
@@ -60,13 +60,23 @@ switch meas{measind}
         switch meas{measind}
             case 'Feature weights [Overall Mean (StErr)]'
                 if iscell(v.MEAN)
-                    y = v.MEAN{curclass}; e = v.SE{curclass}; 
+                    if multiflag
+                        y = nm_nanmean(nk_cellcat(v.MEAN,[],2),2);
+                        e = nm_nanmean(nk_cellcat(v.SE,[],2),2);
+                    else
+                        y = v.MEAN{curclass}; e = v.SE{curclass}; 
+                    end
                 else
                     y = v.MEAN; e = v.SE; 
                 end
             case 'Feature weights [Grand Mean (StErr)]'
                 if iscell(v.MEAN_CV2)
-                    y = v.MEAN_CV2{curclass}; e = v.SE_CV2{curclass}; 
+                    if multiflag
+                        y = nm_nanmean(nk_cellcat(v.MEAN_CV2,[],2),2);
+                        e = nm_nanmean(nk_cellcat(v.SE_CV2,[],2),2);
+                    else
+                        y = v.MEAN_CV2{curclass}; e = v.SE_CV2{curclass}; 
+                    end
                 else
                     y = v.MEAN_CV2; e = v.SE_CV2; 
                 end
@@ -108,7 +118,11 @@ switch meas{measind}
             
             case 'CV-ratio of feature weights [Overall Mean]'
                 if iscell(v.CVRatio)
-                    y = v.CVRatio{curclass}; 
+                    if multiflag
+                        y = nm_nanmean(nk_cellcat(v.CVRatio,[],2),2);
+                    else
+                        y = v.CVRatio{curclass}; 
+                    end
                 else
                     y = v.CVRatio; 
                 end
@@ -116,7 +130,11 @@ switch meas{measind}
                 
             case 'CV-ratio of feature weights [Grand Mean]'
                 if iscell(v.CVRatio_CV2)
-                    y = v.CVRatio_CV2{curclass};  
+                    if multiflag
+                        y = nm_nanmean(nk_cellcat(v.CVRatio_CV2,[],2),2);
+                    else
+                        y = v.CVRatio_CV2{curclass};  
+                    end
                 else
                     y = v.CVRatio_CV2;
                 end
@@ -124,7 +142,11 @@ switch meas{measind}
                 
             case 'Feature selection probability [Overall Mean]'
                 if iscell(v.FeatProb)
-                    y = v.FeatProb{1}(:,curclass);  
+                    if multiflag
+                        y = nm_nanmean(v.FeatProb{1},2);
+                    else
+                        y = v.FeatProb{1}(:,curclass);  
+                    end   
                 else
                     y = v.FeatProb;
                 end
@@ -132,7 +154,11 @@ switch meas{measind}
                 
             case 'Probability of feature reliability (95%-CI) [Grand Mean]'
                 if iscell(v.Prob_CV2)
-                    y = v.Prob_CV2{curclass};  
+                    if multiflag
+                        y = nm_nanmean(nk_cellcat(v.Prob_CV2,[],2),2);
+                    else
+                        y = v.Prob_CV2{curclass};  
+                    end
                 else
                     y = v.Prob_CV2;
                 end
@@ -140,7 +166,11 @@ switch meas{measind}
                 
             case 'Sign-based consistency'
                 if iscell(v.SignBased_CV2)
-                    y = v.SignBased_CV2{curclass};
+                    if multiflag
+                        y = nm_nanmean(nk_cellcat(v.SignedBased_CV2,[],2),2);
+                    else
+                        y = v.SignBased_CV2{curclass};
+                    end
                 else
                     y = v.SignBased_CV2;
                 end
@@ -148,7 +178,11 @@ switch meas{measind}
                 
             case 'Sign-based consistency (Z score)'
                 if iscell(v.SignBased_CV2_z)
-                    y = v.SignBased_CV2_z{curclass};
+                    if multiflag
+                        y = nm_nanmean(nk_cellcat(v.SignBased_CV2_z,[],2),2);
+                    else
+                        y = v.SignBased_CV2_z{curclass};
+                    end
                 else
                     y = v.SignBased_CV2_z;
                 end
@@ -156,7 +190,11 @@ switch meas{measind}
                 
             case 'Sign-based consistency -log10(P value)'
                 if iscell(v.SignBased_CV2_p_uncorr)
-                    y = v.SignBased_CV2_p_uncorr{curclass};
+                    if multiflag
+                        y = nm_nanmean(nk_cellcat(v.SignBased_CV2_p_uncorr,[],2),2);
+                    else
+                        y = v.SignBased_CV2_p_uncorr{curclass};
+                    end
                 else
                     y = v.SignBased_CV2_p_uncorr;
                 end 
@@ -164,7 +202,11 @@ switch meas{measind}
                 vlineval = -log10(0.05);
             case 'Sign-based consistency -log10(P value, FDR)'
                 if iscell(v.SignBased_CV2_p_fdr)
-                    y = v.SignBased_CV2_p_fdr{curclass};
+                    if multiflag
+                        y = nm_nanmean(nk_cellcat(v.SignBased_CV2_p_fdr,[],2),2);
+                    else
+                        y = v.SignBased_CV2_p_fdr{curclass};
+                    end
                 else
                     y = v.SignBased_CV2_p_fdr;
                 end
@@ -172,14 +214,22 @@ switch meas{measind}
                 vlineval = -log10(0.05);
             case 'Spearman correlation [Grand Mean]'
                 if iscell(v.Spearman_CV2)
-                    y = v.Spearman_CV2{curclass};
+                    if multiflag
+                        y = nm_nanmean(nk_cellcat(v.Spearman_CV2,[],2),2);
+                    else
+                        y = v.Spearman_CV2{curclass};
+                    end
                 else
                     y = v.Spearman_CV2;
                 end
                 miny = nanmin(y(:)); maxy = nanmax(y(:));
             case 'Pearson correlation [Grand Mean]'
                 if iscell(v.Pearson_CV2)
-                    y = v.Pearson_CV2{curclass};  
+                    if multiflag
+                        y = nm_nanmean(nk_cellcat(v.Pearson_CV2,[],2),2);
+                    else
+                        y = v.Pearson_CV2{curclass};  
+                    end
                 else
                     y = v.Pearson_CV2;
                 end
@@ -187,9 +237,16 @@ switch meas{measind}
                 
             case 'Spearman correlation -log10(P value) [Grand Mean]'
                 if iscell(v.Spearman_CV2_p_uncorr)
-                    y = v.Spearman_CV2_p_uncorr{curclass}; 
-                    if isfield (v,'Spearman_CV2_p_uncorr_STD')
-                        se = sqrt(v.Spearman_CV2_p_uncorr_STD{curclass});
+                    if multiflag
+                        y = nm_nanmean(nk_cellcat(v.Spearman_CV2_p_uncorr,[],2),2);
+                        if isfield (v,'Spearman_CV2_p_uncorr_STD')
+                            se = nm_nanmean(sqrt(nk_cellcat(v.Spearman_CV2_p_uncorr_STD,[],2)),2);
+                        end
+                    else
+                        y = v.Spearman_CV2_p_uncorr{curclass}; 
+                        if isfield (v,'Spearman_CV2_p_uncorr_STD')
+                            se = sqrt(v.Spearman_CV2_p_uncorr_STD{curclass});
+                        end
                     end
                 else
                     y = v.Spearman_CV2_p_uncorr;
@@ -199,11 +256,19 @@ switch meas{measind}
                 end
                 miny = 0; maxy = nanmax(y(:));
                 vlineval = -log10(0.05);
+                
             case 'Pearson correlation -log10(P value) [Grand Mean]'
                 if iscell(v.Pearson_CV2_p_uncorr)
-                    y = v.Pearson_CV2_p_uncorr{curclass};  
-                    if isfield (v,'Pearson_CV2_p_uncorr_STD')
-                        se = sqrt(v.Pearson_CV2_p_uncorr_STD{curclass});
+                    if multiflag
+                        y = nm_nanmean(nk_cellcat(v.Pearson_CV2_p_uncorr,[],2),2);
+                        if isfield (v,'Pearson_CV2_p_uncorr_STD')
+                            se = nm_nanmean(sqrt(nk_cellcat(v.Pearson_CV2_p_uncorr_STD,[],2)),2);
+                        end
+                    else
+                        y = v.Pearson_CV2_p_uncorr{curclass};  
+                        if isfield (v,'Pearson_CV2_p_uncorr_STD')
+                            se = sqrt(v.Pearson_CV2_p_uncorr_STD{curclass});
+                        end
                     end
                 else
                     y = v.Pearson_CV2_p_uncorr;
@@ -213,25 +278,40 @@ switch meas{measind}
                 end
                 miny = 0; maxy = nanmax(y(:));
                 vlineval = -log10(0.05);
+                
             case 'Spearman correlation -log10(P value, FDR) [Grand Mean]'
                 if iscell(v.Spearman_CV2_p_fdr)
-                    y = v.Spearman_CV2_p_fdr{curclass}; 
+                    if multiflag
+                        y = nm_nanmean(nk_cellcat(v.Spearman_CV2_p_fdr,[],2),2);
+                    else
+                        y = v.Spearman_CV2_p_fdr{curclass}; 
+                    end
                 else
                     y = v.Spearman_CV2_p_fdr;
                 end
                 miny = 0; maxy = nanmax(y(:));
                 vlineval = -log10(0.05);
+                
             case 'Pearson correlation -log10(P value, FDR) [Grand Mean]'
                 if iscell(v.Pearson_CV2_p_fdr)
-                    y = v.Pearson_CV2_p_fdr{curclass};  
+                    if multiflag
+                        y = nm_nanmean(nk_cellcat(v.Pearson_CV2_p_fdr,[],2),2);
+                    else
+                        y = v.Pearson_CV2_p_fdr{curclass};  
+                    end
                 else
                     y = v.Pearson_CV2_p_fdr;
                 end
                 miny = 0; maxy = nanmax(y(:));
                 vlineval = -log10(0.05);
+                
             case 'Permutation-based Z Score [Grand Mean]'
                 if iscell(v.PermZ_CV2)
-                    y = v.PermZ_CV2{curclass};  
+                    if multiflag
+                        y = nm_nanmean(nk_cellcat(v.PermZ_CV2,[],2),2);
+                    else
+                        y = v.PermZ_CV2{curclass};  
+                    end
                 else
                     y = v.PermZ_CV2;
                 end
@@ -239,7 +319,11 @@ switch meas{measind}
                 
             case 'Permutation-based -log10(P value) [Grand Mean]'
                 if iscell(v.PermProb_CV2)
-                    y = v.PermProb_CV2{curclass};  
+                    if multiflag
+                        y = nm_nanmean(nk_cellcat(v.PermProb_CV2,[],2),2);
+                    else
+                        y = v.PermProb_CV2{curclass};  
+                    end
                 else
                     y = v.PermProb_CV2;
                 end
@@ -248,7 +332,11 @@ switch meas{measind}
                 
             case 'Permutation-based -log10(P value, FDR) [Grand Mean]'
                 if iscell(v.PermProb_CV2_FDR)
-                    y = v.PermProb_CV2_FDR{curclass};  
+                    if multiflag
+                        y = nm_nanmean(nk_cellcat(v.PermProb_CV2_FDR,[],2),2);
+                    else
+                        y = v.PermProb_CV2_FDR{curclass};  
+                    end
                 else
                     y = v.PermProb_CV2_FDR;
                 end
@@ -257,7 +345,11 @@ switch meas{measind}
                 
             case 'Analytical -log10(P Value) for Linear SVM [Grand Mean]'
                 if iscell(v.Analytical_p)
-                    y = v.Analytical_p{curclass};  
+                    if multiflag
+                        y = nm_nanmean(nk_cellcat(v.Analytical_p,[],2),2);
+                    else
+                        y = v.Analytical_p{curclass};  
+                    end
                 else
                     y = v.Analytical_p;
                 end
@@ -266,7 +358,11 @@ switch meas{measind}
                 
             case 'Analytical -log10(P Value, FDR) for Linear SVM [Grand Mean]'
                 if iscell(v.Analyitcal_p_fdr)
-                    y = v.Analyitcal_p_fdr{curclass};  
+                    if multiflag
+                        y = nm_nanmean(nk_cellcat(v.Analyitcal_p_fdr,[],2),2);
+                    else
+                        y = v.Analyitcal_p_fdr{curclass};  
+                    end
                 else
                     y = v.Analyitcal_p_fdr;
                 end
@@ -274,10 +370,16 @@ switch meas{measind}
                 vlineval = -log10(0.05);
                 
             case 'Model P value histogram'
-                y = v.PermModel_Crit_Global(curclass,:); 
-                vp = v.ObsModel_Eval_Global(curclass);
-                ve = v.PermModel_Eval_Global(curclass,:);
-                perms = length(v.PermModel_Eval_Global(curclass,:));
+                if multiflag
+                    y = nm_nanmean(v.PermModel_Crit_Global); 
+                    vp = nm_nanmean(v.ObsModel_Eval_Global);
+                    ve = nm_nanmean(v.PermModel_Eval_Global);
+                else
+                    y = v.PermModel_Crit_Global(curclass,:); 
+                    vp = v.ObsModel_Eval_Global(curclass);
+                    ve = v.PermModel_Eval_Global(curclass,:);
+                end
+                perms = length(v.PermModel_Eval_Global(1,:));
         end
         
         if multiflag && isfield(v,'PermModel_Crit_Global_Multi')
@@ -380,7 +482,7 @@ if  ~strcmp(meas{measind},'Model P value histogram')
                 xlim([miny maxy]);
             end
            
-            handles.visdata_table = create_visdata_tables(v, handles.visdata_table, ind, 'reorder');
+            handles.visdata_table(handles.curlabel, handles.curmodal) = create_visdata_tables(v, handles.visdata_table(handles.curlabel, handles.curmodal), ind, 'reorder');
     end
 end
 guidata(handles.figure1, handles);

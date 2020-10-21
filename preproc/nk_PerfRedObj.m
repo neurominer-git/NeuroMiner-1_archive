@@ -19,7 +19,7 @@ function [sY, IN] = nk_PerfRedObj(Y, IN)
 % IN.mapX       : Embedded training data (for out-of-sample-est)
 % sY            : Mapped Y
 % %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% (c) Nikolaos Koutsouleris, 04 / 2018
+% (c) Nikolaos Koutsouleris, 08 / 2020
 
 % =========================== WRAPPER FUNCTION ============================ 
 if iscell(Y) && exist('IN','var') && ~isempty(IN)
@@ -82,13 +82,15 @@ if eIN || ~isfield(IN,'mpp') || isempty(IN.mpp)
     switch IN.DR.RedMode
         
         case 'PLS'
-            if isfield(IN.DR.PLS,'behav_mat')
-                L=IN.DR.PLS.behav_mat;
+            IN.cu = nk_ReturnParam('SPLS-cu',Params_desc, opt);
+            IN.cv = nk_ReturnParam('SPLS-cv',Params_desc, opt);
+            if isfield(IN.DR.PLS,'V')
+                L=IN.DR.PLS.V;
             else
                 L=IN.DR.labels;
             end
             if isfield(IN.DR.PLS,'algostr'), IN.algostr = IN.DR.PLS.algostr; end
-            [pY,pX,~,IN] = nk_PLS(Y,L,IN);
+            [pY,pX,~,IN] = nk_PLS(Y, L, IN);
             %pY=[pY pX];
             
         case 'ProbPCA'
@@ -124,38 +126,6 @@ if eIN || ~isfield(IN,'mpp') || isempty(IN.mpp)
 
         case {'KLDA', 'KFDA', 'KernelLDA', 'KernelFDA', 'GDA'}
             [pY,IN.mpp] = compute_mapping([IN.DR.labels Y],IN.DR.RedMode, IN.DR.dims, IN.DR.Modus);
-
-        case 'HessianLLE'
-            k = nk_ReturnParam('HessianLLE-K',Params_desc, opt);
-            [pY,IN.mpp] = compute_mapping(Y,IN.DR.RedMode,IN.DR.dims,k,IN.DR.Modus);
-            
-        case 'SNE'
-            perplex = nk_ReturnParam('SNEperplex',Params_desc, opt);
-            [pY,IN.mpp] = ...
-                compute_mapping(Y,IN.DR.RedMode,IN.DR.dims, perplex, IN.DR.Modus);
-        case 't-SNE'
-            % Initial PCA
-            perplex = nk_ReturnParam('tSNE-perplexity',Params_desc, opt);
-            IN.PCAdims = nk_ReturnParam('tSNE-PCA-dimensions',Params_desc, opt);
-            switch IN.DR.tSNE.PCAPercMode
-                case 1
-                    nd = IN.PCAdims;
-                case 2
-                    nd = floor(IN.PCAdims*size(Y,1)/100);
-                case 3
-                    options.PCARatio = IN.PCAdims;
-                    nd = 0;
-            end
-            options.ReducedDim = nd;
-            [IN.mpp.vec,IN.mpp.val,IN.mpp.sampleMean] = PCA(Y, options);
-            pY = bsxfun(@minus, Y, IN.mpp.sampleMean) * IN.mpp.vec;
-
-            % now perform t-SNE
-            pY = tsne(pY, IN.DR.dims, perplex);
-
-        case 'SymSNE'
-            perplex = nk_ReturnParam('SymSNEperplex',Params_desc, opt);
-            [pY,IN.mpp] = compute_mapping(Y,IN.DR.RedMode, IN.DR.dims, perplex, IN.DR.Modus);
 
         case {'PCA','SparsePCA'}
             if isfield(IN.DR,'PercMode') 
@@ -205,7 +175,6 @@ if eIN || ~isfield(IN,'mpp') || isempty(IN.mpp)
             results = robpca(Y, 'k', IN.DR.dims, 'kmax', IN.DR.dims,'plots',0);
             IN.mpp.vec = results.P; IN.mpp.val = results.L; IN.mpp.sampleMean = results.M;
             pY = bsxfun(@minus, Y, IN.mpp.sampleMean) * IN.mpp.vec;
-            %[pY,IN.mpp] = compute_mapping(Y, IN.DR.RedMode, IN.DR.IN.DR.dims, IN.DR.Modus);
             
         case 'NNMF'
             if isfield(IN.DR,'NMFmethod'), 
@@ -248,42 +217,25 @@ if eIN || ~isfield(IN,'mpp') || isempty(IN.mpp)
                 case 'optNMF'
                     [IN.mpp.W, IN.mpp.H] = opnmf_mem(Y', IN.DR.dims);
                 case 'NeNMF'
-                    switch IN.DR.options.algo
-                        case 'RPI'
-                            [IN.mpp.W, IN.mpp.H, IN.mpp.fitRes] = RPI_NeNMF( Y', [], [], IN.DR.dims, IN.DR.options.tmax);
-                        case 'RSI'
-                            [IN.mpp.W, IN.mpp.H, IN.mpp.fitRes] = RSI_NeNMF( Y', [], [], IN.DR.dims, IN.DR.options.tmax);
-                        case 'Vanilla'
-                            [IN.mpp.W, IN.mpp.H, IN.mpp.fitRes] = VANILLA_NeNMF( Y', [], [], IN.DR.dims, IN.DR.options.tmax);
-                    end
+                    [IN.mpp.W, IN.mpp.H, IN.mpp.fitRes] = feval( IN.DR.NMFmethod, Y', [], [], IN.DR.dims, IN.DR.tmax);
             end
             pY = AUtoPhysicalUnits(Y',IN.mpp.W); pY=pY';
-        case 'FastMVU'
-            k = nk_ReturnParam('K',Params_desc, opt);
-            [pY,IN.mpp] = compute_mapping(Y,IN.DR.RedMode, IN.DR.dims, k, IN.DR.finetune, IN.DR.Modus);
         case 'NCA'
             Lambda = nk_ReturnParam('Lambda',Params_desc, opt);
             [pY,IN.mpp] = compute_mapping([IN.DR.labels Y], IN.DR.RedMode, IN.DR.dims, Lambda);
         case 'LMNN'
             [pY,IN.mpp] = compute_mapping([IN.DR.labels Y], IN.DR.RedMode);
-        case 'DiffMaps'
-            Sigma = nk_ReturnParam('DiffMaps-Sigma',Params_desc, opt);
-            T = nk_ReturnParam('DiffMaps-T',Params_desc, opt);
-            [pY,IN.mpp] = compute_mapping(Y, 'DM', IN.DR.dims, Sigma, T, IN.DR.Modus);
-        case 'GPLVM'
-            Sigma = nk_ReturnParam('GPLVM-Sigma',Params_desc, opt);
-            [pY,IN.mpp] = compute_mapping(Y, IN.DR.RedMode, IN.DR.dims, Sigma, IN.DR.Modus);
-        case 'LMNN2.5'
-            tY = Y'; tL = IN.DR.labels';
-            [IN.mpp.L, IN.mpp.model] = lmnn2(tY, tL, IN.DR.LMNN2.k, ...
-                'maxiter', IN.DR.LMNN2.maxiter, ...
-                'quiet',1, ...
-                'outdim',IN.DR.dims, ...
-                'mu',IN.DR.LMNN2.mu, ...
-                'validation',IN.DR.LMNN2.validation, ...
-                'earlystopping',IN.DR.LMNN2.earlystopping, ...
-                'subsample',IN.DR.LMNN2.subsample);
-            pY = (IN.mpp.L * tY)';
+%         case 'LMNN2.5'
+%             tY = Y'; tL = IN.DR.labels';
+%             [IN.mpp.L, IN.mpp.model] = lmnn2(tY, tL, IN.DR.LMNN2.k, ...
+%                 'maxiter', IN.DR.LMNN2.maxiter, ...
+%                 'quiet',1, ...
+%                 'outdim',IN.DR.dims, ...
+%                 'mu',IN.DR.LMNN2.mu, ...
+%                 'validation',IN.DR.LMNN2.validation, ...
+%                 'earlystopping',IN.DR.LMNN2.earlystopping, ...
+%                 'subsample',IN.DR.LMNN2.subsample);
+%             pY = (IN.mpp.L * tY)';
         case 'KernelPCA'
             switch IN.DR.kernel.type
                 case 'linear'
@@ -300,14 +252,6 @@ else
     switch IN.DR.RedMode
         case 'PLS'
             [pY,pX] = nk_PLS(Y, [], IN);
-        case 't-SNE'
-            %pY = bsxfun(@minus, Y, IN.mpp.sampleMean) * IN.mpp.vec;    
-            pY = out_of_sample_est(Y, IN.X, IN.mapX);
-
-        case {'SNE','SymSNE','MDS', 'Sammon','DiffMaps'} 
-            pY = out_of_sample_est(Y, IN.X, IN.mapX);
-        case 'LPP'
-            pY = out_of_sample(Y, IN.mpp);
         case {'PCA','SparsePCA'}
             switch IN.DR.DRsoft
                 case 0
@@ -323,8 +267,8 @@ else
             pY = AUtoPhysicalUnits(Y',IN.mpp.W); pY=pY';
         case 'SPCA'
             pY = nk_PerfSPCA(Y, IN.mpp);
-        case 'LMNN2.5'
-            pY = (IN.mpp.L * Y')';
+%         case 'LMNN2.5'
+%             pY = (IN.mpp.L * Y')';
         otherwise
             pY = out_of_sample(Y, IN.mpp);
     end

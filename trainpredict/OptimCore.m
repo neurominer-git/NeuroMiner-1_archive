@@ -37,7 +37,6 @@ else
     % Train models with optimization
     [ IN, OUT ] = FoldPerm(IN, OUT, strout, OptMode, 0, 0, Param.SubSpaceStepping);
 end
-%if OptMode && RFE.dispres && ~BATCH, PrintWrapperPerf(OUT, PerfStruct); end
 
 % STEP 1b)
 % If Multi-group optimization has to be carried out, perform multi-group
@@ -112,7 +111,7 @@ strout='Construct';
 
 % Cross-CV1 probabilistic feature selection
 if isfield(Param,'PFE') && Param.PFE.flag
-    [ IN , OUT ] = SelectFeaturesAcrossCV1(IN, OUT, Param, 0);
+    [ IN , OUT ] = SelectFeaturesAcrossCV1(IN, OUT, Param, minmaxfl, 0);
 end
 
 % Optionally retrain the classifier by conactenating CV1 training and test data

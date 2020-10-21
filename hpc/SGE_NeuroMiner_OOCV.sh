@@ -5,9 +5,9 @@ echo '*** NeuroMiner Elessar               ***'
 echo '*** SGE joblist manager:             ***'
 echo '*** Apply models to independent data ***'
 echo '*** (c) 2017 N. Koutsouleris         ***'
-echo '*** Updated Mar2020: Dom             ***'
+echo '*** Updated Sep2020: Dom             ***'
 echo '****************************************'
-echo '     This is the DEVELOPMENT version.   '
+echo '     This is the STABLE      version.   '
 echo '         Expect bugs and report         '
 echo '****************************************'
 echo   
@@ -15,7 +15,7 @@ echo
 # matlab R2018b was used to compile which is the v95 runtime. This needs to be updated if a different compiler is used. 
 export LD_LIBRARY_PATH=/opt/matlab/v95/runtime/glnxa64:/opt/matlab/v95/bin/glnxa64:/opt/matlab/v95/sys/os/glnxa64:/opt/matlab/v95/sys/
 export JOB_DIR=$PWD
-export NEUROMINER=/opt/NM/NeuroMinerMCCMain_dev_v95/for_testing 
+export NEUROMINER=/opt/NM/NeuroMinerMCCMain_1.05_v95/for_testing 
 export ACTION=oocv
 read -e -p 'Path to NM structure: ' datpath
 if [ ! -f $datpath ]; then

@@ -92,7 +92,7 @@ for sl=1:Vm.dim(3)
                             d = spm_slice_vol( V(i), M1,Vm.dim(1:2), 1 );
                         end
                     catch
-                        warning('\nFile problem: %s,',V{j}(i).fname)
+                        error('\nFile problem: %s,',V{j}(i).fname)
                     end
                     y(i,:) = d(ind0);
                 end

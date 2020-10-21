@@ -142,7 +142,7 @@ if ~disallow, menustr = [menustr '|PROCEED >>>']; menuact = [menuact 10]; end
 %% Display menu and act on user selections
 nk_PrintLogo
 mestr = 'Independent test module run-time configuration'; navistr = [parentstr ' >>> ' mestr]; cprintf('*blue','\nYou are here: %s >>>',parentstr);
-if ~inp.batchflag && act<11, act = nk_input(mestr, 0, 'mq', menustr, menuact); end
+if ~inp.batchflag && act<13, act = nk_input(mestr, 0, 'mq', menustr, menuact); end
 
 switch act
     
@@ -196,6 +196,7 @@ switch act
             nk_SetupGlobVars2(NM.analysis{inp.analind(i)}.params, 'setup_main', 0); 
             NM.runtime.curanal = inp.analind(i);
             inp.analysis_id = NM.analysis{inp.analind(i)}.id;
+            inp.saveoptdir = [ NM.analysis{inp.analind(i)}.rootdir filesep 'opt' ];
             NM.analysis{inp.analind(i)}.OOCV{inp.oocvind} = OOCVPrep(NM, inp, NM.analysis{inp.analind(i)});
             nk_SetupGlobVars2(NM.analysis{inp.analind(i)}.params, 'clear', 0); 
          end
@@ -240,16 +241,6 @@ else
     inp1.nclass = 1;
 end
 
-% if isfield(inp1.OO,'groupvec_oocv')
-%     inp1.ngroups = numel(unique(inp1.OO.groupvec_oocv));
-%     inp1.groupind = inp1.OO.groupvec_oocv;
-%     if isfield(inp1.OO,'groupvecnames_oocv')
-%         inp1.groupnames = inp1.OO.groupvecnames_oocv;
-%     end
-% else
-%     inp1.ngroups = 1;
-% end
-
 if isfield(inp1.OO,'label') && ~isempty(inp1.OO.label), 
     inp1.LabelCV     = dat.label; 
     inp1.labelOOCV   = inp1.OO.label; 
@@ -275,6 +266,7 @@ if isfield(analysis,'rootdir') && exist(analysis.rootdir,'dir')
 else
     inp1.rootdir = fullfile(pwd,analysis.params.TrainParam.SVM.prog,inp1.oocvname);
 end
+
 if ~exist(inp1.rootdir,'dir'), mkdir(inp1.rootdir); end
 
 % Loop through modalities
@@ -283,6 +275,7 @@ for i = 1:inp1.nF
     % **************************** ANALYSIS SETUP *****************************
     inp2 = nk_SetFusionMode2(dat, analysis, F, nF, i, inp1.oocvind);
     inp = catstruct(inp1,inp2);
+    inp.loadGD = true;
     
     for j = 1:MULTILABEL.dim
 	

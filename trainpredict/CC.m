@@ -9,5 +9,11 @@ function param = CC(expected, predicted)
 if isempty(expected), param = []; return; end
 param = corrcoef(expected,predicted);
 param = param(2);
-if isnan(param), error('Prediction algorithm returned non-finite performance measure'); end
+if isnan(param), 
+    if numel(unique(predicted))==1
+        param = 0; 
+    else
+        error('Prediction algorithm returned non-finite performance measure'); 
+    end
+end
 end

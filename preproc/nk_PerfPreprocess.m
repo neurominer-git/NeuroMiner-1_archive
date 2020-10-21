@@ -273,10 +273,10 @@ for k=sta_iy:stp_iy % Inner permutation loop
                 if mult_contain
                     vTrSyn = cell(n_usY,1); LabelSyn = cell(n_usY,1); CovarsSyn = cell(n_usY,1); 
                     for pu=1:n_usY
-                        [ vTrSyn{pu}, LabelSyn{pu}, CovarsSyn{pu} ] = nk_PerfADASYN( vTr{pu}, TrL, SVM.ADASYN, Covs, true);
+                        [ vTrSyn{pu}, LabelSyn{pu}, CovarsSyn{pu}, SrcParam.adasynused(pu) ] = nk_PerfADASYN( vTr{pu}, TrL, SVM.ADASYN, Covs, true);
                     end
                 else
-                   [ vTrSyn, LabelSyn, CovarsSyn ] = nk_PerfADASYN( vTr, TrL, SVM.ADASYN, Covs, true);
+                   [ vTrSyn, LabelSyn, CovarsSyn, SrcParam.adasynused ] = nk_PerfADASYN( vTr, TrL, SVM.ADASYN, Covs, true);
                 end
                 InputParam.TrSyn = vTrSyn;
                 SrcParam.TrainLabelSyn = LabelSyn;
@@ -285,9 +285,13 @@ for k=sta_iy:stp_iy % Inner permutation loop
             
             switch MODEFL
                 case 'classification'
-                    if RAND.Decompose ~=9
-                        SrcParam.BinaryTrainLabel   = [ones(sum(TrL == CV.class{i,j}{u}.groups(1)),1); -1*ones(sum(TrL == CV.class{i,j}{u}.groups(2)),1)];
-                        SrcParam.BinaryCVLabel      = [ones(sum(CVL == CV.class{i,j}{u}.groups(1)),1); -1*ones(sum(CVL == CV.class{i,j}{u}.groups(2)),1)];
+                    switch RAND.Decompose 
+                        case 1
+                            SrcParam.BinaryTrainLabel   = [ones(sum(TrL == CV.class{i,j}{u}.groups(1)),1); -1*ones(sum(TrL == CV.class{i,j}{u}.groups(2)),1)];
+                            SrcParam.BinaryCVLabel      = [ones(sum(CVL == CV.class{i,j}{u}.groups(1)),1); -1*ones(sum(CVL == CV.class{i,j}{u}.groups(2)),1)];
+                        case 2
+                             SrcParam.BinaryTrainLabel  = TrL ~=0; SrcParam.BinaryTrainLabel (TrL == 0) =-1;
+                             SrcParam.BinaryCVLabel  = CVL ~=0; SrcParam.BinaryCVLabel (TrL == 0) =-1;
                     end
                     SrcParam.MultiTrainLabel    = TrL;
                     SrcParam.MultiCVLabel       = CVL;

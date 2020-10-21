@@ -2,7 +2,7 @@ function [sY, IN] = nk_PartialCorrelationsObj( Y, IN )
 % =========================================================================
 % FORMAT [Y, IN] = nk_PartialCorrelationsObj(Y, IN)
 % =========================================================================
-% Remove nuisance effects IN.G from Y (optionally, using a predefined beta)
+% Remove nuisance effects IN.G from Y (opt. using predefined estimators)
 %
 % I\O Arguments:
 % -------------------------------------------------------------------------
@@ -13,36 +13,70 @@ function [sY, IN] = nk_PartialCorrelationsObj( Y, IN )
 % IN.beta           : The estimated beta coefficients
 % IN.revertflag     : Increase (=1) or attenuate (=0) IN.G effects 
 % %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% (c) Nikolaos Koutsouleris, 10 / 2015
+% (c) Nikolaos Koutsouleris, 08 / 2020
+
+method = @PartialCorrelationsObj; methodsel = 1;
+if exist('IN','var') && ~isempty(IN) && isfield(IN,'METHOD') && IN.METHOD == 2
+    method = @CombatObj; methodsel = 2;
+end
 
 % =========================== WRAPPER FUNCTION ============================ 
 if iscell(Y) && exist('IN','var') && ~isempty(IN)
     sY = cell(1,numel(Y));
-    for i=1:numel(Y), 
-        if isfield(IN,'beta') && ~isempty(IN.beta)
-            IN.G = IN.TsCovars{i};
-        else
-            IN.G = IN.TrCovars{i};
+    for i=1:numel(Y),
+        switch methodsel 
+            case 1
+                if isfield(IN,'beta') && ~isempty(IN.beta)
+                    IN.G = IN.TsCovars{i};
+                else
+                    IN.G = IN.TrCovars{i};
+                end
+            case 2
+                if isfield(IN,'estimators') && ~isempty(IN.estimators)
+                    IN.G = IN.TsCovars{i};
+                    IN.M = IN.TsMod{i};
+                else
+                    IN.G = IN.TrCovars{i};
+                    IN.M = IN.TrMod{i};
+                end
         end
-        [sY{i}, IN] = PartialCorrelationsObj(Y{i}, IN); 
+        [sY{i}, IN] = method (Y{i}, IN); 
     end
 else
-    if isfield(IN,'beta') && ~isempty(IN.beta)
-        if iscell(IN.TsCovars)
-            IN.G = IN.TrCovars;
-        else
-            IN.G = IN.TsCovars;
-        end
-    else
-        IN.G = IN.TrCovars;
-    end
-    [ sY, IN ] = PartialCorrelationsObj( Y, IN );
-end
-% =========================================================================
+    switch methodsel 
+        case 1
+            if isfield(IN,'beta') && ~isempty(IN.beta)
+                if iscell(IN.TsCovars)
+                    IN.G = IN.TrCovars;
+                else
+                    IN.G = IN.TsCovars;
+                end
+            else
+                IN.G = IN.TrCovars;
+            end
 
+        case 2
+            if isfield(IN,'estimators') && ~isempty(IN.estimators)
+                if iscell(IN.TsMod)
+                    IN.G = IN.TrCovars;
+                    IN.M = IN.TrMod;
+                else
+                    IN.G = IN.TsCovars;
+                    IN.M = IN.TsMod;
+                end
+            else
+                IN.G = IN.TrCovars;
+                IN.M = IN.TrMod;
+            end
+    end
+
+    [ sY, IN ] = method( Y, IN );
+end
+
+% =========================================================================
 function [Y, IN] = PartialCorrelationsObj( Y, IN )
 
-if isempty(IN),eIN=true; else eIN=false; end
+if isempty(IN),eIN=true; else, eIN=false; end
 
 if eIN|| ~isfield(IN,'G') || isempty(IN.G), error('No covariates defined in parameter structure'), end
 
@@ -74,13 +108,27 @@ if eIN || ~isfield(IN,'beta') || isempty(IN.beta),
     end
 end
 if eIN || ~isfield(IN,'revertflag') || isempty(IN.revertflag) || ~IN.revertflag
-    try 
-        Y = Y - IN.G * IN.beta;
-    catch
-        fprintf('problem')
-    end
+    Y = Y - IN.G * IN.beta;
 else
     Y = Y + IN.G * IN.beta;
 end
 
-return
+% =========================================================================
+function [ Y, IN ] = CombatObj( Y, IN )
+
+if isempty(IN),eIN=true; else, eIN=false; end
+
+if eIN|| ~isfield(IN,'G') || isempty(IN.G), error('No covariates defined in parameter structure'), end
+
+% Combat needs data, batch variables and covariates transposed 
+Y=Y'; G = IN.G'; if islogical(G), [~,G] = max(G); end
+M = []; if isfield(IN,'M'), M = IN.M; end
+
+if eIN || (~isfield(IN,'estimators') || isempty(IN.estimators) ) 
+    
+    [~,IN.estimators] = combat( Y, G, M );
+end
+
+Y = combat( Y, G, M, IN.estimators);
+
+Y=Y';

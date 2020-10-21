@@ -15,8 +15,8 @@ function compile_linux
     %.bat) file. So set it there not here
     
     %if you want to emulate what the makefile does ucomment below 2 lines:
-    %mex src/mex_regressionRF_train.cpp src/reg_RF.cpp src/cokus.cpp -o mexRF_train -DMATLAB 
-    %mex src/mex_regressionRF_predict.cpp src/reg_RF.cpp src/cokus.cpp -o mexRF_predict -DMATLAB 
+    %mex mex_regressionRF_train.cpp reg_RF.cpp cokus.cpp -o mexRF_train -DMATLAB 
+    %mex mex_regressionRF_predict.cpp reg_RF.cpp cokus.cpp -o mexRF_predict -DMATLAB 
 
     system('make mex;');
 

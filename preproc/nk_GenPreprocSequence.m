@@ -63,7 +63,7 @@ if isfield(TemplParam,'ACTPARAM')
                 if ~isempty(SrcParam.covars)
                     InputParam.P{ac}.COVAR = TemplParam.ACTPARAM{ac}.COVAR;
                     if VERBOSE, 
-                        fprintf('\n* UNIVARIATE PARTIAL CORRELATION FOR COVARIATE EFFECTS')
+                        fprintf('\n* ADJUSTING DATA FOR COVARIATE EFFECTS')
                         fprintf('\n\t- Nuisance covariate: %s', NM.covnames{TemplParam.ACTPARAM{ac}.COVAR})
                     end
                     InputParam.P{ac}.TsCovars = [];
@@ -72,45 +72,88 @@ if isfield(TemplParam,'ACTPARAM')
                     if isfield(SrcParam,'CVI'),         InputParam.P{ac}.TsCovars{end+1} = SrcParam.covars( SrcParam.CVI, TemplParam.ACTPARAM{ac}.COVAR );   end
                     if isfield(SrcParam,'TsI'),         InputParam.P{ac}.TsCovars{end+1} = SrcParam.covars( SrcParam.TsI, TemplParam.ACTPARAM{ac}.COVAR );   end
                     if ~isempty(SrcParam.covars_oocv),  InputParam.P{ac}.TsCovars{end+1} = SrcParam.covars_oocv( :,       TemplParam.ACTPARAM{ac}.COVAR );   end
-                    
+                    if isfield(TemplParam.ACTPARAM{ac},'METHOD') && TemplParam.ACTPARAM{ac}.METHOD==2
+                        if VERBOSE, fprintf('\n\t- Method: Combat'); end
+                        InputParam.P{ac}.METHOD = 2; InputParam.P{ac}.TsMod = [];
+                        if TemplParam.ACTPARAM{ac}.MCOVARLABEL
+                            uL = unique(NM.label); uL(isnan(uL))=[]; nuL = numel(uL);
+                            switch NM.modeflag
+                                case 'classification'
+                                    dummy_labels = nk_MakeDummyVariables(NM.label); 
+                                    if nuL==2, dummy_labels(:,2)=[]; end
+                                case 'regression'
+                                    dummy_labels = NM.label;
+                            end
+                            covars = [ SrcParam.covars(:, TemplParam.ACTPARAM{ac}.MCOVAR) dummy_labels ];
+                            if ~isempty(SrcParam.covars_oocv) 
+                                covars_oocv = [ SrcParam.covars_oocv(:,TemplParam.ACTPARAM{ac}.MCOVAR) zeros(size(SrcParam.covars_oocv,1), size(dummy_labels,2)) ];
+                            end
+                        else
+                            covars = SrcParam.covars( : , TemplParam.ACTPARAM{ac}.MCOVAR ); if ~isempty(SrcParam.covars_oocv), covars_oocv = SrcParam.covars_oocv ( : , TemplParam.ACTPARAM{ac}.MCOVAR ); end
+                        end
+                        if isfield(SrcParam,'TrX'),         InputParam.P{ac}.TrMod        = covars( SrcParam.TrX, :);   end
+                        if isfield(SrcParam,'TrI'),         InputParam.P{ac}.TsMod{end+1} = covars( SrcParam.TrI, :);   end
+                        if isfield(SrcParam,'CVI'),         InputParam.P{ac}.TsMod{end+1} = covars( SrcParam.CVI, :);   end
+                        if isfield(SrcParam,'TsI'),         InputParam.P{ac}.TsMod{end+1} = covars( SrcParam.TsI, :);   end
+                        if ~isempty(SrcParam.covars_oocv),  InputParam.P{ac}.TsMod{end+1} = covars_oocv;   end
+                    else
+                        if VERBOSE, fprintf('\n\t- Method: Partial correlations analysis'); end
+                        InputParam.P{ac}.METHOD = 1;
+                    end
                     if ~isempty(SrcParam.iTr), 
                         InputParam.P{ac}.TrCovars(SrcParam.iTrX,:)   = []; 
                         InputParam.P{ac}.TsCovars{1}(SrcParam.iTr,:) = []; 
+                        if InputParam.P{ac}.METHOD == 2
+                            InputParam.P{ac}.TrMod(SrcParam.iTrX,:)   = []; 
+                            InputParam.P{ac}.TsMod{1}(SrcParam.iTr,:) = []; 
+                        end
                     end
                     if ~isempty(SrcParam.iCV), InputParam.P{ac}.TsCovars{2}(SrcParam.iCV,:)=[]; end
                     if ~isempty(SrcParam.iTs), InputParam.P{ac}.TsCovars{3}(SrcParam.iTs,:)=[]; end
-                
-                end
-                if isfield(TemplParam.ACTPARAM{ac},'INTERCEPT')
-                    InputParam.P{ac}.INTERCEPT = TemplParam.ACTPARAM{ac}.INTERCEPT-1;
-                    if VERBOSE, 
-                        switch InputParam.P{ac}.INTERCEPT
-                            case 0
-                                fprintf('\n\t-> Not including intercept.'); 
-                            case 1
-                                fprintf('\n\t-> Including intercept.'); 
-                        end  
+                    if InputParam.P{ac}.METHOD == 2
+                        if ~isempty(SrcParam.iCV), InputParam.P{ac}.TsMod{2}(SrcParam.iCV,:)=[]; end
+                        if ~isempty(SrcParam.iTs), InputParam.P{ac}.TsMod{3}(SrcParam.iTs,:)=[]; end
                     end
                 end
-                if isfield(TemplParam.ACTPARAM{ac},'COVDIR')
-                    InputParam.P{ac}.COVDIR = TemplParam.ACTPARAM{ac}.COVDIR-1;
-                    if VERBOSE, 
-                        switch InputParam.P{ac}.COVDIR
-                            case 0
-                                fprintf('\n\t-> Covariate effects will be removed from data.'); 
-                            case 1
-                                fprintf('\n\t-> Covariate effects will be increased in data.')
-                        end  
+                if InputParam.P{ac}.METHOD == 1;
+                    if isfield(TemplParam.ACTPARAM{ac},'INTERCEPT')
+                        InputParam.P{ac}.INTERCEPT = TemplParam.ACTPARAM{ac}.INTERCEPT-1;
+                        if VERBOSE, 
+                            switch InputParam.P{ac}.INTERCEPT
+                                case 0
+                                    fprintf('\n\t-> Not including intercept.'); 
+                                case 1
+                                    fprintf('\n\t-> Including intercept.'); 
+                            end  
+                        end
                     end
-                end
-                if isfield(TemplParam.ACTPARAM{ac},'BETAEXT') && ~isempty(TemplParam.ACTPARAM{ac}.BETAEXT)
-                    InputParam.P{ac}.BETAEXT = TemplParam.ACTPARAM{ac}.BETAEXT;
-                    if VERBOSE,fprintf('\n\t Beta(s) computed in an OOT-sample will be used.'); end
+                    if isfield(TemplParam.ACTPARAM{ac},'COVDIR')
+                        InputParam.P{ac}.COVDIR = TemplParam.ACTPARAM{ac}.COVDIR-1;
+                        if VERBOSE, 
+                            switch InputParam.P{ac}.COVDIR
+                                case 0
+                                    fprintf('\n\t-> Covariate effects will be removed from data.'); 
+                                case 1
+                                    fprintf('\n\t-> Covariate effects will be increased in data.')
+                            end  
+                        end
+                    end
+                    if isfield(TemplParam.ACTPARAM{ac},'BETAEXT') && ~isempty(TemplParam.ACTPARAM{ac}.BETAEXT)
+                        InputParam.P{ac}.BETAEXT = TemplParam.ACTPARAM{ac}.BETAEXT;
+                        if VERBOSE,fprintf('\n\t Beta parameter(s) computed in an OOT-sample will be used.'); end
+                    else
+                        if isfield(TemplParam.ACTPARAM{ac},'SUBGROUP') && ~isempty(TemplParam.ACTPARAM{ac}.SUBGROUP)
+                            InputParam.P{ac}.SUBGROUP = TemplParam.ACTPARAM{ac}.SUBGROUP(SrcParam.TrX,:);
+                            if VERBOSE,fprintf('\n\t-> Beta parameter(s) will be computed from a specific subgroup.'); end
+                        end
+                    end
                 else
                     if isfield(TemplParam.ACTPARAM{ac},'SUBGROUP') && ~isempty(TemplParam.ACTPARAM{ac}.SUBGROUP)
                         InputParam.P{ac}.SUBGROUP = TemplParam.ACTPARAM{ac}.SUBGROUP(SrcParam.TrX,:);
-                        if VERBOSE,fprintf('\n\t-> Beta(s) will be computed from a specific subgroup.'); end
+                        if VERBOSE,fprintf('\n\t-> Combat parameter(s) will be computed from a specific subgroup.'); end
                     end
+                     InputParam.P{ac}.COVDIR=0;
+                     InputParam.P{ac}.INTERCEPT=0;
                 end
                 
             case 'remmeandiff'
@@ -259,14 +302,14 @@ if isfield(TemplParam,'ACTPARAM')
                             if TemplParam.BINMOD
                                 InputParam.P{ac}.DR.labels = SrcParam.BinaryTrainLabel;
                             else
-                                InputParam.P{ac}.DR.labels = SrcParam.oMultiTrainLabel;
+                                InputParam.P{ac}.DR.labels = SrcParam.MultiTrainLabel;
                             end
                         case 'regression'
                             InputParam.P{ac}.DR.labels = SrcParam.TrainLabel;
                     end
                     if strcmp(TemplParam.ACTPARAM{ac}.DR.RedMode,'PLS')
-                        InputParam.P{ac}.DR.PLS.behav_mat = TemplParam.ACTPARAM{ac}.DR.PLS.behav_mat(SrcParam.TrX,:);
-                        if sum(SrcParam.iTr), InputParam.P{ac}.DR.PLS.behav_mat(SrcParam.iTr,:)=[]; end
+                        InputParam.P{ac}.DR.PLS.V = TemplParam.ACTPARAM{ac}.DR.PLS.V(SrcParam.TrX,:);
+                        if sum(SrcParam.iTr), InputParam.P{ac}.DR.PLS.V(SrcParam.iTr,:)=[]; end
                     end
                     
                 else
@@ -301,7 +344,7 @@ if isfield(TemplParam,'ACTPARAM')
                 % **************** FEATURE RANKING ***************
                 if VERBOSE, fprintf('\n* FEATURE WEIGHTING'); end
                 InputParam.P{ac}.RANK = TemplParam.ACTPARAM{ac}.RANK;
-                InputParam.P{ac}.RANK.curlabel = TemplParam.ACTPARAM{ac}.RANK.label(SrcParam.TrX);
+                InputParam.P{ac}.RANK.curlabel = TemplParam.ACTPARAM{ac}.RANK.label(SrcParam.TrX,:);
                 if ~isempty(SrcParam.iTrX), InputParam.P{ac}.RANK.curlabel(SrcParam.iTrX,:)=[]; end
                 if isfield( TemplParam.ACTPARAM{ac}.RANK,'glabel' )
                     % glabel is a logical vector

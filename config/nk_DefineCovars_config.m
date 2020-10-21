@@ -27,6 +27,13 @@ if nargout == 2
             end
         case 2
             Gnames = nk_input('Covariate name vector',0,'e',[],size(G,2));
+            if ~iscell(Gnames) 
+                if isnumeric(Gnames)
+                    error('Covariate names cannot be numeric but have to be a cell array of strings')
+                else
+                    Gnames = cellstr(Gnames);
+                end
+            end
     end
 else
     Gnames = [];

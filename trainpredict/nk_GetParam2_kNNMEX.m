@@ -9,7 +9,7 @@
 function [param, model] = nk_GetParam2_kNNMEX(Y, label, ModelOnly, Params)
 global EVALFUNC
 
-uL = unique(label); if uL(1)<0, model.sfl = true; label(label<0)=2; else model.sfl = false; end
+uL = unique(label); if uL(1)<0, model.sfl = true; label(label<0)=2; else, model.sfl = false; end
 model.X = Y; model.Y = label; model.kNN = Params;
 if ~ModelOnly
     [target, dec_values] = fknn(model.X, model.Y, model.X, [], model.kNN, 0);

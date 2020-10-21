@@ -88,9 +88,11 @@ switch act
         t_act = 1; brief = 1; while t_act>0, [t_act, analdim, NM, ~, brief ]= nk_SelectAnalysis(NM, 0, 'MAIN >>> Select Analysis', analdim, 0,0,[],brief); end
         if ~isempty(analdim)
             A.analdim = analdim;
-            A.id = NM.analysis{A.analdim}.id ;
-            A.desc = NM.analysis{A.analdim}.desc;             
-            A.parentdir = NM.analysis{A.analdim}.parentdir;
+            if numel(analdim)==1
+                A.id = NM.analysis{A.analdim}.id ;
+                A.desc = NM.analysis{A.analdim}.desc;             
+                A.parentdir = NM.analysis{A.analdim}.parentdir;
+            end
         end
             
     case 'todo_analyses'
@@ -132,7 +134,11 @@ switch act
             case {1,2}
                 if A.ovrwrt == 2
                     askfl = questdlg('Are you sure you want to wipe this analysis from your computer?',mestr,'Yes','No','No');
-                    if strcmp(askfl,'Yes'), rmdir( NM.analysis{A.analdim}.rootdir,'s' ); end
+                    if strcmp(askfl,'Yes'), 
+                        for i=1:numel(A.analdim)
+                            rmdir( NM.analysis{A.analdim(i)}.rootdir,'s' ); 
+                        end
+                    end
                 end
                 NM.analysis(A.analdim) = [];
                 if isempty(NM.analysis), NM = rmfield(NM,'analysis'); end

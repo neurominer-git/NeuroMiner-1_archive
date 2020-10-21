@@ -71,9 +71,10 @@ for h=1:n
         handles.MultiClass.bx(h)    = plot (0,0);
     end
 end
+
 xlim([min(subjvec) max(subjvec)]);
 %handles.MultiClass.be = plot(errx,erry,'kx','MarkerSize',handles.DataMissMarkerSize,'LineWidth',handles.DataMissMarkerWidth);
-legend([handles.MultiClass.b handles.MultiClass.be], {handles.NM.groupnames{:}, groupnames_err{:}}, 'Location','Best', 'FontSize',handles.LegendFontSize)
+legend([handles.MultiClass.b handles.MultiClass.be], [handles.NM.groupnames(:)', groupnames_err(:)'], 'Location','Best', 'FontSize',handles.LegendFontSize)
 
 % Define textbox info data 
 pss = cell(1,m); subjects = handles.MultiClass.cases;

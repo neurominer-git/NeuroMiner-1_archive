@@ -24,7 +24,7 @@ FORTRAN=gfortran # or g77 whichever is present
 CFLAGS= -fpic -O2 -funroll-loops -march=native  -Wall
 FFLAGS=-O2 -fpic -march=native#-g -Wall
 LDFORTRAN=#-gfortran
-MEXFLAGS=-o
+MEXFLAGS=-output
 
 all:	clean rfsub mex twonorm
 
@@ -35,8 +35,8 @@ twonorm:  clean rfsub
 mex:  rfsub
 	echo 'Generating Mex'
 #	mex -c $(SRC)classRF.cpp -outdir $(BUILD)classRF.o -DMATLAB $(MEXFLAGS)
-	mex $(SRC)mex_ClassificationRF_train.cpp  $(SRC_FILES) rfsub.o -o mexClassRF_train -lgfortran -lm -DMATLAB $(MEXFLAGS) 
-	mex $(SRC)mex_ClassificationRF_predict.cpp $(SRC_FILES) rfsub.o  -o mexClassRF_predict -lgfortran -lm -DMATLAB $(MEXFLAGS)
+	mex $(SRC)mex_ClassificationRF_train.cpp  $(SRC_FILES) rfsub.o -output mexClassRF_train -lgfortran -lm -DMATLAB 
+	mex $(SRC)mex_ClassificationRF_predict.cpp $(SRC_FILES) rfsub.o  -output mexClassRF_predict -lgfortran -lm -DMATLAB 
 
 rfsub:	$(SRC)rfsub.f
 	echo 'Compiling rfsub.f (fortran subroutines)'

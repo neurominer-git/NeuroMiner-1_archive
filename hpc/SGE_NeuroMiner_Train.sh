@@ -6,9 +6,9 @@ echo '*** NeuroMiner Elessar               ***'
 echo '*** SGE joblist manager:             ***'
 echo '*** Train and crossvalidate models   ***'
 echo '*** (c) 2017 N. Koutsouleris         ***'
-echo '*** Updated Mar20 Dom                ***'
+echo '*** Updated Sep20 Dom                ***'
 echo '****************************************'
-echo '     This is the DEVELOPMENT version.   '
+echo '     This is the STABLE      version.   '
 echo '         Expect bugs and report         '
 echo '****************************************'
 echo   
@@ -17,7 +17,7 @@ echo
 export LD_LIBRARY_PATH=/opt/matlab/v95/runtime/glnxa64:/opt/matlab/v95/bin/glnxa64:/opt/matlab/v95/sys/os/glnxa64:/opt/matlab/v95/sys/opengl/lib/glnxa64
 
 export JOB_DIR=$PWD
-export NEUROMINER=/opt/NM/NeuroMinerMCCMain_dev_v95/for_testing 
+export NEUROMINER=/opt/NM/NeuroMinerMCCMain_1.05_v95/for_testing 
 export ACTION=train
 read -e -p 'Path to NM structure: ' datpath
 if [ ! -f $datpath ]; then
@@ -71,7 +71,7 @@ read -p 'CV2 grid end row: ' CV2x2
 read -p 'CV2 grid start column: ' CV2y1
 read -p 'CV2 grid end column: ' CV2y2
 read -p 'No. of SGE jobs: ' numCPU
-read -p 'Server to use [any=1, psy0cf20=2, mitnvp1=3]: ' sind
+read -p 'Server to use [any=1, psy0cf20=2, mitnvp1-2=3]: ' sind
 if [ "$sind" = '1' ]; then
         SERVER_ID='all.q'
 	echo "WARNING: if it is a high RAM job then please use psy0cf20"

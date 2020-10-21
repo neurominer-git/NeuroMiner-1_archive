@@ -137,7 +137,8 @@ if ~isfield(IN,'ind0') || isempty(IN.ind0)
               else
                  adjT = nk_PerfRedObj(T,IN);
               end
-        end    
+        end
+        dT = adjT;
         return
     end
 

@@ -1,13 +1,13 @@
-function [sY, sX, sYX, IN] = nk_PLS(Y,X,IN)
+function [sY, sX, sYX, IN] = nk_PLS(Y, X, IN)
 % Computes PLS model from experimental predictors X and predictands Y
-% ___________________________________________
-% (c) Nikolaos Koutsouleris, 04/2018
+% _________________________________________________________________________
+% (c) Nikolaos Koutsouleris, 08/2020
 if ~isfield(IN,'trained'),IN.trained=0;end
 if ~isfield(IN,'algostr'),IN.algostr='pls';end
 if exist('X','var') && ~isempty(X), 
     Xd = X;
 else
-    Xd = IN.DR.PLS.behav_mat;
+    Xd = IN.DR.PLS.V;
 end
 
 if ~IN.trained

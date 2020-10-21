@@ -182,31 +182,51 @@ switch action
                             end
                         case 'correctnuis'
 
-                            if ~isempty(params.ACTPARAM{i}.COVAR) && ~strcmp(params.ACTPARAM{i}.COVAR,'NA')
-                                preprocact{i} = 'Partial correlations (Covars:';
-                                covstr = ' ';
-                                for j=1:numel(params.ACTPARAM{i}.COVAR)
-                                    covstr = [covstr res.covnames{params.ACTPARAM{i}.COVAR(j)} ', '];
-                                end
-                                preprocact{i} = [preprocact{i} covstr(1:end-2) ];
+                            if isfield(params.ACTPARAM{i},'METHOD') && params.ACTPARAM{i}.METHOD == 2
+                                combatfl = 1;
+                            else
+                                combatfl = 0;
                             end
-                            if isfield(params.ACTPARAM{i},'INTERCEPT')
-                                switch params.ACTPARAM{i}.INTERCEPT
-                                    case 2
-                                        preprocact{i} = [preprocact{i} ', intercept incl.' ];
-                                    case 1
-                                        preprocact{i} = [preprocact{i} ', intercept excl.' ];
+                                
+                            if ~combatfl
+                            
+                                if ~isempty(params.ACTPARAM{i}.COVAR) 
+                                    preprocact{i} = 'Partial correlations [ Covars:';
+                                    covstr = ' ';
+                                    for j=1:numel(params.ACTPARAM{i}.COVAR)
+                                        covstr = [covstr res.covnames{params.ACTPARAM{i}.COVAR(j)} ', '];
+                                    end
+                                    preprocact{i} = [preprocact{i} covstr(1:end-2) ];
                                 end
-                            end
-                            if isfield(params.ACTPARAM{i},'COVDIR')
-                                switch params.ACTPARAM{i}.COVDIR
-                                    case 1
-                                        preprocact{i} = [preprocact{i} ', remove effects' ];
-                                    case 2
-                                        preprocact{i} = [preprocact{i} ', increase effects' ];
+                                if isfield(params.ACTPARAM{i},'INTERCEPT')
+                                    switch params.ACTPARAM{i}.INTERCEPT
+                                        case 2
+                                            preprocact{i} = [preprocact{i} ', intercept incl.' ];
+                                        case 1
+                                            preprocact{i} = [preprocact{i} ', intercept excl.' ];
+                                    end
                                 end
+                                if isfield(params.ACTPARAM{i},'COVDIR')
+                                    switch params.ACTPARAM{i}.COVDIR
+                                        case 1
+                                            preprocact{i} = [preprocact{i} ', remove effects' ];
+                                        case 2
+                                            preprocact{i} = [preprocact{i} ', increase effects' ];
+                                    end
+                                end
+                            else
+                                if ~isempty(params.ACTPARAM{i}.COVAR) 
+                                      preprocact{i} = ['ComBat batch effect correction [ batch vector: ' res.covnames{params.ACTPARAM{i}.COVAR} ];
+                                end
+                                if params.ACTPARAM{i}.MCOVARUSE
+                                    preprocact{i} = [ preprocact{i} ', retainment variable(s): ' strjoin( res.covnames(params.ACTPARAM{i}.MCOVAR),', ') ];
+                                    if params.ACTPARAM{i}.MCOVARLABEL
+                                        preprocact{i} = [ preprocact{i} ' + label' ];
+                                    end
+                                end
+                                
                             end
-                            preprocact{i} = [preprocact{i} ')'];
+                            preprocact{i} = [preprocact{i} ' ]'];
                             
                         case 'scale'
 
@@ -292,7 +312,12 @@ switch action
                                 else
                                     PLSalgo = 'PLS';
                                 end
-                                RedMode = [ PLSalgo ': ' num2str(size(params.ACTPARAM{i}.DR.PLS.behav_mat,2)) ' behavioral variables' ];
+                                if params.ACTPARAM{i}.DR.PLS.uselabel==1
+                                    RedMode = [ PLSalgo ': NM label' ];
+                                else
+                                    RedMode = [ PLSalgo ': ' num2str(size(params.ACTPARAM{i}.DR.PLS.V,2)) ' behavioral variables' ];
+                                end
+                                
                             else
                                 RedMode = params.ACTPARAM{i}.DR.RedMode;
                                 if isfield(params.ACTPARAM{i},'PX') && ~isempty(params.ACTPARAM{i}.PX)
@@ -304,7 +329,7 @@ switch action
                                         paramstr = sprintf('%s: %s', ...
                                             params.ACTPARAM{i}.PX.Px(j).Params_desc, nk_ConcatParamstr(params.ACTPARAM{i}.PX.Px(j).Params));
                                     end
-                                    RedMode = sprintf('%s, %s', RedMode, paramstr);
+                                    RedMode = sprintf('%s, %s ]', RedMode, paramstr);
                                 end
                             end
                             preprocact{i} = ['Reduce dimensionality (' RedMode ')'];
@@ -381,7 +406,7 @@ switch action
                             
                             switch params.ACTPARAM{i}.RANK.algostr 
                                 case 'pearson'
-                                    if params.ACTPARAM{i}.RANK.Pearson == 1, algostr = 'Pearson'; else algostr = 'Spearman'; end
+                                    if params.ACTPARAM{i}.RANK.Pearson == 1, algostr = 'Pearson'; else, algostr = 'Spearman'; end
                                 case 'extern'
                                     algostr = 'External ranking';
                                 case 'extern_fscore'
@@ -394,13 +419,13 @@ switch action
                                 case 1
                                     preprocact{i} = sprintf('Rank up features using %s ', algostr );
                                 case 2
-                                    preprocact{i} = sprintf('Rank down features using %s )', algostr );
+                                    preprocact{i} = sprintf('Rank down features using %s ', algostr );
                             end
                             
-                            if ~strcmp(params.ACTPARAM{i}.RANK.algostr,'extern')
+                            if ~any(strcmp(params.ACTPARAM{i}.RANK.algostr,{'extern','pls'}))
                                 switch params.ACTPARAM{i}.RANK.ranktype
                                     case 1
-                                         preprocact{i} = sprintf( '%s => target label)', preprocact{i} );
+                                         preprocact{i} = sprintf( '%s => target label', preprocact{i} );
                                     case 2
                                          preprocact{i} = sprintf( '%s => categorical label: %s', preprocact{i}, params.ACTPARAM{i}.RANK.labeldesc );
                                     case 3
@@ -409,14 +434,21 @@ switch action
                             end
                             
                         case 'extfeat'
-                            if params.ACTPARAM{i}.W_ACT.threshvec(1)>0 || numel(params.ACTPARAM{i}.W_ACT.threshvec)>1
-                                threshstr = sprintf('threshold(s): %s', nk_ConcatParamstr(params.ACTPARAM{i}.W_ACT.threshvec));
-                                if params.ACTPARAM{i}.W_ACT.clustflag == 1, 
-                                    threshstr = [ 'clusterized ' threshstr ]; 
+                            if isfield(params.ACTPARAM{i}.W_ACT,'softflag')
+                                switch params.ACTPARAM{i}.W_ACT.softflag
+                                    case 1
+                                        threshstr = sprintf('exp. multiplier(s): %s', nk_ConcatParamstr(params.ACTPARAM{i}.W_ACT.exponent));
+                                        threshstr = [ 'Soft feature selection (' threshstr ')' ];
+                                    case 2
+                                        threshstr = sprintf('threshold(s): %s', nk_ConcatParamstr(params.ACTPARAM{i}.W_ACT.threshvec));
+                                        if params.ACTPARAM{i}.W_ACT.clustflag == 1, 
+                                            threshstr = [ 'clusterized ' threshstr ]; 
+                                        end
+                                        threshstr = [ 'Hard feature selection (' threshstr ')' ];
+
                                 end
-                                threshstr = [ 'Hard feature selection (' threshstr ')' ];
                             else
-                                threshstr = 'Soft feature selection (weighting)';
+                                threshstr = 'undefined';
                             end
                             preprocact{i} = threshstr;
                             
@@ -429,7 +461,7 @@ switch action
                                     REMVARCOMP_G_str = 'Target: Vector';
                                 end
                             else
-                                REMVARCOMP_G_str = 'NA';
+                                REMVARCOMP_G_str = 'No covariates specified';
                             end
                             switch params.ACTPARAM{i}.REMVARCOMP.corrmeth
                                 case 1
@@ -561,7 +593,7 @@ switch action
                 case 7
                     vargout.FeatFlt = Get_IMReliefDescription(params.Filter);
                     vargout.FeatFlt = ['IMRelief [ ' vargout.FeatFlt ']'];
-                case 8
+                case 9
                     vargout.FeatFlt = 'Incr. card.';
                 case 10
                     vargout.FeatFlt = Get_RGSDescription(params.Filter);
@@ -1048,30 +1080,33 @@ switch action
                         vargout.classifier = ['Old NeuroMiner version: ' classifier];
                 end
             case 'LIBLIN'
-                switch params.SVM.LIBLIN.classifier
-                    case 0
-                        vargout.classifier = 'L2-regularized logistic regression (primal)';
-                    case 1
-                        vargout.classifier =  'L2-regularized L2-loss SVC (dual)';
-                    case 2
-                        vargout.classifier =  'L2-regularized L2-loss SVC (primal)';
-                    case 3
-                        vargout.classifier =  'L2-regularized L1-loss SVC (dual)';
-                    case 5
-                        vargout.classifier =  'L1-regularized L2-loss SVC';
-                    case 6
-                        vargout.classifier =  'L1-regularized logistic regression)';
-                    case 7
-                        vargout.classifier = 'L2-regularized logistic regression (dual)';
-                    case 11
-                        vargout.classifier = 'L2-regularized L2-loss SVR (primal)';
-                    case 12
-                        vargout.classifier = 'L2-regularized L2-loss SVR (dual)';
-                    case 13
-                        vargout.classifier = 'L2-regularized L1-loss SVR (dual)';
+                if isfield(params.SVM,'LIBLIN')
+                    switch params.SVM.LIBLIN.classifier
+                        case 0
+                            vargout.classifier = 'L2-regularized logistic regression (primal)';
+                        case 1
+                            vargout.classifier =  'L2-regularized L2-loss SVC (dual)';
+                        case 2
+                            vargout.classifier =  'L2-regularized L2-loss SVC (primal)';
+                        case 3
+                            vargout.classifier =  'L2-regularized L1-loss SVC (dual)';
+                        case 5
+                            vargout.classifier =  'L1-regularized L2-loss SVC';
+                        case 6
+                            vargout.classifier =  'L1-regularized logistic regression)';
+                        case 7
+                            vargout.classifier = 'L2-regularized logistic regression (dual)';
+                        case 11
+                            vargout.classifier = 'L2-regularized L2-loss SVR (primal)';
+                        case 12
+                            vargout.classifier = 'L2-regularized L2-loss SVR (dual)';
+                        case 13
+                            vargout.classifier = 'L2-regularized L1-loss SVR (dual)';
+                    end
+                    vargout.classifier = [ vargout.classifier ', Tolerance: ' num2str(params.SVM.LIBLIN.tolerance) ];                
+                else
+                    vargout.classifier = 'undefined';
                 end
-                vargout.classifier = [ vargout.classifier ', Tolerance: ' num2str(params.SVM.LIBLIN.tolerance) ];                
-                
             case 'GLMFIT'
                 vargout.classifier = 'Linear Regression Model';
             case 'LIKNON'
@@ -1085,7 +1120,11 @@ switch action
             case 'LSTSVM'
                 vargout.classifier = params.SVM.LSTSVM.type;
             case {'MVTRVR','MVTRVM'}
-                vargout.classifier = ['RVM with ' num2str(params.SVM.MVTRVR.iter) ' iterations'];
+                if isfield(params.SVM,'MVTRVR')
+                    vargout.classifier = ['RVM with ' num2str(params.SVM.MVTRVR.iter) ' iterations'];
+                else
+                    vargout.classifier = 'RVM (undefined parameters)';
+                end
             case 'FAMRVR'
                 vargout.classifier = ['Fast RVR with ' num2str(params.SVM.FAMRVR.iter) ' iters; tolerance = '  num2str(params.SVM.FAMRVR.tolerance)];
             case 'MEXELM'
@@ -1185,22 +1224,12 @@ switch action
         
     case 'oocv'
         
-        if isfield(params.OOCV,'preproc'), preproc = params.OOCV.preproc; end
         if isfield(params.OOCV,'meanflag'), meanflag = params.OOCV.meanflag; end
         if isfield(params.OOCV,'groupmode'), groupmode = params.OOCV.groupmode; end
         if isfield(params.OOCV,'trainwithCV2Ts'), trainwithCV2Ts = params.OOCV.trainwithCV2Ts; end
         if isfield(params.OOCV,'savemodels'), savemodels = params.OOCV.savemodels; end
         if isfield(params.OOCV,'saveoocvdata'), saveoocvdata = params.OOCV.saveoocvdata; end
         
-        switch preproc 
-            case 0
-                vargout.preprocstr = 'no mean adjustment';
-            case 1
-                vargout.preprocstr = 'mean adjustment using mean function';
-            case 2
-                vargout.preprocstr = 'mean adjustment using pinv function';
-        end
-
         switch meanflag
             case 1
                 vargout.meanflagstr = 'Aggregate all base learnerns into one big ensemble';

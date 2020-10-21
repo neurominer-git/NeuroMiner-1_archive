@@ -71,10 +71,11 @@ try
             %% Generate NM design 
              % Check which columns in the design matrix are dummy variables
             for i=1:size(IO.xX.X,2), uC(i) = numel(unique(IO.xX.X(:,i))); end
-    
+            
             switch IO.modeflag
                 case 'classification'
                     uC_dummy = uC==2; nuC_dummy = sum(uC_dummy);
+                    IO.n_samples = nuC_dummy;
                     if nuC_dummy < 2
                         mess = GenerateMessageEntry(mess, 'ERROR in SPM import: A minimum of 2 dummy variables is required for the classification framework.');
                         return
@@ -83,6 +84,7 @@ try
                     
                 case 'regression'
                     cont = uC>2; n_cont = sum(cont);
+                    IO.n_samples=1;
                     if ~n_cont
                         mess = GenerateMessageEntry(mess, 'ERROR in SPM import: No continuous variable found in the SPM design.');
                         return

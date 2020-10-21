@@ -13,12 +13,7 @@ h_onevsall_val  = get(handles.selOneVsAll_Info,'Value');
 h_classlist     = get(handles.popupmenu1,'String');
 
 axes(handles.(axeshdl)); 
-if isfield(handles,'hroc'), 
-    delete(handles.hroc);
-else
-    if clafl, cla; end
-    hold on
-end
+if clafl, cla; hold on; end
 
 cl = 'k';
 if exist('targets', 'var') && ~isempty(targets)

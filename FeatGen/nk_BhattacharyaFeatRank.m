@@ -2,8 +2,6 @@ function D = nk_BhattacharyaFeatRank(Y, L)
 
 % Y     :       Data
 % L     :       Target Labels
-% L2    :       Nuisance Labels (optional)
-
 
 [~,n] = size(Y);
 ix = unique(L(~isnan(L)));
@@ -15,4 +13,4 @@ for i=1:size(Y,2)
    ind = true(1,n); ind(i)=false;
    D(i) = bhattacharyya(YP(:,ind),YM(:,ind));
 end
-D=1/D;
+D=1./D';

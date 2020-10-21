@@ -50,7 +50,8 @@ if OUT.detrend.flag
             [~, OUT.detrend.beta, OUT.detrend.p] = nk_DetrendPredictions2([], [], P, L);
             
         case 'classification'
-            [~,~,~, OUT.detrend.thresh] = fastAUC(L==1,D,0);
+            [ ~,~, T, ~, ~, OUT.detrend.indexthresh] = perfcurve2(L,D,1);
+            OUT.detrend.thresh = T(OUT.detrend.indexthresh);
             %Pcorr = P - OUT.detrend.thresh;
              for ii=1:PermNum % Loop through CV1 permutations
                 for jj=1:FoldNum % Loop through CV1 folds

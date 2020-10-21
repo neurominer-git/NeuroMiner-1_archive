@@ -14,11 +14,7 @@ switch permmode
         else
             Lperm = L(IND);
         end
-        try
-            L = L(IND);
-        catch
-            fprintf('problem')
-        end
+        L = L(IND);
         indN = isnan(L);
         uL = unique(L(~indN)); nuL = numel(uL);
         Yperm = zeros(size(Y));

@@ -18,35 +18,36 @@
 %
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %(c) Nikolaos Koutsouleris, 09 / 2015
-function [AgreeFeat, AgreePerc] = ProbabilisticFea(F, EnsStrat)
+function [AgreeFeat, AgreePerc] = ProbabilisticFea(F, EnsStrat, q)
 global VERBOSE
 %persistent h_probabilisticfea
 
 % Compute the features' between-classifier conistency
 % as percentage of between-classifier "agreement"
 [nF, mF] = size(F);
+if ~exist('q','var') || isempty(q), q=1; end
 AgreePerc = sum(F~=0,2)*100./mF;
 
 switch EnsStrat.Mode
     case 1
         flg = false;
-        for i = EnsStrat.Perc : -1 : EnsStrat.Perc-EnsStrat.TolWin
+        for i = EnsStrat.Perc(q) : -1 : EnsStrat.Perc(q) - EnsStrat.TolWin
             tF = AgreePerc >= i;
             if sum(tF) >= EnsStrat.MinNum, flg = true; break; end
         end
         if ~flg
             error(['\nNM did not find k = %g suprathreshold features identified within the specified threshold of T = %g (-%g).'...
                     '\nCheck the settings of your probabilistic feature extraction setup!'], ...
-                EnsStrat.MinNum, EnsStrat.Perc, EnsStrat.TolWin); 
+                EnsStrat.MinNum, EnsStrat.Perc(q), EnsStrat.TolWin); 
         end
     case 2
         % Absolute
         [~,ind] = sort(AgreePerc,'descend');
-        tF = false(nF,1); tF(ind(1:EnsStrat.Perc)) = true;
+        tF = false(nF,1); tF(ind(1:EnsStrat.Perc(q))) = true;
     case 3
         % Percentage selected
         [~,ind] = sort(AgreePerc,'descend');
-        thresh = ceil(sum(AgreePerc>0)/100*(100-EnsStrat.Perc));
+        thresh = ceil(sum(AgreePerc>0)/100*(100-EnsStrat.Perc(q)));
         tF = false(nF,1); tF(ind(1:thresh)) = true;
         %titlefig = sprintf('Percentage selected: Threshold = %g%%', thresh);
 end

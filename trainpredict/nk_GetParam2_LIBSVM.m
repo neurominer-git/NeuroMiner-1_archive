@@ -16,7 +16,8 @@ param = [];flw = 0;
 if strcmp(LIBSVMTRAIN,'svmtrain312'), flw = 1; end
 
 % Check if weighting is necessary
-cmd = nk_SetWeightStr(SVM, MODEFL, CMDSTR, label, cmd); cmd = [cmd CMDSTR.quiet];
+cmd = nk_SetWeightStr(SVM, MODEFL, CMDSTR, label, cmd);
+%cmd = [cmd CMDSTR.quiet];
 
 % Check if sample weighting is necessary (currently regression only)
 if flw

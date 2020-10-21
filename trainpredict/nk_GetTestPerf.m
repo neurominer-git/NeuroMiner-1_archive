@@ -25,7 +25,7 @@ function [ts, rs, ds, Model] = nk_GetTestPerf(Xtest, Ytest, Features, Model, X, 
 % =====================================================================================
 % (c) Nikolaos Koutsouleris, 12/2019
 
-global PREDICTFUNC EVALFUNC SVM MODEFL
+global PREDICTFUNC EVALFUNC SVM MODEFL 
 
 % ******************************* Prepare *********************************
 s=1;
@@ -75,8 +75,6 @@ for k=1:s % Loop through all feature subspaces
             % Return performance measure as defined by EVALFUNC
             if ~nonevalflag, ts(k) = feval(EVALFUNC, Ytest, ds(:,k)); end
     end
-    
-
 end
 
 % Check and add-back Nan cases

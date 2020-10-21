@@ -81,7 +81,7 @@ if ~isempty(analysis)
     end 
 
     % Configure loading of pre-existing parameters and models
-    if inp.saveparam == 2 && inp.lfl == 1
+    if inp.saveparam == 2 && inp.lfl == 1 && inp.CV1==2
         LoadStr = sprintf('Use saved pre-processing params and models [ %s ]|', YesNo_opts{inp.loadparam});                  LoadAct = 7;
         if inp.loadparam == 1
             if isfield(inp,'optpreprocmat'), 
@@ -106,7 +106,7 @@ if ~isempty(analysis)
     
     % If loading of pre-existing models and params is not chosen, allow to
     % save the computed params and models to disk
-    if inp.loadparam == 2 && inp.lfl == 1
+    if inp.loadparam == 2 && inp.lfl == 1 && inp.CV1 == 2
         SaveStr = sprintf('Save pre-processing params and models to disk [ %s ]|', YesNo_opts{inp.saveparam});               SaveAct = 6;
     end
 end
@@ -199,10 +199,15 @@ switch act
                 ActStr = 'Modify'; 
             end
         end
-        inp.extraL.L = nk_input([ ActStr ' extra label matrix for permutation testing'],0,'e',Ldef,[numel(NM.label),Lsize]);
-        if isfield(inp.extraL,'Lnames'), LNameDef = inp.extraL.Lnames; end
-        inp.extraL.Lnames = nk_input([ ActStr ' cell array of string descriptors for extra labels'],0,'e',LNameDef,[1 Lsize]);
-    case 11
+        inp.extraL.L = nk_input([ ActStr ' extra label vector (numeric vector or nx1 cell arrayof strings) for permutation testing'],0,'e',Ldef,[numel(NM.label),Lsize]);
+        if iscell(inp.extraL.L)
+            [inp.extraL.L, inp.extraL.Lnames] = nk_MakeDummyVariables(inp.extraL.L);
+            [~,inp.extraL.L] = max(inp.extraL.L,[],2);
+        else
+            if isfield(inp.extraL,'Lnames'), LNameDef = inp.extraL.Lnames; end
+            inp.extraL.Lnames = nk_input([ ActStr ' cell array of string descriptors for extra labels'],0,'e',LNameDef,[1 Lsize]);
+        end
+   case 11
         del_extraL = nk_input('Do you really want to delete the extra labels?',0,'yes|no',[1,0]);
         if del_extraL, inp.extraL = []; end
     case 12
@@ -214,6 +219,7 @@ switch act
             nk_SetupGlobVars2(NM.analysis{inp.analind(i)}.params, 'setup_main', 0); 
             NM.runtime.curanal = inp.analind(i);
             inp.analysis_id = NM.analysis{inp.analind(i)}.id;
+            inp.saveoptdir = [ NM.analysis{inp.analind(i)}.rootdir filesep 'opt' ];
             NM.analysis{inp.analind(i)} = VisModelsPrep(NM, inp, NM.analysis{inp.analind(i)});
             nk_SetupGlobVars2(NM.analysis{inp.analind(i)}.params, 'clear', 0); 
         end
@@ -283,9 +289,7 @@ if isfield(analysis,'rootdir') && exist(analysis.rootdir,'dir')
 else
     inp1.rootdir = fullfile(pwd,analysis.params.TrainParam.SVM.prog,permstr);
 end
-inp1.procdir = fullfile( analysis.rootdir, 'proc');
 if ~exist(inp1.rootdir,'dir'), mkdir(inp1.rootdir); end
-
 
 %%%%%%%%%%%%%%%%%%%%%%% RUN VISUALIZATION ANALYSIS  %%%%%%%%%%%%%%%%%%%%%%%
 for i = 1:nF

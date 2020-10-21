@@ -1,5 +1,5 @@
 function inp = nk_PerfInitSpatial(analysis, inp, paramfl)
-global VERBOSE
+global VERBOSE MODEFL
 
 kbin = inp.nclass;
 nM  = numel(inp.PREPROC);

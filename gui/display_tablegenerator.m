@@ -133,7 +133,7 @@ I = strcmp(AnalysisAliasStrings,'');
 AnalysisAliasStrings(I) = AnalysisStrings(I);
 AnalysisAliasStringsSel = AnalysisAliasStrings(AnalysisSelection);
 SubgroupSelectionVarName = handles.PerfTab.subgroupvartext.String;
-SubgroupSelection=[];
+SubgroupSelection=[]; strmode = false;
 % Check user input!
 if ~any(AnalysisSelection)
     errordlg('You have to select at least one analysis from the list')
@@ -145,12 +145,18 @@ elseif ~isempty(SubgroupSelectionVarName) || ~strcmp(SubgroupSelectionVarName,''
     %% Subgroup analysis preparations
     try
         SubgroupSelection = evalin('base',SubgroupSelectionVarName);
-        uSG = unique(SubgroupSelection); uSG(isnan(uSG))=[]; nuSG = numel(uSG);
+        uSG = unique(SubgroupSelection); 
+        if iscell(uSG)
+            fNan = strcmp(uSG,''); uSG(fNan)=[];
+        else
+            uSG(isnan(uSG))=[]; 
+        end
+        nuSG = numel(uSG);
         if ~isempty(SubgroupSelection)
             if size(SubgroupSelection,1) ~= size(handles.NM.label,1),
                 errordlg(sprintf('%s has not the same number of values [%g] as cases in the NM structure!',  SubgroupSelectionVarName, size(handles.NM.label,1)));
                 return
-            elseif ~isnumeric(SubgroupSelection) && ~isstring(SubgroupSelection)
+            elseif ~isnumeric(SubgroupSelection) && ~iscellstr(SubgroupSelection)
                 errordlg(sprintf('%s has to be either as numeric array or a cell array of strings/string array!',  SubgroupSelectionVarName)) 
                 return
             elseif isnumeric(SubgroupSelection) 
@@ -168,8 +174,10 @@ elseif ~isempty(SubgroupSelectionVarName) || ~strcmp(SubgroupSelectionVarName,''
                         errordlg(sprintf('The subgroup description variable [%g] must have the same number of entries as the subgroup vector has unique indices [%g]!', nuSGD, nuSG));
                         return
                     end
-                else
                 end
+            elseif iscellstr(SubgroupSelection)
+                SubgroupSelectionDesc = uSG;
+                strmode = true;
             end
         else
             errordlg(sprintf('%s is empty!',  SubgroupSelectionVarName));
@@ -182,13 +190,14 @@ elseif ~isempty(SubgroupSelectionVarName) || ~strcmp(SubgroupSelectionVarName,''
 end
 data_table = cell(1,numel(MetricSelection)+1);
 data_table(1,:) = ['Predictors' MetricSelection' ];
-cnt=1; fcnt=0;
+cnt=1; fcnt=0; acnt=0;
 for i=1:numel(handles.NM.analysis)
     if handles.NM.analysis{i}.status, fcnt=fcnt+1; else; continue; end
     multiflag = false; if isfield(handles.NM.analysis{i}.GDdims{1},'MultiClass'), multiflag=true; end
     if AnalysisSelection(fcnt)
+        acnt=acnt+1;
         if i > 1 && multiflag, cnt=cnt+2; else, cnt=cnt+1; end
-        data_table{cnt,1} = AnalysisAliasStringsSel{i};
+        data_table{cnt,1} = AnalysisAliasStringsSel{acnt};
         nGD = numel(handles.NM.analysis{i}.GDdims);
         for j = 1:nGD
             if nGD>1, 
@@ -217,7 +226,11 @@ for i=1:numel(handles.NM.analysis)
                     hdr = data_table{cnt,1};
                     for p=1:nuSG
                         data_table{cnt,1} = sprintf('%s [group=%s]', hdr, SubgroupSelectionDesc{p});
-                        indp = S == uSG(p);
+                        if ~strmode
+                            indp = S == uSG(p);
+                        else
+                            indp = strcmp(S,uSG{p});
+                        end
                         ALL = ALLPARAM(Lx(indp), P(indp));
                         for l=1:numel(MetricSelection), 
                             data_table{cnt,l+1} = ALL.(MetricSelection{l});

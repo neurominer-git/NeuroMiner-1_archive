@@ -177,7 +177,7 @@ for f=1:ix % Loop through CV2 permutations
         CVPOS.CV2f = d;
         operm = f; ofold = d;
         oVISpath = nk_GenerateNMFilePath(inp.rootdir, SAV.matname, inp.datatype, multlabelstr, strout, id, operm, ofold);
-        OptModelPath = nk_GenerateNMFilePath( inp.rootdir, SAV.matname, 'OptModel', [], inp.varstr, inp.id, operm, ofold);
+        OptModelPath = nk_GenerateNMFilePath( inp.saveoptdir, SAV.matname, 'OptModel', [], inp.varstr, inp.id, operm, ofold);
     
         switch inp.analmode 
             
@@ -190,23 +190,25 @@ for f=1:ix % Loop through CV2 permutations
                     [~, onam] = fileparts(oVISpath);
                     fprintf('\nVISdatamat found for CV2 [%g,%g]:',f,d)
                     fprintf('\nLoading: %s',onam)
-                    [I, I1] = nk_VisXHelper('accum', nM, nclass, decompfl, permfl, ix, jx, I, inp, ll, nperms, oVISpath);
-                    if isfield(I1,'PCV1SUM'), PCV1SUMflag=true; else PCV1SUMflag = false; end
-                    if any(permfl)
-                        for h=1:nclass
-                            switch MODEFL
-                                case 'classification'
-                                    TsInd2 = CV.TestInd{f,d}(CV.classnew{f,d}{h}.ind);
-                                case 'regression'
-                                    TsInd2 = CV.TestInd{f,d};
+                    [I, I1, filefound] = nk_VisXHelper('accum', nM, nclass, decompfl, permfl, ix, jx, I, inp, ll, nperms, oVISpath);
+                    if filefound
+                        if isfield(I1,'PCV1SUM'), PCV1SUMflag=true; else PCV1SUMflag = false; end
+                        if any(permfl)
+                            for h=1:nclass
+                                switch MODEFL
+                                    case 'classification'
+                                        TsInd2 = CV.TestInd{f,d}(CV.classnew{f,d}{h}.ind);
+                                    case 'regression'
+                                        TsInd2 = CV.TestInd{f,d};
+                                end
+                                I.VCV2MORIG_S(TsInd2,h) = cellmat_mergecols(I.VCV2MORIG_S(TsInd2,h), num2cell(I1.DS{h},2));
+                                for perms = 1:nperms(1), I.VCV2MPERM_S(TsInd2,h,perms) = cellmat_mergecols(I.VCV2MPERM_S(TsInd2,h,perms), num2cell(I1.DS_perm{h}(:,:,perms),2)); end
                             end
-                            I.VCV2MORIG_S(TsInd2,h) = cellmat_mergecols(I.VCV2MORIG_S(TsInd2,h), num2cell(I1.DS{h},2));
-                            for perms = 1:nperms(1), I.VCV2MPERM_S(TsInd2,h,perms) = cellmat_mergecols(I.VCV2MPERM_S(TsInd2,h,perms), num2cell(I1.DS_perm{h}(:,:,perms),2)); end
                         end
+                        ll=ll+1;
+                        ind0(ll) = true;
+                        ol=ol+1; continue
                     end
-                    ll=ll+1;
-                    ind0(ll) = true;
-                    ol=ol+1; continue
                     
                 elseif exist(oVISpath,'file') && batchflag
                     
@@ -243,7 +245,7 @@ for f=1:ix % Loop through CV2 permutations
                 % Compute params
                 inp.loadGD = true;
                 if isfield(inp,'CV1') && inp.CV1 == 1, inp.smoothonly = true; end
-                [ inp, contfl, analysis, mapY, GD, MD, Param, paramfl ] = nk_ApplyTrainedPreproc3(analysis, inp, paramfl);
+                [ inp, contfl, analysis, mapY, GD, MD, Param, paramfl ] = nk_ApplyTrainedPreproc(analysis, inp, paramfl);
                 inp.loadGD = false;
                 
                 if contfl, continue; end
@@ -373,7 +375,7 @@ for f=1:ix % Loop through CV2 permutations
                         if isfield(inp,'CV1') && inp.CV1 == 1
                             inp.CV1p = [k,k]; inp.CV1f = [l,l];
                             fprintf('\nPreprocessing data at selected parameter combination(s) ');
-                            [ ~, ~, analysis, mapY, ~, ~, Param, paramfl ] = nk_ApplyTrainedPreproc3(analysis, inp, paramfl);
+                            [ ~, ~, analysis, mapY, ~, ~, Param, paramfl ] = nk_ApplyTrainedPreproc(analysis, inp, paramfl);
                         end
                         
                         for h=1:nclass % Loop through binary comparisons
@@ -698,7 +700,7 @@ for f=1:ix % Loop through CV2 permutations
                                                 end
                                             end
                                              %% Comnpute feature selection probabilities %%
-                                             if inp.fixedOrder
+                                             if inp.fixedOrder && ~decompfl(n)
                                                  if isempty(I1.PCV1SUM{h, n}), I1.PCV1SUM{h, n} = zeros(inp.nD,1); end
                                                  I1.PCV1SUM{h, n} = I1.PCV1SUM{h, n} + Psel{n}; 
                                              end
@@ -1167,10 +1169,12 @@ if ~batchflag
                 switch datatype
                     case 1 % SPM-based NIFTI write-out
                         nk_WriteVol(vols ,volnam, 2, brainmaski,[], labeli, labelopi);
-                    case 2
+                    case 2 % Surface-based write-out
                         s = MRIread(brainmaski);
                         for yy=1:size(vols,2)
-                            %MRIwrite
+                            filename = fullfile(pwd,[deblank(volnam(yy,:)) '.mgh']);
+                            s.vol = vols(:,yy);
+                            MRIwrite(s,filename)
                         end
                 end
             end
@@ -1201,7 +1205,7 @@ if ~batchflag
         visdata{n}.SE_CV2              = I.VCV2SE_CV1(:,n);
         visdata{n}.CVRatio_CV2         = I.VCV2rat_CV1(:,n);
         visdata{n}.Prob_CV2            = I.VCV2PROB(:,n);
-        visdata{n}.SignBased_CV2       = I.VCV2signconst{:,n};
+        visdata{n}.SignBased_CV2       = I.VCV2signconst(:,n);
         visdata{n}.SignBased_CV2_p_uncorr = I.VCV2signconst_p(:,n);
         visdata{n}.SignBased_CV2_p_fdr = I.VCV2signconst_pfdr(:,n);
         visdata{n}.SignBased_CV2_z     = I.VCV2signconst_z(:,n);

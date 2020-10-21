@@ -1,10 +1,11 @@
-function [YY, LL, CC] = nk_PerfADASYN(Y, L, IN, C, noconcatfl)
+function [ YY, LL, CC, fl ] = nk_PerfADASYN(Y, L, IN, C, noconcatfl)
 
 adasyn_beta                     = [];   %let ADASYN choose default
 adasyn_kDensity                 = [];   %let ADASYN choose default
 adasyn_kSMOTE                   = [];   %let ADASYN choose default
 adasyn_normalized               = false;%false lets ADASYN handle normalization
 cfl                             = false;
+fl                              = true;
 L(L==-1)=0;
 
 if exist('IN','var') && ~isempty('IN')
@@ -82,21 +83,27 @@ else
     
     % Check whether covariates were integrated in training data and
     % split synthetic data into synthetic training and covariate matrices
-    if cfl 
-        Ysyn = tYsyn(:,1:nY); Csyn = tYsyn(:,nY+1:nY+nC);
-        if ~noconcatfl,
-            CC  = [C; Csyn];
+    if ~isempty(tYsyn)
+        if cfl 
+            Ysyn = tYsyn(:,1:nY); Csyn = tYsyn(:,nY+1:nY+nC);
+            if ~noconcatfl,
+                CC  = [C; Csyn];
+            else
+                CC = Csyn;
+            end
         else
-            CC = Csyn;
+            Ysyn = tYsyn;
         end
+        if ~noconcatfl
+            YY = [Y; Ysyn]; LL = [L; Lsyn]; 
+        else
+            YY = Ysyn; LL = double(Lsyn); 
+        end
+        LL(~LL)=-1;
     else
-        Ysyn = tYsyn;
+        YY = Y; LL = L; 
+        if cfl, CC = C; end
+        fl = false;
     end
-    if ~noconcatfl
-        YY = [Y; Ysyn]; LL = [L; Lsyn]; 
-    else
-        YY = Ysyn; LL = double(Lsyn); 
-    end
-    LL(~LL)=-1;
     
 end

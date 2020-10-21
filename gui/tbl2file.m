@@ -20,7 +20,7 @@ try
         tbl = [tbl.colnames; [tbl.rownames tbl_array]];
         STATUS = xlswrite(fil, tbl, sheetname);                 
     else
-        typ='txt';
+        typ='csv';
         if isempty(ext)
             fil = sprintf('%s_%s.%s', filename, sheetname,typ);
         end

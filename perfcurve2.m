@@ -1,4 +1,4 @@
-function [X,Y,T,auc,optrocpt,subY,subYnames] = ...
+function [X,Y,T,auc,optrocpt, indexopt, subY,subYnames] = ...
     perfcurve2(labels,scores,posClass,varargin)
 %PERFCURVE Compute Receiver Operating Characteristic (ROC) curve or other
 %   performance curve for classifier output.
@@ -609,9 +609,9 @@ if nargout>4
     isroc = (strcmpi(xCrit,'FPR') || strcmpi(xCrit,'fall')) && ...
         (strcmpi(yCrit,'TPR') || strcmpi(yCrit,'sens') || strcmpi(yCrit,'reca'));
     if isroc
-        optrocpt = findoptroc(X,Y,Wcum,scale,cost);
+        [optrocpt,indexopt] = findoptroc(X,Y,Wcum,scale,cost);
     else % Not a standard ROC curve.
-        optrocpt = NaN(1,2);
+        optrocpt = NaN(1,2); indexopt = NaN;
     end
 end
 
@@ -1091,7 +1091,7 @@ auc = abs(auc);
 end
 
 
-function optpt = findoptroc(X,Y,Wcum,scale,cost)
+function [optpt, idx] = findoptroc(X,Y,Wcum,scale,cost)
 % Get positive and negative counts
 wP = scale(1)*Wcum(end,1);
 wN = scale(2)*sum(Wcum(end,2:end),2);

@@ -131,7 +131,7 @@ if ~isempty(act) || ~defaultsfl
                 case 2
                     acti=1; while acti > 0, [acti, Filter] = nk_MRMR_config( Filter, [], navistr ); end
                 case 3
-                    if isfield(Filter,'Pearson'), fltdef = Filter.Pearson; else fltdef = 2; end
+                    if isfield(Filter,'Pearson'), fltdef = Filter.Pearson; else, fltdef = 2; end
                     Filter.Pearson = nk_input('Select type univariate correlation analysis',0,'Pearson|Spearman',[1,2],fltdef);
                 case 4
                     Filter = nk_Simba_config(Filter, 0, 0, length(unique(NM.label)));

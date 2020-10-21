@@ -23,7 +23,7 @@ function Mx = display_classcomparison_matrix(pvals, ticklabels, mw_all, sw_all, 
 % (c) Nikolaos Koutsouleris, 06/2020
 
 sz = get(0,'ScreenSize');
-win_wdth = sz(3)/2; win_hght = sz(4); win_x = sz(3)/2 - win_wdth/2; win_y = sz(4)/2 - win_hght/2;
+win_wdth = sz(3)/2; win_hght = sz(4)*0.8; win_x = sz(3)/2 - win_wdth/2; win_y = sz(4)/2 - win_hght/2;
 if ~exist('T','var') || isempty(T)
     T = -log10([0.05 0.01 0.001 0.0001 0.00001 0.000001 0.0000001 realmin]) ;
 end

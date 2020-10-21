@@ -1,4 +1,4 @@
-function [f, ca, o] = spider(data,tle,rng,lbl,leg,f)
+function [f, ca, o] = spider(data,tle,rng,lbl,leg,f, axfontsize, labelfontsize)
 % create a spider plot for ranking the data
 % function [f, ca, o] = spider(data,tle,rng,lbl,leg,f)
 %
@@ -65,6 +65,14 @@ end
 % title
 if ~exist('tle','var') || isempty(tle) || ~ischar(tle)
 	tle = 'Spider Plot';
+end
+
+if ~exist('axfontsize','var') || isempty(axfontsize) 
+   axfontsize = 10; 
+end
+
+if ~exist('labelfontsize','var') || isempty(labelfontsize) 
+   labelfontsize = 14; 
 end
 
 % check for maximum range
@@ -147,7 +155,7 @@ set(ca,'nextplot','add');
 set(ca,'visible','off'); set(f,'color','w')
 set(ca,'xlim',[-1.25 1.25],'ylim',[-1.25 1.25]); axis(ca,'equal','manual')
 % title
-text(0,1.5,tle,'horizontalalignment','center','fontweight','bold', 'fontsize',12);
+text(0,1.5,tle,'horizontalalignment','center','fontweight','bold', 'fontsize',14);
 
 % define data case colors
 col = color_index(c);
@@ -183,7 +191,7 @@ for ii = 1:r
 		temp = text([cos(ang(ii)) * inc(jj) + sin(ang(ii)) * tx(jj)], ...
 				[sin(ang(ii)) * inc(jj) - cos(ang(ii)) * tx(jj)], ...
 				num2str(rd(rng(ii,1) + inc(jj)*diff(rng(ii,:)),-2)), ...
-				'fontsize',8);
+				'FontSize',axfontsize);
 		% flip the text alignment for lower axes
 		if ang(ii) >= pi
 			set(temp,'HorizontalAlignment','right')
@@ -192,7 +200,7 @@ for ii = 1:r
 	% label each axis
 	temp = text([cos(ang(ii)) * 1.2 + sin(ang(ii)) * 0], ...
 			[sin(ang(ii)) * 1.2 - cos(ang(ii)) * 0], ...
-			char(lbl(ii,:)));
+			char(lbl(ii,:)),'FontSize',labelfontsize);
 	% flip the text alignment for right side axes
 	if ang(ii) > pi/2 && ang(ii) < 3*pi/2
 		set(temp,'HorizontalAlignment','right')

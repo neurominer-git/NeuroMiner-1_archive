@@ -71,7 +71,10 @@ end
 
 function hpie = display_pie(axesh, cmdh, Pre, LR , groupnames, cl)
 
-Post = Pre*LR/(1-Pre+Pre*LR); Gain = Post-Pre;
+Post = Pre*LR/(1-Pre+Pre*LR); 
+if ~isfinite(Post),Post=1; end
+Gain = Post-Pre;
+
 axes(axesh); cla; 
 if ~isnan(Post)
     axesh.Visible = 'on';cmdh.Visible = 'on';
@@ -96,20 +99,20 @@ textPos1 = pie(2).Position;
 pie(2).FontWeight = 'bold';
 if numel(pie)>2; pie(4).FontWeight = 'bold'; end
 if pre>0.15
-    textPos1 = textPos1*0.5; % add offset
+    textPos1 = textPos1*0.1; % add offset
     pie(2).Color = 'k'; 
 else
-    textPos1 = textPos1*1.1; % add offset
+    %textPos1 = textPos1*1.05; % add offset
     pie(2).Color = 'k';
 end
 pie(2).Position = textPos1;
 if gain>0 && numel(pie)>2
     textPos2 = pie(4).Position;
     if gain>0.15
-        textPos2 = textPos2*0.5; % add offset
+        textPos2 = textPos2*0.1; % add offset
         pie(4).Color = 'w';
     elseif gain>0        
-        textPos2 = textPos2*1.1; % add offset
+        %textPos2 = textPos2*1.05; % add offset
         pie(4).Color = 'k';
     end
     pie(4).Position = textPos2; 

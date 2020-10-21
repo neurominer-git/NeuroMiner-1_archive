@@ -37,7 +37,7 @@ if isfield(REMVARCOMP,'G')
         RANKVARCOMP_G_str = 'vector specified';
     end
 else
-    RANKVARCOMP_G_str = 'NA';
+    RANKVARCOMP_G_str = 'No covariate vector or matrix specified!';
 end
 
 REMVARCOMP_corrmeth_str = corrmeths{REMVARCOMP.corrmeth};

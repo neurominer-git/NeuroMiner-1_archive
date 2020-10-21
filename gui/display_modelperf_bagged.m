@@ -89,7 +89,7 @@ mlx = Inf; mux = 0;
 xi      = (1:lPi)'; 
 hi      = bar(xi,P,'LineWidth', 1.0);
 mlxi    = nm_nanmin(P,[],2); muxi = nm_nanmax(P,[],2);
-for i=1:nPi, hi(i).FaceColor = cpt{i}; end
+for i=1:nPi, hi(i).FaceColor = cpt(i,:); end
 for i=1:lPi, axl{i} = sprintf('M%g',i); end
 % Plot markers
 %plot(x, y, 'k.', 'MarkerSize', 1)

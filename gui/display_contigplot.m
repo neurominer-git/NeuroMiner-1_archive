@@ -1,14 +1,14 @@
 % =========================================================================
 % =                      CONTINGENCY MATRIX PLOT                          =
 % =========================================================================
-function h = display_contigplot(handles, confmatrix)
+function h = display_contigplot(handles, confmatrix, groupnames)
 
 h_class         = get(handles.popupmenu1,'Value');
 h_classlist     = get(handles.popupmenu1,'String');
 h_list          = get(handles.selModelMeasures,'String');
 h_val           = get(handles.selModelMeasures,'Value');
 h_onevsall_val  = get(handles.selOneVsAll_Info,'Value');
-groupnames = handles.NM.groupnames;
+if ~exist('groupnames','var') || isempty(groupnames), groupnames = handles.NM.groupnames; end
 switch h_list{h_val}
     case 'Classification plot'
         if strcmpi(h_classlist{h_class},'Multi-group classifier')

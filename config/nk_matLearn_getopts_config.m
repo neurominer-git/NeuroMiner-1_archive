@@ -168,7 +168,7 @@ switch act
                 opt.name = {'alpha','lambda_min','nlambda','dfmax','standardize'};
             case 'GRDBST'
                 opt.desc = {'Define maximum number of boosting iterations', ...
-                            'Select type of loss (exponential, logarthmic for classification, squared for regression)', ...
+                            'Select type of loss (exponential/logarthmic for classification, squared for regression)', ...
                             'Define shrinkage factor (0<->1)', ...
                             'Define subsampling factor (0<->1)', ...
                             'Define maximum tree depth'};
@@ -322,7 +322,9 @@ switch act
         if ~isempty(param) && isfield(param,'Params') && ~isempty(param.Params) && ~isempty(opt)
             for i=1:numel(opt.name)
                 for j=1:numel(param.Params)
-                    opt.def{i} = nk_matLearn_FindDefInParam_config(opt.format{i}, opt.name{i}, opt.def{i}, opt.sel{i}, param.Params(j));
+                    if strcmp(param.Params(j).name, opt.name{i})
+                        opt.def{i} = nk_matLearn_FindDefInParam_config(opt.format{i}, opt.name{i}, opt.def{i}, opt.sel{i}, param.Params(j));
+                    end
                 end
             end
         end

@@ -2,14 +2,37 @@ function [ sY, IN ] = nk_PerfWActObj( Y, IN )
 % =========================================================================
 % FORMAT function [sY, IN] = nk_PerfWActObj(Y, IN)
 % =========================================================================
+% This function applies precomputed weight vector(s) over the features to
+% the predictor data either by multiplying features with their weights (soft
+% feature selection with a given exponent) or by selecting features 
+% above given percentile threshold (hard feature selection). 
+% In the latter case, the suprathreshold data can also be clustered if it 
+% is in 3D format (e.g. neuroimaging data).
 % 
-% Inputs: 
+% Inputs/Outputs: 
 % -------------------------------------------------------------------------
 % Y                   : M cases x N features data matrix
 % IN                  : Input parameter structure 
-%
+%   W_ACT.clustflag   : tells the script to cluster the data   
+%   W_ACT.opt         : contains the current hyperparameter for the script
+%                       which can be exponents for soft feature selection 
+%                       or percentile thresholds for hard feature selection
+%   W_ACT.threshvec   : contains all percentiles defined by the user
+%   Thresh            : Hard feature selection threshold computed using the
+%                       based on W_ACT.opt
+%   Mask              : A pre-defined mask for feature selection where each
+%                       value in the mask will be used to summarize the data 
+%                       in the respective label (see nk_ExtractClusterData.m). 
+%                       Instead of using a pre-defined mask the 
+%                       script can call the clustering routine of SPM to 
+%                       compute a mask based on the thresholded data.
+%   W                 : The n*p weight vector/matrix defining feature 
+%                       relevance, where n is the feature dimensionality.
+%                       If p>1 then the feature selection operation will be
+%                       performed n times with each weight vector in the
+%                       matrix and the results will be concatenated into sY
 % %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% (c) Nikolaos Koutsouleris, 05/2018
+% (c) Nikolaos Koutsouleris, 08/2020
 
 % =========================== WRAPPER FUNCTION ============================ 
 if iscell(Y) && exist('IN','var') && ~isempty(IN)
@@ -21,7 +44,7 @@ end
 
 % =========================================================================
 
-function [ Y, IN ] = PerfWActObj( Y, IN )
+function [ nY, IN ] = PerfWActObj( Y, IN )
 global VERBOSE
 
 % Defaults
@@ -29,46 +52,70 @@ if isempty(IN),          error('Suitable input structure is missing. See the fun
 if ~isfield(IN,'W_ACT'), error('Weighting parameter structure is missing! Add a W_ACT substructure to your input structure.'); end
 if ~isfield(IN,'W'),     error('Weighting vector is missing! Add a weighting vector W to your input structure.'); end
 if ~isfield(IN,'Mask'), IN.Mask = []; end
-if ~isfield(IN,'Thresh') || isempty(IN.Thresh)
+
+nW = size(IN.W,2);
+nY = [];
+
+%Loop through multiple weight vectors and expand feature space if needed
+for i=1:nW 
+    
     if isfield(IN.W_ACT,'opt')
         Params_desc = IN.W_ACT.Params_desc;
         opt = IN.W_ACT.opt;
     else
-        Params_desc=[]; opt =[]; 
+        error('\nNo percentile threshold has been provided to extract futures.')
     end
 
-     if numel(IN.W_ACT.threshvec)>1 || any(IN.W_ACT.threshvec)
-        t = nk_ReturnParam('Thresholds',Params_desc, opt); 
-        if ~isempty(t) && sum(any(t)), IN.Thresh = percentile(IN.W, t); end
-     else
-         IN.Thresh = [];
-     end
-end
+    switch IN.W_ACT.softflag 
+        
+        % Soft feature selection by multiplying features with respective
+        % weights
+        case 1 
+            % Extract parameters for exponential multiplier of W
+            if ~isfield(IN,'Weights') || isempty(IN.Weights)
+                if i==1
+                    IN.Weights = zeros(size(IN.W));
+                    IN.ind = true(size(IN.Weights));
+                end
+                ExpMult = nk_ReturnParam('ExpMult',Params_desc, opt); 
+                IN.Weights(:,i) = IN.W(:,i).^ExpMult; 
+            end
+            % Soft feature selection
+            Y = Y .* IN.Weights(:,i)';
+            if VERBOSE, fprintf('\tWeighting F'); end
+        
+        % Hard feature selection by selecting feature above the given
+        % weight threshold
+        case 2
+            % extract thresholds
+            if ~isfield(IN,'Thresh') || isempty(IN.Thresh)
+                if i==1, IN.ind = false(size(IN.W)); end
+                % Check whether IN.Thresh exists.
+                % If not extract percentile(s) from optimization structure exists
+                t = nk_ReturnParam('Thresholds',Params_desc, opt); 
+                IN.Thresh(i) = percentile(IN.W(:,i), t);
+            end
 
-if ~isempty(IN.Thresh),
-    % Hard feature selection
-    if IN.W_ACT.clustflag == 1
-        if isempty(IN.Mask)
-            Wthresh = zeros(size(IN.W));
-            IN.ind = IN.W > IN.Thresh;
-            Wthresh(IN.ind) = IN.W(IN.ind);
-            IN.Mask = nk_Cluster(Wthresh, IN.W_ACT);
-        end
-        Y = nk_ExtractClusterData(Y, IN.Mask);
-        if VERBOSE, fprintf('\tClusterizing F into %g mean cluster values', nk_Range(IN.Mask)); end
-    else
-        % Hard feature selection
-        IN.ind = IN.W >= IN.Thresh;
-        Y = Y(:, IN.ind); 
-        if VERBOSE, fprintf('\tSelecting %g / %g feats at %g', size(Y,2), numel(IN.W), IN.Thresh); end
+            if IN.W_ACT.clustflag == 1
+                % Here we clusterize suprathreshold features if the input
+                % data is in 3D format
+                if isempty(IN.Mask)
+                    Wthresh = zeros(size(IN.W(:,i)));
+                    IN.ind(:,i) = IN.W(:,i) > IN.Thresh(i);
+                    Wthresh(IN.ind(:,i)) = IN.W(IN.ind(:,i));
+                    IN.WMask{i} = nk_Cluster(Wthresh, IN.W_ACT);
+                else
+                    IN.WMask{i} = IN.Mask;
+                end
+                Y = nk_ExtractClusterData(Y, IN.WMask{i});
+                if VERBOSE, fprintf('\tClusterizing F into %g mean cluster values', nk_Range(IN.WMask{i})); end
+            else
+                % Here we simply extract features above the given threshold
+                IN.ind(:,i) = IN.W(:,i) >= IN.Thresh(i);
+                Y = Y(:, IN.ind(:,i)); 
+                if VERBOSE, fprintf('\tSelecting %g / %g feats at %g', size(Y,2), numel(IN.W(:,i)), IN.Thresh(i)); end
+            end
+
     end
-else 
-    % Check whether you have to apply an exponential multiplier to W
-    ExpMult = nk_ReturnParam('ExpMult',Params_desc, opt); 
-    if ExpMult, W = IN.W.^ExpMult; else W = IN.W; end
-    % Soft feature selection
-    Y = bsxfun(@times, Y, W);
-    IN.ind = true(size(W));
-    if VERBOSE, fprintf('\tWeighting F'); end
+    nY = [nY Y];
 end
-

@@ -62,9 +62,18 @@ if isfield(CURACT,'SPATIAL') && CURACT.SPATIAL.cubetype>1
             else
                 ttY                      = tY;
             end
+            nanMask                      = isnan(ttY);
+            indnan                       = any(nanMask,2);
             tY                           = nk_SpatFilt(ttY, S);
             clear ttY
-            for zv = 1:nP, fY{zv, zu} = tY{zv}; end
+            % Transfer smoothed data into container and handle NaNs
+            % properly
+            for zv = 1:nP, 
+                fY{zv,zu} = tY{zv};
+                if any(indnan), 
+                    fY{zv,zu}(nanMask) = nan; 
+                end
+            end
             if tmpflg, DeleteTempVol(Vm,tmpflg); end 
         end
     end

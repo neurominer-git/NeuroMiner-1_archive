@@ -2,44 +2,67 @@ function [ IN, optD, optCrit ] = nk_OptPredSeq(D, L, PredGroups, IN, C, nCutOff,
 % =====================================================================================
 % FORMAT function R = nk_OptPredSeq(D, L, PredGroups, IN, C nCutOff, Lims, Crit, Ddesc)
 % =====================================================================================
-% This function optimizes the sequential combination of predictive models by ranking 
-% cases according to predictive scores and testing different percentile thresholds for 
-% passing ranked cases on to the next predictive model. The optimized model consists of 
-% the learned sequence and the respective optimal upper/lower percentile thresholds for 
-% case propagation at each predictive node in the sequence.
+% This function optimizes the sequential combination of predictive models 
+% by ranking cases according to predictive scores and testing different 
+% percentile thresholds for passing ranked cases on to the next predictive 
+% model. The optimized model consists of the learned sequence and the 
+% respective optimal upper/lower percentile thresholds for case propagation 
+% at each predictive node in the sequence. The algorithm can also identify 
+% the optimal sequence in a bag of candidate sequences, but we don't use 
+% this functionality in NM as the sequence is itself a hyperparameter that 
+% is optimized in the heuristic hyperparameter space of NM, possibly 
+% together with other hyperparameters.
 %
 % Inputs:
 % -------
-% D :           Predictive score matrix, where each column contains the
-%               predictive output of a model and each row the output of all 
-%               models for a single case
-% L :           The label vector
-% PredGroups :  Vector indicating to which examination node each decision score
-%               belongs.
-% IN [ opt ]:   A previously learned sequence model that should be
-%               applied to new data (see outputs).
-% C :           Sequences of predictive models to be tested. Each column
-%               in C is a predictive model output stored in D, 
-%               each row is model sequence
-% nCutOff [opt]:No. of thresholds to be tested x 2 (starting from 50%) 
-% Lims [opt]:   Lower [ Lims(1) ] and upper [ Lims(2) ] percentile threshold bounds
-% Crit [opt] :  The optimization criterion such as BAC
-% Ddesc [opt] : a description of the nodes in the prediction sequence
+% D :            Predictive score matrix, where each column contains the
+%                predictive output of a model and each row the output of all 
+%                models for a single case
+% L :            The label vector
+% PredGroups :   Vector indicating to which examination node each decision 
+%                score belongs.
+% IN [ opt ]:    A previously learned sequence model that should be
+%                applied to new data (see outputs).
+% C :            Sequences of predictive models to be tested. Each column
+%                in C is a predictive model output stored in D, 
+%                each row is model sequence
+% nCutOff [opt]: No. of thresholds to be tested x 2 (starting from 50%) 
+% Lims [opt]:    Lower [ Lims(1) ] and upper [ Lims(2) ] percentile 
+%                threshold bounds
+% Crit [opt] :   The optimization criterion such as BAC
+% NM [opt] :  a description of the nodes in the prediction sequence
 %
-% Output:
-% -------
+% Outputs:
+% --------
 % IN :           Optimization results structure consisting of the following
 %                fields:
-% IN.OPT :
-% IN.D :
-% IN.optD :
-% IN.Nremain :
-% IN.Crit :
-% IN.(Crit) :
-% IN.examsfreq :
-% IN.fcnt :
+%   IN.Crit :    Chosen optimization criterion (e.g. BAC)
+%   IN.(Crit) :  Optimization criterion computed for each sequences to be 
+%                tested (relevant only if multiple sequences are provided 
+%                in C)
+%   IN.OPT :     Optimization criterion computed using the entire data at
+%                given node in the given sequence
+%   IN.allOPTs : Optimization criterion computed using the entire data for
+%                all nodes in the given sequence
+%   IN.diffOPTs : Difference between actual optimization criterion and
+%                performance measured at previous nodes in the given sequence
+%   IN.D :       Predictions for cases across all examination nodes
+%   IN.optD :    Averaged/replaced predictions for cases across examination 
+%                nodes resulting from case propagation 
+%                [see ComputeSequencePredictions]
+%   IN.optDh :   IN.optD for each node in the sequence
+%   IN.Nremain : Final node positions of cases not propagated further along
+%                the given sequence
+%   IN.examsfreq : Percentage of cases remaining at given node in the
+%                sequence
+%   IN.vecpos :  Vector of upper percentile thresholds to be tested
+%   IN.vecneg :  Vector of lower percentile thresholds to be tested
+%   IN.optlvec : optimized lower percentile threshold for each sequence node
+%   IN.optuvec : optimized upper percentile threshold for each sequence node
+%   IN.optlthr : optimized lower prediction threshold for each sequence node
+%   IN.optuthr : optimized upper prediction threshold for each sequence node
 % _________________________________________________________________________
-% (c) Nikolaos Koutsouleris, 12/2019
+% (c) Nikolaos Koutsouleris, 07/2020
 global VERBOSE SVM
 
 if ~exist('IN','var') || isempty(IN)
@@ -111,11 +134,10 @@ if ~exist('IN','var') || isempty(IN)
         % Model performance of first model in sequence
         OPT = feval(Crit,L,jD(:,1));
 
-        % Prepare results container for optimization
+        % Prepare container for optimization results 
         tIN = struct('Sequence', Cj, ...
                 'Sequence2Feats', jC, ...
                 'OPT', OPT, ... 
-                'fcnt', 1, ...
                 'D', jD, ...
                 'optD', jD(:,1), ...
                 'optDh', nan(size(jD,1),nD), ...
@@ -131,7 +153,7 @@ if ~exist('IN','var') || isempty(IN)
         tIN.vecneg = vecneg;
         tIN.vecpos = vecpos;
         
-        % Run sequential optimization
+        % Run sequential optimization algoríthm
         for i=1:nD-1, tIN = OptPredSeq(tIN, i, L, Crit); end
         
         % Analyze optimized sequence:
@@ -176,7 +198,7 @@ else
         lthr    = IN.optlthr(j); uthr = IN.optuthr(j);
         ind     = D(fI,j) >= lthr & D(fI,j) <= uthr;
         Nremain(fI(ind)) = j+1;
-        optD    = replace_predictions(D(:,1:j), optD, D(:,j+1), fI(ind), SVM.SEQOPT.ReplaceMode);
+        optD    = ComputeSequencePredictions(D(:,1:j), optD, D(:,j+1), fI(ind), SVM.SEQOPT.ReplaceMode);
         optD(fI(ind)) = D(fI(ind),j+1);
         if lbmode 
             % Compute performance gains at each node
@@ -218,7 +240,7 @@ for j=1:numel(R.vecneg{I})
     
     jD = R.optD;
     jDI = DI(fI); jDI(isnan(jDI))=[];
-    %% Defined thresholds for case propagation using percentile method
+    %% Define thresholds for case propagation using percentile method
     lthr = percentile(jDI, R.vecneg{I}(j));
     uthr = percentile(jDI, R.vecpos{I}(j));
     if ~exist('optuthr','var')
@@ -233,16 +255,16 @@ for j=1:numel(R.vecneg{I})
     %% Compute performance metric of next propagation compared to current node in the sequence
     switch SVM.SEQOPT.Mode
         case 1
-            % Here optimization will be done using the performance in the 
+            % Here, optimization will be done using the performance in the 
             % actual set of cases selected based on the current ambiguity 
             % threshold
-            nD = replace_predictions(R.D(:,1:I), jD, R.D(:,I+1),fII, SVM.SEQOPT.ReplaceMode); 
+            nD = ComputeSequencePredictions(R.D(:,1:I), jD, R.D(:,I+1),fII, SVM.SEQOPT.ReplaceMode); 
             tL = L(fII); % get the labels
             switch SVM.SEQOPT.PerfMode
                 case 1 % based on prediction performance criterion 
                     prevOPT = feval(Crit,tL,jD(fII));   % get current performance
                     ijOPT = feval(Crit,tL,nD(fII));     % get performance if predictions of cases to be propagated (based on fII) are replaced with predictions of next model in the chain
-                case 2 % based on decision distance change
+                case 2 % based on predictive margin
                     t_jD = jD(fII); t_nD = nD(fII);
                     prevOPT = mean(t_jD(tL==1)) - mean(t_jD(tL==-1)); % this is the current decision margin between cases of opposite classes to be propagated to the next node in the sequence
                     ijOPT = mean(t_nD(tL==1)) - mean(t_nD(tL==-1));   % this is the decision margin after propagated cases receive predictions of next model
@@ -252,7 +274,7 @@ for j=1:numel(R.vecneg{I})
             % Alternatively optimization is done on the entire population
             % (at the various levels of classifier propagation)
             prevOPT = rOPT;
-            jD = replace_predictions(R.D(:,1:I), jD, R.D(:,I+1), fII, SVM.SEQOPT.ReplaceMode);
+            jD = ComputeSequencePredictions(R.D(:,1:I), jD, R.D(:,I+1), fII, SVM.SEQOPT.ReplaceMode);
             switch SVM.SEQOPT.PerfMode
                 case 1
                     ijOPT = feval(Crit,L,jD);
@@ -270,8 +292,12 @@ for j=1:numel(R.vecneg{I})
         rOPT        = ijOPT;
         optD        = jD;
         allOPT      = feval(Crit,L,jD);
-        if VERBOSE, fprintf('\nNext Node %g: %1.2f [%4g cases; Lower thresh: %1.2f, Upper thresh: %1.2f]', ...
-                I+1, rOPT.(Crit), numel(fI(ind)), lthr, uthr); end
+        if VERBOSE, 
+            try
+                fprintf('\nNext Node %g: %1.2f [%4g cases; Lower thresh: %1.2f, Upper thresh: %1.2f]', I+1, rOPT.(Crit), numel(fI(ind)), lthr, uthr); 
+            catch
+            end
+        end
     else
         if VERBOSE, fprintf('.'); end
     end
@@ -290,7 +316,7 @@ R.diffOPTs(I) = allOPT - R.OPT;
 R.OPT = allOPT;
 
 % _________________________________________________________________________
-function D_new = replace_predictions(D, D_opt, D_next, I_next, ActMode)
+function D_new = ComputeSequencePredictions(D, D_opt, D_next, I_next, ActMode)
         
 D_new = D_opt;
 switch ActMode

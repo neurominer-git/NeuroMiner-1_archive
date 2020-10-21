@@ -37,11 +37,13 @@ if ~defaultsfl
     if strcmp(algostr,'spls')
         if ~exist('cu','var'), yyy = 'undefined'; cudef = 1; else, yyy = nk_ConcatParamstr(cu); cudef = cu; end 
         if ~exist('cv','var'), xxx = 'undefined'; cvdef = 1; else, xxx = nk_ConcatParamstr(cv); cvdef = cv; end
-        sparsepls = sprintf('|Define Y sparsity parameter range (1 to sqrt(input dimensionality)) [ %s ]', yyy);
+        sparsepls = sprintf('|Define U sparsity parameter range (1 to sqrt(input dimensionality)) [ %s ]', yyy);
         mnuact = [mnuact 4];
         if size(covmat,2)>1
-            sparsepls = sprintf('%s|Define X sparsity parameter range (1 to sqrt(input dimensionality)) [ %s ]', sparsepls, xxx);
+            sparsepls = sprintf('%s|Define V sparsity parameter range (1 to sqrt(input dimensionality)) [ %s ]', sparsepls, xxx);
             mnuact = [mnuact 5];
+        else
+            PX = nk_AddParam(1, 'SPLS-cv',1, PX);
         end
     else
         sparsepls=[];
@@ -66,15 +68,12 @@ if ~defaultsfl
             covmat = nk_input(sprintf('Define covariate matrix for %s',algostr),0,'e',[],[numel(NM.label),Inf]); 
             covdesc = nk_input('Give a short description for the covariate matrix/vector',0,'s');
             ncomp = size(covmat,2);
-%         case 4
-%             ncomp = nk_input('How many components should be generated',0,'i');
-%             if ncomp > size(covmat,2), ncomp = size(covmat,2); end
         case 4
-            DEVMAP.cu = nk_input('Define Y sparsity parameter range',0,'e',cudef);
-            PX = nk_AddParam(DEVMAP.cu, 'spls-cu',1, PX);
+            DEVMAP.cu = nk_input('Define U sparsity parameter(s)',0,'e',cudef);
+            PX = nk_AddParam(DEVMAP.cu, 'SPLS-cu',1, PX);
         case 5
-            DEVMAP.cv = nk_input('Define X sparsity parameter range',0,'e',cvdef);
-            PX = nk_AddParam(DEVMAP.cv, 'spls-cv',1, PX);
+            DEVMAP.cv = nk_input('Define V sparsity parameter(s)',0,'e',cvdef);
+            PX = nk_AddParam(DEVMAP.cv, 'SPLS-cv',1, PX);
     end
 end
 DEVMAP.algostr      = algostr;

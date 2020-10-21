@@ -87,12 +87,19 @@ if ~isempty(analysis)
     if isempty(inp.gdanalmat),    inp.gdanalmat = cell(inp.nF,1); end
     
     %% Compute from scratch or use pre-computed datamats from different stages of the analysis process?
+    
     LFL_opts  = {'Compute from scratch (no CVdatamats or Preprocdata-MATs available)', ...
                     'Compute using existing Preprocdata-MATs (no CVdatamats available)', ...
                     'Assemble analysis using existing CVdatamats', ...
                     'Assemble analysis using existing CVresult-MATs'};
-
-    ModeStr   = sprintf('Operation mode of ML training module [ %s ]|',LFL_opts{inp.lfl});          ModeAct = 2;
+    
+    lflcnt = 0;
+    if numel(inp.varind)>1,
+        LFL_opts(1)=[]; if inp.lfl == 1; inp.lfl = 2; end
+        if inp.lfl > 1, lflcnt = 1; end
+    end
+                
+    ModeStr   = sprintf('Operation mode of ML training module [ %s ]|',LFL_opts{inp.lfl-lflcnt});          ModeAct = 2;
 
     if inp.lfl>1
         % precomputed
@@ -203,7 +210,9 @@ if ~isempty(analysis)
                 inp.GridAct = false(ix,jx);
             end 
         case 2
-            lfl = nk_input('Define run-time mode of ML training module',0,'mq',strjoin(LFL_opts, '|'),1:numel(LFL_opts),inp.lfl);
+            if numel(inp.varind)>1, selLFLopts = 2:4; lfldef = inp.lfl - 1; else, selLFLopts = 1:4; lfldef = inp.lfl; end
+            lfl = nk_input('Define run-time mode of ML training module',0,'mq',strjoin(LFL_opts, '|'), selLFLopts, lfldef);
+            if numel(inp.varind)>1 && lfl == lfl+1; end
             if lfl, inp.lfl = lfl; end        
         case 3
 			%% Prepare for runtime:

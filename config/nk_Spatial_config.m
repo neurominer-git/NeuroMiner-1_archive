@@ -17,9 +17,9 @@ if ~defaultsfl
         case 1
             cubetypestr = 'No filtering';
         case 2
-            cubetypestr = '4 neighbors';
+            cubetypestr = 'Absolute difference filtering (6 neighbors)';
         case 3
-            cubetypestr = '27 neighbors';
+            cubetypestr = 'Cube variance filtering (27 neighbors)';
         case 4
             cubetypestr = 'Gaussian smoothing';
             cubefwhmstr = nk_ConcatParamstr(cubefwhm);

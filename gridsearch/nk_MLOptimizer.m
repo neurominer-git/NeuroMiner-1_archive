@@ -146,6 +146,10 @@ switch SVM.prog
         GDanalysis.grid.sd_mSEQI                = nan(nPs(1),nE-1,nclass,ix*jx,hx);
         GDanalysis.grid.mean_mSEQE              = nan(nPs(1),nE,nclass,ix*jx,hx);
         GDanalysis.grid.sd_mSEQE                = nan(nPs(1),nE,nclass,ix*jx,hx);
+        GDanalysis.grid.mean_mSEAPU             = nan(nPs(1),nE-1,nclass,ix*jx,hx);
+        GDanalysis.grid.sd_mSEQAU               = nan(nPs(1),nE-1,nclass,ix*jx,hx);
+        GDanalysis.grid.mean_mSEQAL             = nan(nPs(1),nE-1,nclass,ix*jx,hx);
+        GDanalysis.grid.sd_mSEQAL               = nan(nPs(1),nE-1,nclass,ix*jx,hx); 
         GDanalysis.grid.mean_mSEQPU             = nan(nPs(1),nE-1,nclass,ix*jx,hx);
         GDanalysis.grid.sd_mSEQPU               = nan(nPs(1),nE-1,nclass,ix*jx,hx);
         GDanalysis.grid.mean_mSEQPL             = nan(nPs(1),nE-1,nclass,ix*jx,hx);
@@ -322,7 +326,7 @@ for f=1:ix % Loop through CV2 permutations
                 oCVpath = fullfile(p,[strout '_CVdatamat' cvstr inp.varstr '_ID' id '.mat']);
 
                 [GD, GDfound] = nk_CheckLoadFile(gdpath, 'CVdatamat', f, d, ovrwrtGD, nclass);
-                if isempty(GD) && ~GDfound && ~ovrwrt
+                if isempty(GD) && ~GDfound 
                     fprintf('\n')
                     warning(['No valid CVdatamat detected for CV2 partition ' ...
                         '[' num2str(f) ', ' num2str(d) ']!']); ll=ll+1;
@@ -413,6 +417,10 @@ for f=1:ix % Loop through CV2 permutations
                    GD.sdSEQI = cell(nPs(1),nclass, hx);
                    GD.mSEQE = cell(nPs(1), nclass, hx);  
                    GD.sdSEQE = cell(nPs(1), nclass, hx); 
+                   GD.mSEQAbsThrU = cell(nPs(1), nclass, hx);
+                   GD.sdSEQAbsThrU = cell(nPs(1), nclass, hx);
+                   GD.mSEQAbsThrL = cell(nPs(1), nclass, hx);
+                   GD.sdSEQAbsThrL = cell(nPs(1), nclass, hx);
                    GD.mSEQPercThrU = cell(nPs(1), nclass, hx);
                    GD.sdSEQPercThrU = cell(nPs(1), nclass, hx);
                    GD.mSEQPercThrL = cell(nPs(1), nclass, hx);
@@ -544,15 +552,24 @@ for f=1:ix % Loop through CV2 permutations
                         GDanalysis.grid.mean_mSEQE(:,:,curclass,ll,:)    = cell2matpadnan(GD.mSEQE(:,curclass));
                         % SD examination frequencies
                         GDanalysis.grid.sd_mSEQE(:,:,curclass,ll,:)      = cell2matpadnan(GD.sdSEQE(:,curclass));
-                        % Mean upper threshold for case propagation
+                        % Mean upper percentile for case propagation
+                        GDanalysis.grid.mean_mSEQAU(:,:,curclass,ll,:)   = cell2matpadnan(GD.mSEQAbsThrU(:,curclass));
+                        % SD upper percentile for case propagation
+                        GDanalysis.grid.sd_mSEQAU(:,:,curclass,ll,:)     = cell2matpadnan(GD.sdSEQAbsThrU(:,curclass));
+                        % Mean lower percentile for case propagation
+                        GDanalysis.grid.mean_mSEQAL(:,:,curclass,ll,:)   = cell2matpadnan(GD.mSEQAbsThrL(:,curclass));
+                        % SD lower percentile for case propagation
+                        GDanalysis.grid.sd_mSEQAL(:,:,curclass,ll,:)   = cell2matpadnan(GD.sdSEQAbsThrL(:,curclass));
+                        % Mean upper percentile for case propagation
                         GDanalysis.grid.mean_mSEQPU(:,:,curclass,ll,:)   = cell2matpadnan(GD.mSEQPercThrU(:,curclass));
-                        % SD upper threshold for case propagation
+                        % SD upper percentile for case propagation
                         GDanalysis.grid.sd_mSEQPU(:,:,curclass,ll,:)     = cell2matpadnan(GD.sdSEQPercThrU(:,curclass));
-                        % Mean lower thresholf for case propagation
+                        % Mean lower percentile for case propagation
                         GDanalysis.grid.mean_mSEQPL(:,:,curclass,ll,:)   = cell2matpadnan(GD.mSEQPercThrL(:,curclass));
-                        % SD lower thresholf for case propagation
+                        % SD lower percentile for case propagation
                         GDanalysis.grid.sd_mSEQPL(:,:,curclass,ll,:)   = cell2matpadnan(GD.sdSEQPercThrL(:,curclass));
-                        GDanalysis.grid.mean_SeqPerfGains(:,:,curclass,ll,:) = cell2matpadnan(cellfun(@nm_nanmean, GD.SeqPerfIncreases(:,curclass), 'UniformOutput', false));
+                        
+                        GDanalysis.grid.mean_SeqPerfGains(:,:,curclass,ll,:) = cell2matpadnan(cellfun(@nm_nanmean, GD.SeqPerfIncreases(:,curclass), 'UniformOutput', false), [], nE);
                     end
                 case 'WBLCOX'
                     for curclass = 1 : nclass
@@ -790,10 +807,7 @@ for f=1:ix % Loop through CV2 permutations
                             MEnsDat = MultiProb(:,g,:); 
                         else
                             if iscell(MultiCV2Prob)
-                                MEnsDat = [];
-                                for gg=1:size(MultiCV2Prob,2)
-                                    MEnsDat = [MEnsDat MultiCV2Prob{gg}(:,g)];
-                                end
+                                MEnsDat = [MEnsDat MultiCV2Prob{g}];
                             else
                                 MEnsDat = MultiCV2Prob(:,g);
                             end
@@ -847,6 +861,10 @@ if GDfl || ~batchflag
             GDanalysis.grid.se_SeqExamFreq      = nm_nanmean(GDanalysis.grid.sd_mSEQE,4);
             GDanalysis.grid.mean_SeqGain        = nm_nanmean(GDanalysis.grid.mean_mSEQI,4);
             GDanalysis.grid.se_SeqGain          = nm_nanmean(GDanalysis.grid.sd_mSEQI,4);
+            GDanalysis.grid.mean_SeqAbsUpper   = nm_nanmean(GDanalysis.grid.mean_mSEQAU,4);
+            GDanalysis.grid.se_SeqAbsUpper     = nm_nanmean(GDanalysis.grid.sd_mSEQAU,4);
+            GDanalysis.grid.mean_SeqAbsLower   = nm_nanmean(GDanalysis.grid.mean_mSEQAL,4);
+            GDanalysis.grid.se_SeqAbsLower     = nm_nanmean(GDanalysis.grid.sd_mSEQAL,4);
             GDanalysis.grid.mean_SeqPercUpper   = nm_nanmean(GDanalysis.grid.mean_mSEQPU,4);
             GDanalysis.grid.se_SeqPercUpper     = nm_nanmean(GDanalysis.grid.sd_mSEQPU,4);
             GDanalysis.grid.mean_SeqPercLower   = nm_nanmean(GDanalysis.grid.mean_mSEQPL,4);

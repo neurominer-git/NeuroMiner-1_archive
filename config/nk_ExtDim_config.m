@@ -10,13 +10,12 @@ if ~defaultsfl
     defdims = dims; if size(defdims,2)==1 && numel(defdims)>1, defdims=defdims'; end
     mn_str = []; PercModeStr = {'Absolute range','Percentage range','Energy range'}; mn_act=[];
     switch RedMode
-        case {'PCA', 'RobPCA', 'ProbPCA', 'Laplacian', 'LLE', 'HessianLLE', 'HLLE', ...
-                'ManifoldChart', 'ManifoldCharting', 'Charting', 'Chart', ...
-                'LLTSA', 'LMVU', 'LandmarkMVU', 'FastMVU', 'DM', 'DiffusionMaps', ...
-                'KLDA', 'KFDA', 'KernelLDA', 'KernelFDA', 'GDA', ...
-                'KPCA', 'KernelPCA', 'LDA', 'FDA'}
-                
+        case {'PCA', 't-SNE', 'SparsePCA'}
             mn_str = [mn_str sprintf('Define extaction mode for %s [ %s ]|',RedMode, PercModeStr{PercMode})]; mn_act = 1;
+        case {'LDA', 'GDA'}
+            PercMode = 1; L = NM.label; L(isnan(L))=[]; dims = numel(unique(L)); act=0; return
+        otherwise
+            PercMode = 1;
     end
     
     mn_str = [mn_str sprintf('Define extraction range [ %s ]',nk_ConcatParamstr(dims))]; mn_act = [mn_act 2];
@@ -30,19 +29,18 @@ if ~defaultsfl
     switch act
         
         case 1
-            
+        
             PercMode = nk_input(sprintf('Define %s decomposition',RedMode),0,'m', ...
-                                    ['Absolute number range [ 1 ... n ] of eigenvectors|' ...
-                                     'Percentage range [ 0 ... 1 ] of max dimensionality|' ...
-                                     'Energy range [ 0 ... 1 ]of maximum decomposition'],1:3, PercMode);
+                            ['Absolute number range [ 1 ... n ] of eigenvectors|' ...
+                             'Percentage range [ 0 ... 1 ] of max dimensionality|' ...
+                             'Energy range [ 0 ... 1 ]of maximum decomposition'],1:3, PercMode);   
             switch PercMode 
                 case {2,3}
                     dims = 0.8;
                 case 1
-                    dims = numel(NM.cases);
+                    dims = floor(size(NM.Y{NM.TrainParam.FUSION.M(1)},2)/10);
             end
         case 2
-
             switch PercMode
                 case 1
                     inpstr = 'Dimensionalities to project data on (e.g: 1 5 10 or Start:Step:Stop)';
@@ -56,20 +54,16 @@ if ~defaultsfl
      if numel(mn_act)<2, act = 0; end
 else
     switch RedMode
-        case {'PCA', 'RobPCA', 'ProbPCA', 'Laplacian', 'LLE', ...
-                'HessianLLE', 'HLLE', ...
-                'ManifoldChart', 'ManifoldCharting', 'Charting', 'Chart', ...
-                'LLTSA', 'LMVU', 'LandmarkMVU', 'FastMVU', 'DM', 'DiffusionMaps', ...
-                'KLDA', 'KFDA', 'KernelLDA', 'KernelFDA', 'GDA', ...
-                'KPCA', 'KernelPCA', 'LDA', 'FDA'}
-            
+        case {'PCA', 't-SNE'}
             dims = 0.8; PercMode = 3;
         case 'SparsePCA'
             dims = floor(numel(NM.cases)/10); PercMode = 1;
         case 'PLS'
             dims = 1;
+        case {'LDA','GDA'}
+            L = NM.label; L(isnan(L))=[]; dims = numel(unique(L)); 
         otherwise
-            dims = numel(NM.cases); PercMode = 1;
+            dims = floor(size(NM.Y{NM.TrainParam.FUSION.M(1)},2)/10); PercMode = 1;
     end
     act = 0;
 end

@@ -24,7 +24,7 @@ if ~defaultsfl
     if strcmp(RANK.algostr,'extern')
         act = nk_input(mestr,0,'mq', ...
             [sprintf('Choose algorithm and specify its parameters [ %s ]|', RANK.algostr) ...
-             sprintf('Up- or downweight predictive features [ %s ]', weightstr) ], 2:3);
+             sprintf('Up- or downweight predictive features [ %s ]', weightstr) ], [1 3]);
     else
         switch RANK.algostr
             case 'pearson'
@@ -36,7 +36,7 @@ if ~defaultsfl
             case 'pls'
                 act = nk_input(mestr,0,'mq', ...
                     [sprintf('Choose algorithm and specify its parameters [ %s ]|', algostr), ...
-                     sprintf('Define covariate matrix for PLS-based deviation ranking')],[1 2]);
+                     sprintf('Define PLS parameters ...')],[1 2]);
             otherwise
                 act = nk_input(mestr,0,'mq', ...
                     [sprintf('Choose algorithm and specify its parameters [ %s ]|', algostr)  ...
@@ -46,60 +46,6 @@ if ~defaultsfl
     end
     
     switch act
-
-        case 2
-
-            switch RANK.algostr
-                
-                case 'pls'
-                    RANK.label = nk_input('Define covariate matrix for PLS',0,'e',[],[numel(NM.label),Inf]); 
-                    RANK.PLS.ncomp = nk_input('How many latent variables should be generated',0,'i');
-                    RANK.PLS.loo = 1;
-                    RANK.labeldesc = nk_input('Give a short description for the covariate matrix',0,'s');
-                    RANK.ranktype = 3;
-                    
-                otherwise
-                    
-                    %% Label definition
-                    if isfield(RANK,'label')
-                        flg = nk_input('Target label vector found',0,'Use existing|Define new one',[0,1],1);
-                    else
-                        flg = true;
-                    end
-
-                    if flg, 
-                        RANK.ranktype = nk_input('Define target labels',0,'m', ...
-                                            ['NM target labels|'...
-                                             'Categorical data|' ...
-                                             'Continuous data'],[1,2,3],ranktype);
-
-                        if RANK.ranktype > 1
-                            switch RANK.algostr
-                                case 'anova'
-                                    RANK.label = nk_input('Define design matrix for ANOVA',0,'e',[],[numel(NM.label),Inf]); lbstr = 'design matrix';
-                                otherwise
-                                    RANK.label = nk_input('Define target label vector',0,'e',[],[numel(NM.label),1]); lbstr = 'label vector';
-                            end
-                            RANK.labeldesc = nk_input(['Give a short description of the ' lbstr ],0,'s');
-                        else
-                            RANK.label = NM.label;
-                            RANK.labeldesc = 'NM target label';
-                        end
-                    end
-                    
-            end
-            
-            if RANK.ranktype == 3
-                flg = nk_input('Weight feature using only one specific subgroup?',0,'yes|no',[1,0],0);
-                if flg, 
-                    RANK.glabel = nk_input('Define index vector for subgroup idenitification (ones = use / zeros = not use)',0,'e',[],[numel(NM.label),1]);
-                else
-                    if isfield(RANK,'glabel'), RANK= rmfield(RANK,'glabel'); end
-                end
-            else
-                if isfield(RANK,'glabel'), RANK= rmfield(RANK,'glabel'); end
-            end
-
         case 1
             if exist('PX','var'), PX = []; end
             
@@ -248,6 +194,8 @@ if ~defaultsfl
                     act=1; while act > 0, [act, RANK ] = nk_FEAST_config(RANK, 0, navistr); end
                 case 'relief'
                     RANK.Relief.k = nk_input('Define number(s) of nearest neigbours for RELIEF',0,'i',10,1);PX = nk_AddParam(RANK.Relief.k, 'K', 1, PX); 
+                case 'pls'
+                    if ~isfield(RANK,'PLS'), [~, RANK.PLS ] = nk_PLS_config(NM, [], [], true); end
                 case 'extern' 
                     if vartype
                         if isfield(NM.datadescriptor{varind},'Yw')
@@ -292,6 +240,65 @@ if ~defaultsfl
                             if isfield(RANK,'F'), RANK = rmfield(RANK,'F'); end
                     end
             end
+            
+        case 2
+            switch RANK.algostr
+                
+                case 'pls'
+                    PX = nk_AddParam([], [], [], PX,'reset');
+                    if ~isfield(RANK,'PLS'), [~, RANK.PLS ] = nk_PLS_config(NM, [], [], true); end
+                    act = 1; while act >0, [act, RANK.PLS, PX ] = nk_PLS_config(NM, RANK.PLS, PX, false, navistr); end  
+                    RANK.label = RANK.PLS.V;
+                    switch RANK.PLS.uselabel
+                        case 1
+                            RANK.labeldesc = 'NM target label';
+                        case 2
+                            RANK.labeldesc = 'NM covariate matrix';
+                        case 3
+                            RANK.labeldesc = 'NM user-defined matrix';
+                    end
+                otherwise
+                    
+                    %% Label definition
+                    if isfield(RANK,'label')
+                        flg = nk_input('Target label vector found',0,'Use existing|Define new one',[0,1],1);
+                    else
+                        flg = true;
+                    end
+
+                    if flg, 
+                        RANK.ranktype = nk_input('Define target labels',0,'m', ...
+                                            ['NM target labels|'...
+                                             'Categorical data|' ...
+                                             'Continuous data'],[1,2,3],ranktype);
+
+                        if RANK.ranktype > 1
+                            switch RANK.algostr
+                                case 'anova'
+                                    RANK.label = nk_input('Define design matrix for ANOVA',0,'e',[],[numel(NM.label),Inf]); lbstr = 'design matrix';
+                                otherwise
+                                    RANK.label = nk_input('Define target label vector',0,'e',[],[numel(NM.label),1]); lbstr = 'label vector';
+                            end
+                            RANK.labeldesc = nk_input(['Give a short description of the ' lbstr ],0,'s');
+                        else
+                            RANK.label = NM.label;
+                            RANK.labeldesc = 'NM target label';
+                        end
+                    end
+                    
+            end
+            
+            if RANK.ranktype == 3
+                flg = nk_input('Weight feature using only one specific subgroup?',0,'yes|no',[1,0],0);
+                if flg, 
+                    RANK.glabel = nk_input('Define index vector for subgroup idenitification (ones = use / zeros = not use)',0,'e',[],[numel(NM.label),1]);
+                else
+                    if isfield(RANK,'glabel'), RANK= rmfield(RANK,'glabel'); end
+                end
+            else
+                if isfield(RANK,'glabel'), RANK= rmfield(RANK,'glabel'); end
+            end
+
         case 3
             RANK.weightmethod = nk_input('Select weighting method',0, 'm', ...
                 'Upweight relevant features|Downweight relevant features',[1,2], weightmethod);

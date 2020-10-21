@@ -5,7 +5,7 @@ function [Results, FileNames, RootPath] = nk_OOCV(inp)
 % Independent test data prediction module
 % 
 % %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% (c) Nikolaos Koutsouleris, last modified 12/2019
+% (c) Nikolaos Koutsouleris, last modified 08/2020
 
 global SVM RFE MULTI MODEFL CV EVALFUNC OOCV SCALE SAV CVPOS
 
@@ -124,7 +124,7 @@ BINMOD = iPREPROC.BINMOD;
 
 CVPOS.fFull = FullPartFlag;
 
-FileNames = cell(ix,jx);
+FileNames = cell(ix,jx); fnd=false;
 % =========================================================================
 for f=1:ix % Loop through CV2 permutations
 
@@ -135,8 +135,10 @@ for f=1:ix % Loop through CV2 permutations
             ll=ll+1;
             fprintf('\nSkipping CV2 [%g,%g] (user-defined).',f,d)
             continue 
-        end;
-        
+        end
+        if ~fnd, 
+            ll_start=ll; fnd=true; 
+        end
         CVPOS.CV2p = f;
         CVPOS.CV2f = d;
         
@@ -144,12 +146,9 @@ for f=1:ix % Loop through CV2 permutations
         operm = f; ofold = d;
         % Create OOCV partition file path
         oOOCVpath = nk_GenerateNMFilePath(inp.rootdir, SAV.matname, inp.datatype, [], inp.varstr, inp.id, operm, ofold);
-        
+        OptModelPath = nk_GenerateNMFilePath( inp.saveoptdir, SAV.matname, 'OptModel', [], inp.varstr, inp.id, operm, ofold);
         switch inp.analmode
             case 0
-                
-                 OptModelPath = nk_GenerateNMFilePath( inp.rootdir, SAV.matname, 'OOCVOptModel', [], inp.varstr, inp.id, operm, ofold);
-        
                  loadfl = false;
                  if exist(oOOCVpath,'file') && ~ovrwrt && ~batchflag
                     
@@ -184,7 +183,8 @@ for f=1:ix % Loop through CV2 permutations
                                      'writeCV1', inp.saveCV1, ...
                                      'multiflag', multiflag);
 
-                    [ inp, contfl, analysis, mapY, GD, MD, Param, paramfl, mapYocv ] = nk_ApplyTrainedPreproc2(analysis, inp, paramfl);
+                    [ inp, contfl, analysis, mapY, GD, MD, Param, paramfl, mapYocv ] = nk_ApplyTrainedPreproc(analysis, inp, paramfl);
+
                     if contfl, continue; end
 
                     fndMD = false; 
@@ -403,10 +403,11 @@ for f=1:ix % Loop through CV2 permutations
 
         end
         
+        indnan = isnan(labelOOCV) | sum(isnan(binOOCVD{1}),2)==size(binOOCVD{1},2);
+        
         if LabelMode
         
             %% Step 5: Assess binary classifier performance, if OOCV Label has been specified
-            indnan = isnan(labelOOCV) | sum(isnan(binOOCVD{1}),2)==size(binOOCVD{1},2);
             if strcmp(MODEFL,'classification')
                 for curclass=1:nclass
                     binOOCVDhx_ll = binOOCVDh{curclass}(indDicho{curclass},:);
@@ -421,7 +422,8 @@ for f=1:ix % Loop through CV2 permutations
                     end
                     Results.BinCV2Performance_Targets(curclass, ll) = feval(EVALFUNC, labelDicho{curclass}(indDicho{curclass}) , hrx_ll);
                     Results.BinCV2Performance_DecisionValues(curclass,ll) = feval(EVALFUNC,labelDicho{curclass}(indDicho{curclass}), hdx_ll);
-                    
+                    Results.BinCV2Sensitivity_DecisionValues(curclass,ll) = SENSITIVITY(labelDicho{curclass}(indDicho{curclass}), hdx_ll);
+                    Results.BinCV2Specificity_DecisionValues(curclass,ll) = SPECIFICITY(labelDicho{curclass}(indDicho{curclass}), hdx_ll);
                     Results.contingency{curclass} = ALLPARAM(labelDicho{curclass}(indDicho{curclass}), hdx);
                     Results.BinCV2Performance_Targets_History(curclass,ll) = feval(EVALFUNC, labelDicho{curclass}(indDicho{curclass}) , hrx);
                     Results.BinCV2Performance_DecisionValues_History(curclass,ll) = feval(EVALFUNC, labelDicho{curclass}(indDicho{curclass}) , hdx);
@@ -472,8 +474,8 @@ for f=1:ix % Loop through CV2 permutations
                 if MULTI.flag && multiflag,plot(Results.MultiCV2Performance_History,'k+'); end
                 ylim(ha(1),ylm); ylabel(ha(1),ylb); ha(1).YTickLabelMode='auto';
                 ylim(ha(2),ylm); ylabel(ha(2),ylb); ha(2).YTickLabelMode='auto';
-                xlim(ha(1),[1 nCV2]); ha(1).XTickLabelMode='auto';
-                xlim(ha(2),[1 nCV2]); ha(2).XTickLabelMode='auto';
+                xlim(ha(1),[ll_start ll_start+nCV2-1]); ha(1).XTickLabelMode='auto';
+                xlim(ha(2),[ll_start ll_start+nCV2-1]); ha(2).XTickLabelMode='auto';
                 
                 xlabel(ha(2),sprintf('%g/%g [ %3.1f%% ] of CV_2 partitions processed',ll,nCV2,ll*100/nCV2)); 
                 legend(ha(1), lg,'Location','Best'); 
@@ -548,7 +550,7 @@ if ~batchflag
                 Results.CICV2PredictedValues(indnan)=nan;
 
                 Results.ErrCV2PredictedValues = Results.MeanCV2PredictedValues - labelOOCV;
-                if inp.ngroups > 1 & isfield(inp,'groupind')
+                if inp.ngroups > 1 && isfield(inp,'groupind')
                     try
                         [Results.GroupComp.P, Results.GroupComp.AnovaTab, Results.GroupComp.Stats] = ...
                             anova1(Results.ErrCV2PedictedValues,inp.groupind);

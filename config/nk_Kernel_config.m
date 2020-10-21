@@ -110,23 +110,16 @@ switch param.prog
                     'RBF_kernel'};
         kerndesc = kernstr;
         progstr = 'Least squares-SVM (LS-SVM)';
-
-      case {'LIBLIN','kNNMEX', 'GLMFIT','DECTRE','RNDFOR','GLMNET','GRDBST'}
-          
-          kerndesc = {'No Kernel'};
-          kernstr = 'lin';
-          kernnum = 1; 
-          
-    case 'BLOREG'
         
-         kernmenu = ['No Kernel|', ...
+     case 'BLOREG'
+        kernmenu = ['No Kernel|', ...
                      'Linear|'...
                      'Polynomial|', ...
                      'Gaussian'];
                  
-         kernnum = 1:4;
+        kernnum = 1:4;
           
-         kernstr = {'none', ...
+        kernstr = {'none', ...
                     'lin', ...
                     'poly', ...
                     'gauss'};
@@ -136,10 +129,14 @@ switch param.prog
         progstr = 'Sparse Bayesian Logistic Regression';
         
     case 'MEXELM'
-        
         kernnum(1) = 1;
         kernstr = 'lin_elm';
         kerndesc{1} = 'linear';
+    
+    otherwise
+        kerndesc = {'No Kernel'};
+        kernstr = 'lin';
+        kernnum = 1; 
         
 end
 

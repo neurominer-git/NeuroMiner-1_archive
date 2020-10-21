@@ -179,30 +179,9 @@ if nargout >0
         STATS.tbl_crit_posthoc = array2table(mc,'VariableNames',ynames, 'RowNames',ynames');
         STATS.tbl_crit_fdr_posthoc = array2table(mc_nan_fdr,'VariableNames',ynames', 'RowNames',ynames);
         if exist('filename','var') && ~isempty(filename)
-            sh = { 'pp', 'blk', 'Quade', 'Rankdiff', 'Crit', 'P_uncorr','P_fdr' };
-            writetable(STATS.tbl_perf,filename,'Sheet',sh{1},'WriteRowNames',true);
-            writetable(STATS.tbl_blk,filename,'Sheet',sh{2});
-            writetable(STATS.tbl_quade,filename,'Sheet',sh{3});
-            writetable(STATS.tbl_rankdiff_posthoc,filename,'Sheet',sh{4},'WriteRowNames',true)
-            writetable(STATS.tbl_crit_posthoc,filename,'Sheet',sh{5},'WriteRowNames',true)
-            writetable(STATS.tbl_p_posthoc,filename,'Sheet',sh{6},'WriteRowNames',true)
-            writetable(STATS.tbl_p_fdr_posthoc,filename,'Sheet',sh{7},'WriteRowNames',true) 
-            if ispc
-                try
-                    objExcel = actxserver('Excel.Application');
-                    objExcel.Workbooks.Open(filename); 
-                    % MRZ: delte default sheets in freshly created .xls
-                    [~, sheets] = xlsfinfo(filename);
-                    sheetNames2remove = setdiff(sheets,sh); 
-                    for i = 1:numel(sheetNames2remove)
-                        objExcel.ActiveWorkbook.Worksheets.Item(sheetNames2remove{i}).Delete;
-                    end
-                    objExcel.ActiveWorkbook.Save
-                    objExcel.ActiveWorkbook.Close(filename);
-                    delete(objExcel);
-                catch
-                end         
-            end
+            sheetnames = { 'pp', 'blk', 'Quade', 'Rankdiff', 'Crit', 'P_uncorr','P_fdr' };
+            tblnames = { 'tbl_perf', 'tbl_blk', 'tbl_quade', 'tbl_rankdiff_posthoc','tbl_crit_posthoc','tbl_p_posthoc', 'tbl_p_fdr_posthoc'} ;
+            display_writetable(STATS,filename, tblnames, sheetnames)
         end
     end
 else

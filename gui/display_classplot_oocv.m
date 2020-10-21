@@ -37,21 +37,28 @@ labels_known = handles.OOCVinfo.Analyses{handles.curranal}.labels_known(oocvind)
 % Current label
 l=1;
 
+% Determine if we have a multi-class analysis
+if isfield(handles,'MultiClass')
+    P_fld = 'MultiResults';
+else
+    P_fld = 'BinResults';
+end
+
 switch GraphType
     case {1,2,3}
         P_h         = handles.BinClass{h}.mean_predictions;
-        P_oocv_h    = handles.OOCV(oocvind).data.BinResults{l}.MeanCV2PredictedValues{h};
+        P_oocv_h    = handles.OOCV(oocvind).data.(P_fld){l}.MeanCV2PredictedValues{h};
     case 4
         % Majority voting probabilities
         P_h = handles.BinClass{h}.prob_predictions(:,1);
-        P_oocv_h    = handles.OOCV(oocvind).data.BinResults{l}.BinMajVoteProbabilities{h};
+        P_oocv_h    = handles.OOCV(oocvind).data.(P_fld){l}.BinMajVoteProbabilities{h};
     case 5
         % Mean Manjority voting probabilities
         P_h = handles.BinClass{h}.CV2grid.mean_predictions;
-        P_oocv_h    = handles.OOCV(oocvind).data.BinResults{l}.BinMajVoteProbabilities{h};
+        P_oocv_h    = handles.OOCV(oocvind).data.(P_fld){l}.BinMajVoteProbabilities{h};
     case 6
         P_h = handles.BinClass{h}.CV2grid.mean_predictions;
-        P_oocv_h    = handles.OOCV(oocvind).data.BinResults{l}.BinMajVoteProbabilities{h};
+        P_oocv_h    = handles.OOCV(oocvind).data.(P_fld){l}.BinMajVoteProbabilities{h};
 end
 
 % Get subindex if availabel
@@ -95,11 +102,7 @@ handlevecn{2} = dotdensity(3,P_h(id2), ...
 legvecn(2)=1;
 
 if labels_known
-    if isfield(handles.OOCV(oocvind).data,'MultiResults')
-        label_oocv_h = handles.OOCV(oocvind).data.MultiResults{1}.BinLabels{h};
-    else
-        label_oocv_h = handles.OOCV(oocvind).data.BinResults{1}.BinLabels{h};
-    end
+    label_oocv_h = handles.OOCV(oocvind).data.(P_fld){l}.BinLabels{h};
     ind0 =  label_oocv_h ~=0 ; fid0_oocv = find(~label_oocv_h);
     tP_oocv_h = P_oocv_h(ind0 & SubI);
     id1_oocv = label_oocv_h(ind0 & SubI) == 1 & ~isnan(tP_oocv_h) ; fid1_oocv = find(label_oocv_h(ind0 & SubI) == 1);
@@ -114,7 +117,7 @@ if labels_known
      if sum(id1_oocv)
         [handlevecn{3},~,N{1},X{1},Y{1}] = dotdensity( kpos1 ,tP_oocv_h(id1_oocv), ...
             'dotEdgeColor', handles.colptin(handles.BinClass{h}.groupind(1),:), ...
-            'dotFaceColor',handles.colptin(handles.BinClass{h}.groupind(1),:), ...
+            'dotFaceColor', handles.colptin(handles.BinClass{h}.groupind(1),:), ...
             'dotSize',MSoocv, ...
             'dotMarker','o', ...
             'medianLine', 'on');
@@ -140,7 +143,7 @@ if labels_known
     end
 
     if sum(~ind0)
-        [handlevecn{5},~,N{3},X{3},Y{3}] = dotdensity( kpos1 , P_oocv_h(~ind0), ...
+        [handlevecn{5},~,N{3},X{3},Y{3}] = dotdensity( 5 , P_oocv_h(~ind0), ...
             'dotEdgeColor', 'k', ...
             'dotFaceColor', 'k', ...
             'dotSize',MSoocv, ...
@@ -151,7 +154,7 @@ if labels_known
     end
     N=cell2mat(fN');X=cell2mat(X');Y=cell2mat(Y');
 else
-    [handlevecn{5},~,N,X,Y] = dotdensity( kpos1 , P_oocv_h, ...
+    [handlevecn{5},~,N,X,Y] = dotdensity( 2 , P_oocv_h, ...
         'dotEdgeColor', 'k', ...
         'dotFaceColor', 'k', ...
         'dotSize',MSoocv, ...
@@ -211,10 +214,10 @@ else
 end
 legvecn = logical(legvecn);
 LegendStr = { sprintf('Discovery: %s', handles.BinClass{h}.groupnames{1}), ...
-              sprintf('Discovery: %s', handles.BinClass{h}.groupnames{1}), ...
+              sprintf('Discovery: %s', handles.BinClass{h}.groupnames{2}), ...
               sprintf('OOCV: %s', handles.BinClass{h}.groupnames{1}), ...
               sprintf('OOCV: %s', handles.BinClass{h}.groupnames{2}), ...
-              sprintf('OOCV: unlabeled') };
+              'OOCV: unlabeled/not applicable'};
 legendvec = LegendStr(legvecn);
 handlevec = handlevecn(legvecn==1);
 Hvec =[]; for i = 1:numel(handlevec), Hvec = [Hvec handlevec{i}]; end
@@ -295,7 +298,7 @@ switch labels_known
         handles = display_contigmat(handles, contigmat);
 
         %% Display contingency plot
-        handles.h_contig = display_contigplot(handles, confmatrix);
+        handles.h_contig = display_contigplot(handles, confmatrix, handles.BinClass{h}.groupnames);
 
         if sum(ind0)>2 %&& numel(unique(label_oocv_h(ind0)))>1 
             %% Display ROC

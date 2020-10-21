@@ -39,8 +39,8 @@ switch GraphType
         switch GraphType
             case 2
                 % Mean predictions with 95%-CI
-                errbarCI2 = handles.BinClass{h}.CI2_predictions+offs;
-                errbarCI1 = handles.BinClass{h}.CI1_predictions+offs;
+                errbarCI2 = handles.BinClass{h}.CI2_predictions;
+                errbarCI1 = handles.BinClass{h}.CI1_predictions;
                 switch handles.tglSort.Value
                     case 0 
                         L = predh - errbarCI1; U = errbarCI2 - predh;
@@ -73,8 +73,8 @@ switch GraphType
     case 5
         % Cross-CV2 perm majority voting probabilities (95%-CIs)
         predh = handles.BinClass{h}.CV2grid.mean_predictions;
-        errbarCI2 = handles.BinClass{h}.CV2grid.CI2_predictions+offs;
-        errbarCI1 = handles.BinClass{h}.CV2grid.CI1_predictions+offs;
+        errbarCI2 = handles.BinClass{h}.CV2grid.CI2_predictions;
+        errbarCI1 = handles.BinClass{h}.CV2grid.CI1_predictions;
         switch handles.tglSort.Value
             case 0 
                 L = predh - errbarCI1; U = errbarCI2 - predh;
@@ -250,7 +250,7 @@ else
 end
 x2 = plot(lxL(ide2),predh(ide2), '*', 'Color', Color2,'MarkerSize',handles.DataMissMarkerSize,'LineWidth',handles.DataMissMarkerWidth);  
 handlevec = [b,x1,x2];
-legendvec = {handles.BinClass{h}.groupnames{:},'misclassified', 'misclassified'};
+legendvec = [handles.BinClass{h}.groupnames(:)',{'misclassified'}, {'misclassified'}];
 handles.axes1.XTickMode='auto'; 
 handles.axes1.YGrid='off'; 
 handles.axes1.XGrid='off'; 
@@ -388,5 +388,5 @@ handles.cmdExportAxes20.Visible = flg;
 [handles.h1pie, handles.h2pie] = display_piecharts(handles);
 
 %% Display contingency plot
-handles.h_contig = display_contigplot(handles);
+handles.h_contig = display_contigplot(handles, [], handles.BinClass{h}.groupnames);
     
