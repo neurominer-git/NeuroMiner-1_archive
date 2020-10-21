@@ -36,7 +36,7 @@ function [X, L] = nk_CompatY2(NM, varind, oocvind, FUSION)
 % X.threshval       : Threshold (if modality is neuroimaging data)
 % X.threshop        : Threshold operation (if modality is neuroimaging data)
 % %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% (c) Nikolaos Koutsouleris 09/2017
+% (c) Nikolaos Koutsouleris 10/2020
 
 if ~exist('varind','var'), varind=1; end; nM = numel(varind);
 if ~exist('oocvind','var')
@@ -48,7 +48,7 @@ if ~exist('oocvind','var')
        end
    else
        oocvind=[]; 
-   end;
+   end
 end
 if ~exist('FUSION','var') || isempty(FUSION) 
     if nM > 1
@@ -59,6 +59,16 @@ if ~exist('FUSION','var') || isempty(FUSION)
     FUSION.M = varind;
 end
 L = NM.label;
+
+%Load linked OOCV files if needed
+if ~isempty(oocvind) && ischar(NM.OOCV{oocvind}.Y) 
+   if ~exist(NM.OOCV{oocvind}.Y,'file')
+       error('Linked OOCV container not found in expected path: %s',NM.OOCV{oocvind}.Y);
+   end
+   fprintf('\nLoading linked OOCV container: %s',NM.OOCV{oocvind}.Y);
+   load(NM.OOCV{oocvind}.Y);
+   NM.OOCV{oocvind} = OOCV;
+end
 
 switch FUSION.flag
 

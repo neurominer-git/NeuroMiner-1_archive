@@ -59,7 +59,9 @@ fprintf('\n\t============================')
 fprintf('\n')
 for i=1:inp.nummodal
     availstr = 'available';
-    if ~isfield(NM.(inp.fldnam){inp.oocvind},'Y') || i > numel(NM.(inp.fldnam){inp.oocvind}.Y) || isempty(NM.(inp.fldnam){inp.oocvind}.Y{i})
+    if isfield(NM.(inp.fldnam){inp.oocvind},'Y') && ischar(NM.(inp.fldnam){inp.oocvind}.Y)
+        availstr = 'linked';
+    elseif ~isfield(NM.(inp.fldnam){inp.oocvind},'Y')  || i > numel(NM.(inp.fldnam){inp.oocvind}.Y) || isempty(NM.(inp.fldnam){inp.oocvind}.Y{i})
         availstr = 'not loaded';
     end
     str = sprintf('Modality %g [ %s ]: ', i, NM.datadescriptor{i}.desc);
@@ -71,6 +73,8 @@ for i=1:inp.nummodal
     end
     if strcmp(availstr,'available')
         cprintf([curstr 'green'], '%s ', availstr);
+    elseif strcmp(availstr,'linked')
+        cprintf([curstr 'blue'], '%s [ %s ] ', availstr, NM.(inp.fldnam){inp.oocvind}.Y);
     else
         cprintf([curstr 'red'], '%s ', availstr);
     end   
@@ -87,12 +91,30 @@ else
     mnusel = 2:3;
 end
 
+if isfield(NM.(inp.fldnam){inp.oocvind},'Y') && ~isempty(NM.(inp.fldnam){inp.oocvind}.Y)
+    if ~ischar(NM.(inp.fldnam){inp.oocvind}.Y)
+        mnuact = [mnuact '|Export OOCV data container to file and create link in NM structure|Replace OOCV data container with link to file'];
+        mnusel = [mnusel  4 5];
+    else
+        mnuact = [mnuact '|Update OOCV data link '];
+        mnusel = [mnusel  4];
+        if exist(NM.(inp.fldnam){inp.oocvind}.Y,'file')
+            mnuact = [mnuact '|Re-import OOCV data from file into NM structure'];
+            mnusel = [mnusel  6];
+        end
+    end
+else
+    mnuact = [mnuact '|Fill OOCV data container with link to file'];
+    mnusel = [mnusel 5];
+end
+
 if inp.covflag && isfield(NM.(inp.fldnam){inp.oocvind},'Y') && NM.(inp.fldnam){inp.oocvind}.n_subjects_all>0
     if isfield(NM.(inp.fldnam){inp.oocvind},'covars')
-        mnuact = [ mnuact '|Modify covariate data' ]; mnusel = [mnusel 4];   
+        mnuact = [ mnuact '|Modify covariate data' ];    
     else
-        mnuact = [ mnuact '|Add covariate data' ]; mnusel = [mnusel 4];   
+        mnuact = [ mnuact '|Add covariate data' ];   
     end
+    mnusel = [mnusel 7];
 end
 
 act = nk_input(sprintf('Select action for OOCV container %s',inp.desc),0,'mq',mnuact,mnusel);
@@ -108,9 +130,45 @@ switch act
         NM = ClearOOCVModality(inp, NM);
         if ~isfield(NM.(inp.fldnam){inp.oocvind},'Y'), act = 0; end
     case 4
+        NM = LinkOOCV2Disk(inp, NM, 'export&link');
+    case 5
+        NM = LinkOOCV2Disk(inp, NM, 'replacelink');
+    case 6
+        NM = ReimportOOCVfromDisk(inp, NM);
+    case 7
         % Don't forget the covariates if they are present in the discovery data
         NM.(inp.fldnam){inp.oocvind}.covars = nk_DefineCovars_config(NM.(inp.fldnam){inp.oocvind}.n_subjects_all, NM.covars); 
 end
+
+% _________________________________________________________________________
+function NM = ReimportOOCVfromDisk(inp, NM)
+
+fprintf('\nRe-importing linked OOCV container into NM: %s',NM.(inp.fldnam){inp.oocvind}.Y);
+load(NM.(inp.fldnam){inp.oocvind}.Y);
+NM.(inp.fldnam){inp.oocvind} = OOCV;
+
+% _________________________________________________________________________
+function NM = LinkOOCV2Disk(inp, NM, act)
+OOCV = NM.(inp.fldnam){inp.oocvind};
+switch act
+    case 'export&link'
+        [filename, pathname] = uiputfile({'.mat'},'Save OOCV container to disk');
+        if isempty(filename), return, end
+        pth = fullfile(pathname, filename);
+        try
+            save(pth, 'OOCV');
+        catch
+            save(pth, 'OOCV', '-v7.3');
+        end
+    case 'replacelink'
+        [filename, pathname] = uigetfile({'.mat'},'Link OOCV container to OOCV file on disk');
+        pth = fullfile(pathname, filename);
+        if ~isfield(OOCV,'Y') || isempty(OOCV.Y)
+            load(pth)
+            NM.(inp.fldnam){inp.oocvind} = OOCV;
+        end
+end
+NM.(inp.fldnam){inp.oocvind}.Y = pth;
 
 % _________________________________________________________________________
 function NM  = InputOOCVModality(inp, NM, Y, parentstr)

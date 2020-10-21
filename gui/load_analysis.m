@@ -21,26 +21,15 @@ for i = 1:nVarIn
     elseif strcmpi(varargin{i}, 'Visdata')
     
         vis = varargin{i+1};
-        if ~isempty( vis  ) 
-            if numel( vis )>1
-                for n=1:numel( vis )
-                    try
-                        handles.visdata{n} = vis{n}{1};
-                    catch
-                        handles.visdata{n} = vis{n};
-                    end
-                    handles.visdata_table(n) = create_visdata_tables(handles.visdata{n}, [], [], 'create');
-                end
-            else
-                for n=1:numel( vis{1} )
-                    try
-                        handles.visdata{n} = vis{1}{n};
-                    catch
-                        handles.visdata{n} = vis{n};
-                    end
-                    handles.visdata_table(n) = create_visdata_tables(handles.visdata{n}, [], [], 'create');
+        if ~isempty( vis  )
+            nL = numel(vis);
+            nM = numel(vis{1});
+            for n=1:nL
+                for m=1:nM
+                    handles.visdata_table(n, m) = create_visdata_tables(vis{n}{m}, [], [], 'create');
                 end
             end
+            handles.visdata = vis;
         end
         
     elseif strcmpi(varargin{i}, 'OOCVdata')

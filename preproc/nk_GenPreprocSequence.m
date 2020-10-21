@@ -302,7 +302,7 @@ if isfield(TemplParam,'ACTPARAM')
                             if TemplParam.BINMOD
                                 InputParam.P{ac}.DR.labels = SrcParam.BinaryTrainLabel;
                             else
-                                InputParam.P{ac}.DR.labels = SrcParam.oMultiTrainLabel;
+                                InputParam.P{ac}.DR.labels = SrcParam.MultiTrainLabel;
                             end
                         case 'regression'
                             InputParam.P{ac}.DR.labels = SrcParam.TrainLabel;

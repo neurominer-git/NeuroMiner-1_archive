@@ -124,7 +124,7 @@ BINMOD = iPREPROC.BINMOD;
 
 CVPOS.fFull = FullPartFlag;
 
-FileNames = cell(ix,jx);
+FileNames = cell(ix,jx); fnd=false;
 % =========================================================================
 for f=1:ix % Loop through CV2 permutations
 
@@ -135,8 +135,10 @@ for f=1:ix % Loop through CV2 permutations
             ll=ll+1;
             fprintf('\nSkipping CV2 [%g,%g] (user-defined).',f,d)
             continue 
-        end;
-        
+        end
+        if ~fnd, 
+            ll_start=ll; fnd=true; 
+        end
         CVPOS.CV2p = f;
         CVPOS.CV2f = d;
         
@@ -472,8 +474,8 @@ for f=1:ix % Loop through CV2 permutations
                 if MULTI.flag && multiflag,plot(Results.MultiCV2Performance_History,'k+'); end
                 ylim(ha(1),ylm); ylabel(ha(1),ylb); ha(1).YTickLabelMode='auto';
                 ylim(ha(2),ylm); ylabel(ha(2),ylb); ha(2).YTickLabelMode='auto';
-                xlim(ha(1),[1 nCV2]); ha(1).XTickLabelMode='auto';
-                xlim(ha(2),[1 nCV2]); ha(2).XTickLabelMode='auto';
+                xlim(ha(1),[ll_start ll_start+nCV2-1]); ha(1).XTickLabelMode='auto';
+                xlim(ha(2),[ll_start ll_start+nCV2-1]); ha(2).XTickLabelMode='auto';
                 
                 xlabel(ha(2),sprintf('%g/%g [ %3.1f%% ] of CV_2 partitions processed',ll,nCV2,ll*100/nCV2)); 
                 legend(ha(1), lg,'Location','Best'); 

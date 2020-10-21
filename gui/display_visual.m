@@ -14,7 +14,7 @@ sortfl = get(handles.tglSortFeat,'Value');
 axes(handles.axes33); cla; hold on
 set(handles.axes33,'TickLabelInterpreter','none')
 
-v = handles.visdata{varind};
+v = handles.visdata{handles.curlabel}{varind};
 if v.params.visflag == 1
     featind = 1:v.params.nfeats;
 else
@@ -482,7 +482,7 @@ if  ~strcmp(meas{measind},'Model P value histogram')
                 xlim([miny maxy]);
             end
            
-            handles.visdata_table = create_visdata_tables(v, handles.visdata_table, ind, 'reorder');
+            handles.visdata_table(handles.curlabel, handles.curmodal) = create_visdata_tables(v, handles.visdata_table(handles.curlabel, handles.curmodal), ind, 'reorder');
     end
 end
 guidata(handles.figure1, handles);

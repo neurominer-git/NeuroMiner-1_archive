@@ -8,8 +8,8 @@ else
 end
 varind = get(handles.selModality,'Value');
 
-if handles.visdata{varind}.params.visflag ~= 1 && ~multiflag
-    nfeats = handles.visdata{varind}.params.nfeats;
+if handles.visdata{handles.curlabel}{varind}.params.visflag ~= 1 && ~multiflag
+    nfeats = handles.visdata{handles.curlabel}{varind}.params.nfeats;
     if nfeats > perpage
         vec = 1:perpage:nfeats;
         if vec(end) < nfeats, vec(end+1) = nfeats; end

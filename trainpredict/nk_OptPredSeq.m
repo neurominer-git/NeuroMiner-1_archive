@@ -30,7 +30,7 @@ function [ IN, optD, optCrit ] = nk_OptPredSeq(D, L, PredGroups, IN, C, nCutOff,
 % Lims [opt]:    Lower [ Lims(1) ] and upper [ Lims(2) ] percentile 
 %                threshold bounds
 % Crit [opt] :   The optimization criterion such as BAC
-% Ddesc [opt] :  a description of the nodes in the prediction sequence
+% NM [opt] :  a description of the nodes in the prediction sequence
 %
 % Outputs:
 % --------

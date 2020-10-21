@@ -34,76 +34,63 @@ function [PerfPermFoldCV, PerfPermFoldTS, models] = nk_CVPermFold(Y, nclass, ngr
 global RFE MULTILABEL BATCH CV
 
 if ( ~exist('batchflag','var') || isempty(batchflag)) || isempty(BATCH), batchflag = false; BATCH = false; end;
-if MULTILABEL.flag
-    nl = MULTILABEL.dim;
+
+curlabel = MULTILABEL.curdim;
+
+% Step 1: Train classifier(s) in current outer partition
+tPerfPermFoldCV = nk_TrainPermFold2(Y, nclass, ngroups, Ps, FilterSubSets{curlabel}, batchflag);
+
+weights = []; detrendmd = [];
+
+% Step 2: Get the trained models
+if RFE.Wrapper.flag
+
+    % Some wrapper algorithm was applied for feature extraction
+    models  = tPerfPermFoldCV.Wrapper.Models;
+    feats   = tPerfPermFoldCV.Wrapper.SubSpaces;
+    if RFE.Wrapper.SubSpaceFlag,
+        weights = tPerfPermFoldCV.Wrapper.Weights;
+    end
+
+    if isfield(tPerfPermFoldCV.Wrapper,'detrend')
+        detrendmd = tPerfPermFoldCV.Wrapper.detrend;
+    end
+
+else%if RFE.Filter.flag
+
+    % Ok, only filtering was applied 
+    models  = tPerfPermFoldCV.Filter.Models;
+    feats   = tPerfPermFoldCV.Filter.SubSpaces;
+    if RFE.Filter.SubSpaceFlag,
+        weights = tPerfPermFoldCV.Filter.Weights;
+    end
+    if isfield(tPerfPermFoldCV.Filter,'detrend')
+        detrendmd = tPerfPermFoldCV.Filter.detrend;
+    end
+end
+
+% Step 3: Now apply the trained model(s) to the CV2 test data
+if ~isfield(Y,'mTsL'), mTsL = []; else mTsL = Y.mTsL; end
+
+tPerfPermFoldTS = nk_PredictData(feats, weights, Y.Tr, Y.TrInd, Y.TrL, ...
+                                                Y.CV, Y.CVInd, Y.CVL, ...
+                                                Y.Ts, Y.TsInd, Y.TsL, ...
+                                                [], mTsL, models, ngroups, detrendmd);
+
+if MULTILABEL.dim>1
+   PerfPermFoldCV{curlabel} = tPerfPermFoldCV; 
+   PerfPermFoldTS{curlabel} = tPerfPermFoldTS; 
+   if ~isempty(detrendmd)
+        PerfPermFoldCV{curlabel}.detrend = detrendmd;
+   end
 else
-    nl = 1;
-end
-TCV = CV;
-
-% Loop through labels
-for curlabel=1:nl
-    
-    MULTILABEL.curdim = curlabel; 
-    if numel(TCV)>1, CV = TCV(curlabel); end
-    if nl>1, fprintf('\n\n');cprintf('*black','====== Working on label #%g ====== ',curlabel);end
-    % Step 1: Train classifier(s) in current outer partition
-    tPerfPermFoldCV = nk_TrainPermFold2(Y, nclass, ngroups, Ps, FilterSubSets{curlabel}, batchflag);
-
-    weights = []; detrendmd = [];
-
-    % Step 2: Get the trained models
-    if RFE.Wrapper.flag
-
-        % Some wrapper algorithm was applied for feature extraction
-        models  = tPerfPermFoldCV.Wrapper.Models;
-        feats   = tPerfPermFoldCV.Wrapper.SubSpaces;
-        if RFE.Wrapper.SubSpaceFlag,
-            weights = tPerfPermFoldCV.Wrapper.Weights;
-        end
-
-        if isfield(tPerfPermFoldCV.Wrapper,'detrend')
-            detrendmd = tPerfPermFoldCV.Wrapper.detrend;
-        end
-
-    else%if RFE.Filter.flag
-
-        % Ok, only filtering was applied 
-        models  = tPerfPermFoldCV.Filter.Models;
-        feats   = tPerfPermFoldCV.Filter.SubSpaces;
-        if RFE.Filter.SubSpaceFlag,
-            weights = tPerfPermFoldCV.Filter.Weights;
-        end
-        if isfield(tPerfPermFoldCV.Filter,'detrend')
-            detrendmd = tPerfPermFoldCV.Filter.detrend;
-        end
-    end
-
-    % Step 3: Now apply the trained model(s) to the CV2 test data
-    if ~isfield(Y,'mTsL'), mTsL = []; else mTsL = Y.mTsL; end
- 
-    tPerfPermFoldTS = nk_PredictData(feats, weights, Y.Tr, Y.TrInd, Y.TrL, ...
-                                                    Y.CV, Y.CVInd, Y.CVL, ...
-                                                    Y.Ts, Y.TsInd, Y.TsL, ...
-                                                    [], mTsL, models, ngroups, detrendmd);
-    
-    if nl>1
-       PerfPermFoldCV{curlabel} = tPerfPermFoldCV; 
-       PerfPermFoldTS{curlabel} = tPerfPermFoldTS; 
-       if ~isempty(detrendmd)
-            PerfPermFoldCV{curlabel}.detrend = detrendmd;
-       end
-    else
-       PerfPermFoldCV = tPerfPermFoldCV; 
-       PerfPermFoldTS = tPerfPermFoldTS; 
-       if ~isempty(detrendmd)
-            PerfPermFoldCV.detrend = detrendmd;
-       end
-    end
+   PerfPermFoldCV = tPerfPermFoldCV; 
+   PerfPermFoldTS = tPerfPermFoldTS; 
+   if ~isempty(detrendmd)
+        PerfPermFoldCV.detrend = detrendmd;
+   end
 end
 
-MULTILABEL.curdim=1;
-CV = TCV;
 
-return
+
 
